@@ -59,3 +59,43 @@
 }
 
 .step-upload__table tbody tr:last-child td { border-bottom: none; }
+
+.step-upload__pdf-ready {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border: 2px solid #F5DEC8;
+  border-radius: var(--radius-xl);
+  background: #FFFAF5;
+  flex-wrap: wrap;
+}
+
+.step-upload__pdf-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: #FEF0E6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-upload__pdf-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.step-upload__pdf-info p { margin: 0; }
+
+.step-upload__pdf-loading {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 32px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.step-upload__pdf-loading p { margin: 0; }

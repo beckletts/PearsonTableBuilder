@@ -1,21 +1,38 @@
 import { useRef, useState } from 'react';
+import { supabase } from '../../lib/supabase';
 import { parseFile } from '../../utils/parseFile';
-import type { ParsedFile } from '../../lib/types';
+import type { ParsedFile, TableConfig } from '../../lib/types';
 import './StepUpload.css';
 
+const PDF_MAX_BYTES = 4 * 1024 * 1024; // 4 MB — keeps base64 payload under Netlify's 6 MB limit
+
 interface Props {
-  onParsed: (data: ParsedFile) => void;
+  onParsed: (data: ParsedFile, config?: TableConfig) => void;
 }
 
 export default function StepUpload({ onParsed }: Props) {
-  const [dragging, setDragging] = useState(false);
-  const [error, setError] = useState('');
-  const [parsing, setParsing] = useState(false);
-  const [preview, setPreview] = useState<ParsedFile | null>(null);
+  const [dragging, setDragging]     = useState(false);
+  const [error, setError]           = useState('');
+  const [parsing, setParsing]       = useState(false);
+  const [pdfFile, setPdfFile]       = useState<File | null>(null);
+  const [analysing, setAnalysing]   = useState(false);
+  const [preview, setPreview]       = useState<ParsedFile | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
     setError('');
+    setPreview(null);
+    setPdfFile(null);
+
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      if (file.size > PDF_MAX_BYTES) {
+        setError('PDF must be under 4 MB. Try splitting it into smaller sections.');
+        return;
+      }
+      setPdfFile(file);
+      return;
+    }
+
     setParsing(true);
     try {
       const parsed = await parseFile(file);
@@ -33,41 +50,111 @@ export default function StepUpload({ onParsed }: Props) {
     e.preventDefault();
     setDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    if (file) void handleFile(file);
   };
+
+  const analysePdf = async () => {
+    if (!pdfFile) return;
+    setAnalysing(true);
+    setError('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Session expired — please refresh and log in again.');
+
+      const arrayBuffer = await pdfFile.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+      const res = await fetch('/api/parse-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ pdfBase64: base64 }),
+      });
+
+      const data = await res.json() as { config?: TableConfig; rows?: Record<string, string>[]; error?: string };
+      if (!res.ok || data.error) throw new Error(data.error ?? 'Failed to extract data from PDF.');
+      if (!data.config || !data.rows?.length) throw new Error('No table data found in this PDF.');
+
+      const parsed: ParsedFile = {
+        headers: data.config.columns.map((c) => c.key),
+        rows: data.rows,
+      };
+      onParsed(parsed, data.config);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to analyse PDF.');
+    } finally {
+      setAnalysing(false);
+    }
+  };
+
+  const dropZone = (
+    <div
+      className={`step-upload__zone ${dragging ? 'step-upload__zone--drag' : ''}`}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+      onClick={() => inputRef.current?.click()}
+    >
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="1.5">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="17 8 12 3 7 8" />
+        <line x1="12" y1="3" x2="12" y2="15" />
+      </svg>
+      <p className="font-600" style={{ marginTop: 12 }}>Drop your file here, or click to browse</p>
+      <p className="text-sm text-muted" style={{ marginTop: 4 }}>CSV · XLSX · XLS · PDF</p>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".csv,.xlsx,.xls,.pdf"
+        style={{ display: 'none' }}
+        onChange={(e) => { if (e.target.files?.[0]) void handleFile(e.target.files[0]); }}
+      />
+    </div>
+  );
 
   return (
     <div className="step-upload">
-      <h2 className="step-upload__heading">Upload your spreadsheet</h2>
+      <h2 className="step-upload__heading">Upload your data</h2>
       <p className="text-soft" style={{ marginBottom: 20 }}>
-        Supports CSV, XLSX, and XLS files. Sample data will be sent to AI for analysis — avoid uploading files containing sensitive personal data.
+        Supports CSV, XLSX, XLS, and PDF files. Sample data is sent to AI for analysis — avoid uploading files containing sensitive personal data.
       </p>
 
-      {!preview && (
-        <div
-          className={`step-upload__zone ${dragging ? 'step-upload__zone--drag' : ''}`}
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={handleDrop}
-          onClick={() => inputRef.current?.click()}
-        >
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="1.5">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
-          <p className="font-600" style={{ marginTop: 12 }}>Drop your file here, or click to browse</p>
-          <p className="text-sm text-muted" style={{ marginTop: 4 }}>CSV · XLSX · XLS</p>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            style={{ display: 'none' }}
-            onChange={(e) => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }}
-          />
+      {/* ── PDF selected ── */}
+      {pdfFile && !analysing && (
+        <div className="step-upload__pdf-ready">
+          <div className="step-upload__pdf-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E8610A" strokeWidth="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="9" y1="15" x2="15" y2="15"/>
+              <line x1="9" y1="11" x2="15" y2="11"/>
+            </svg>
+          </div>
+          <div className="step-upload__pdf-info">
+            <p className="font-600">{pdfFile.name}</p>
+            <p className="text-sm text-muted">{(pdfFile.size / 1024).toFixed(0)} KB · Claude will extract the table data</p>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => { setPdfFile(null); setError(''); }}>Change</button>
+            <button className="btn btn-primary" onClick={() => void analysePdf()}>Analyse PDF with AI →</button>
+          </div>
         </div>
       )}
 
+      {/* ── PDF analysing ── */}
+      {analysing && (
+        <div className="step-upload__pdf-loading">
+          <div className="spinner spinner-lg" />
+          <div>
+            <p className="font-600">Reading PDF with AI…</p>
+            <p className="text-sm text-muted mt-4">Extracting table data — this may take 15–30 seconds</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Spreadsheet drop zone ── */}
+      {!pdfFile && !preview && !analysing && dropZone}
+
+      {/* ── Spreadsheet parsing ── */}
       {parsing && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 0' }}>
           <div className="spinner" />
@@ -77,6 +164,7 @@ export default function StepUpload({ onParsed }: Props) {
 
       {error && <p className="error-msg mt-12">{error}</p>}
 
+      {/* ── Spreadsheet preview ── */}
       {preview && (
         <div className="step-upload__preview">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -96,15 +184,11 @@ export default function StepUpload({ onParsed }: Props) {
           <div className="step-upload__table-scroll">
             <table className="step-upload__table">
               <thead>
-                <tr>
-                  {preview.headers.map((h) => <th key={h}>{h}</th>)}
-                </tr>
+                <tr>{preview.headers.map((h) => <th key={h}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {preview.rows.slice(0, 5).map((row, i) => (
-                  <tr key={i}>
-                    {preview.headers.map((h) => <td key={h}>{row[h] ?? ''}</td>)}
-                  </tr>
+                  <tr key={i}>{preview.headers.map((h) => <td key={h}>{row[h] ?? ''}</td>)}</tr>
                 ))}
               </tbody>
             </table>

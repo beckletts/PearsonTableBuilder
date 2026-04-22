@@ -44,7 +44,11 @@ export default function BuilderNewPage() {
 
         <div className="builder-page__content card">
           {step === 'upload' && (
-            <StepUpload onParsed={(data) => { setParsed(data); setStep('ai'); }} />
+            <StepUpload onParsed={(data, cfg) => {
+              setParsed(data);
+              if (cfg) { setConfig(cfg); setStep('customise'); }
+              else setStep('ai');
+            }} />
           )}
           {step === 'ai' && parsed && (
             <StepAIConfig
