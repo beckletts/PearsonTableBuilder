@@ -9,6 +9,27 @@ export interface ColumnConfig {
   type: ColumnType;
 }
 
+// ── Widgets ──────────────────────────────────────────────────────────────────
+
+export type WidgetType = 'intro_banner' | 'callout_box' | 'stat_cards' | 'card_view' | 'footer_note';
+
+export interface IntroBannerConfig { heading: string; subtitle: string; }
+export interface CalloutBoxConfig  { text: string; }
+export interface StatConfig        { label: string; type: 'total_rows' | 'unique_values'; column?: string; }
+export interface StatCardsConfig   { stats: StatConfig[]; }
+export interface CardViewConfig    { titleColumn: string; subtitleColumn?: string; badgeColumns?: string[]; linkColumn?: string; descriptionColumn?: string; }
+export interface FooterNoteConfig  { text: string; showCount: boolean; }
+
+export type WidgetConfig = IntroBannerConfig | CalloutBoxConfig | StatCardsConfig | CardViewConfig | FooterNoteConfig;
+
+export interface Widget {
+  id: string;
+  type: WidgetType;
+  config: WidgetConfig;
+}
+
+// ── Table config ─────────────────────────────────────────────────────────────
+
 export interface TableConfig {
   title: string;
   description: string;
@@ -18,6 +39,7 @@ export interface TableConfig {
     column: string;
     direction: 'asc' | 'desc';
   };
+  widgets?: Widget[];
 }
 
 export interface TableRecord {

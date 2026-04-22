@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { generateUniqueSlug } from '../../utils/generateSlug';
-import type { ColumnConfig, ParsedFile, TableConfig } from '../../lib/types';
+import type { ColumnConfig, ParsedFile, TableConfig, Widget } from '../../lib/types';
 import ColumnEditor from './ColumnEditor';
+import WidgetBuilder from './WidgetBuilder';
 import InteractiveTable from '../table/InteractiveTable';
 import './StepCustomise.css';
 
@@ -38,6 +39,8 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
       return { ...c, columns: cols };
     });
   };
+
+  const updateWidgets = (widgets: Widget[]) => setConfig((c) => ({ ...c, widgets }));
 
   const save = async (publish: boolean) => {
     setSaving(true);
@@ -124,6 +127,8 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
               <ColumnEditor key={col.key} column={col} onChange={(u) => updateColumn(i, u)} />
             ))}
           </div>
+
+          <WidgetBuilder config={config} parsed={parsed} onChange={updateWidgets} />
 
           {error && <p className="error-msg mt-16">{error}</p>}
 
