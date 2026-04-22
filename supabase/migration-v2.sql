@@ -8,13 +8,21 @@ alter table public.tables
 
 create index if not exists tables_tab_group_idx on public.tables (tab_group_id);
 
+-- Helper: checks whether a parent table is published without triggering RLS
+-- (SECURITY DEFINER breaks the self-referential policy recursion)
+create or replace function public.is_parent_table_published(parent_id uuid)
+returns boolean language sql security definer stable as $$
+  select exists (
+    select 1 from public.tables
+    where id = parent_id and is_published = true
+  );
+$$;
+
 -- Secondary tabs in a published group are publicly readable
 create policy "tables_tab_public_select" on public.tables
   for select using (
-    tab_group_id is not null and exists (
-      select 1 from public.tables p
-      where p.id = tables.tab_group_id and p.is_published = true
-    )
+    tab_group_id is not null
+    and public.is_parent_table_published(tab_group_id)
   );
 
 create policy "table_rows_tab_public_select" on public.table_rows
@@ -23,10 +31,7 @@ create policy "table_rows_tab_public_select" on public.table_rows
       select 1 from public.tables t
       where t.id = table_rows.table_id
         and t.tab_group_id is not null
-        and exists (
-          select 1 from public.tables p
-          where p.id = t.tab_group_id and p.is_published = true
-        )
+        and public.is_parent_table_published(t.tab_group_id)
     )
   );
 
