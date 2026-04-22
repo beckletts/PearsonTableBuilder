@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import type { TableRecord } from '../lib/types';
 import PearsonNav from '../components/layout/PearsonNav';
 import TableCard from '../components/dashboard/TableCard';
+import TabGroupCard from '../components/dashboard/TabGroupCard';
 import './DashboardPage.css';
 
 interface Props { user: User }
@@ -42,6 +43,17 @@ export default function DashboardPage({ user }: Props) {
 
   useEffect(() => { void load(); }, [user.id]);
 
+  // Group owned tables: primaries (no tab_group_id) + their secondary tabs
+  const primaryTables = tables.filter((t) => !t.tab_group_id);
+  const secondaryTabs = tables.filter((t) => !!t.tab_group_id);
+
+  const tableGroups = primaryTables.map((primary) => ({
+    primary,
+    tabs: secondaryTabs
+      .filter((t) => t.tab_group_id === primary.id)
+      .sort((a, b) => a.tab_order - b.tab_order),
+  }));
+
   return (
     <div>
       <PearsonNav user={user} />
@@ -63,7 +75,7 @@ export default function DashboardPage({ user }: Props) {
           </div>
         )}
 
-        {!loading && tables.length === 0 && sharedTables.length === 0 && (
+        {!loading && tableGroups.length === 0 && sharedTables.length === 0 && (
           <div className="dashboard__empty card">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.2">
               <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -75,11 +87,13 @@ export default function DashboardPage({ user }: Props) {
           </div>
         )}
 
-        {!loading && tables.length > 0 && (
+        {!loading && tableGroups.length > 0 && (
           <div className="dashboard__grid">
-            {tables.map((t) => (
-              <TableCard key={t.id} table={t} isOwner={true} onUpdate={() => void load()} />
-            ))}
+            {tableGroups.map(({ primary, tabs }) =>
+              tabs.length > 0
+                ? <TabGroupCard key={primary.id} primary={primary} tabs={tabs} onUpdate={() => void load()} />
+                : <TableCard key={primary.id} table={primary} isOwner={true} onUpdate={() => void load()} />
+            )}
           </div>
         )}
 

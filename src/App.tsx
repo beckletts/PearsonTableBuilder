@@ -44,12 +44,12 @@ export default function App() {
         } />
         <Route path="/builder/new" element={
           <ProtectedRoute user={user}>
-            <BuilderNewPage />
+            <BuilderNewPage user={user!} />
           </ProtectedRoute>
         } />
         <Route path="/builder/:id" element={
           <ProtectedRoute user={user}>
-            <BuilderEditPage />
+            <BuilderEditPage user={user!} />
           </ProtectedRoute>
         } />
 

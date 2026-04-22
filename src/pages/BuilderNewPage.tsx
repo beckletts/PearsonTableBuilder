@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import type { User } from '@supabase/supabase-js';
 import PearsonNav from '../components/layout/PearsonNav';
 import StepUpload from '../components/builder/StepUpload';
 import StepAIConfig from '../components/builder/StepAIConfig';
@@ -11,7 +12,9 @@ type Step = 'upload' | 'ai' | 'customise';
 
 const STEPS = ['Upload', 'AI analysis', 'Customise'];
 
-export default function BuilderNewPage() {
+interface Props { user: User }
+
+export default function BuilderNewPage({ user }: Props) {
   const [searchParams] = useSearchParams();
   const groupId = searchParams.get('groupId') ?? undefined;
   const tabOrder = Number(searchParams.get('tabOrder') ?? 1);
@@ -24,7 +27,7 @@ export default function BuilderNewPage() {
 
   return (
     <div>
-      <PearsonNav />
+      <PearsonNav user={user} />
       <main className="builder-page">
         {groupId && (
           <div style={{ marginBottom: 16 }}>

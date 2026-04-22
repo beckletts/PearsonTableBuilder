@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import PearsonNav from '../components/layout/PearsonNav';
 import StepCustomise from '../components/builder/StepCustomise';
@@ -11,7 +12,9 @@ import './BuilderEditPage.css';
 
 type Tab = 'configure' | 'data';
 
-export default function BuilderEditPage() {
+interface Props { user: User }
+
+export default function BuilderEditPage({ user }: Props) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [table, setTable] = useState<TableRecord | null>(null);
@@ -38,7 +41,7 @@ export default function BuilderEditPage() {
 
   if (loading) return (
     <div>
-      <PearsonNav />
+      <PearsonNav user={user} />
       <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
         <div className="spinner spinner-lg" />
       </div>
@@ -47,7 +50,7 @@ export default function BuilderEditPage() {
 
   if (error || !table) return (
     <div>
-      <PearsonNav />
+      <PearsonNav user={user} />
       <div style={{ maxWidth: 600, margin: '80px auto', padding: '0 24px' }}>
         <p className="error-msg">{error || 'Table not found.'}</p>
         <button className="btn btn-secondary mt-16" onClick={() => navigate('/dashboard')}>← Dashboard</button>
@@ -65,7 +68,7 @@ export default function BuilderEditPage() {
 
   return (
     <div>
-      <PearsonNav />
+      <PearsonNav user={user} />
       <main className="builder-page">
         <div className="builder-edit__header">
           <button className="btn btn-ghost btn-sm" onClick={() => navigate('/dashboard')}>← Dashboard</button>
