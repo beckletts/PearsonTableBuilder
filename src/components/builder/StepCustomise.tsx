@@ -22,7 +22,7 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
   const [config, setConfig] = useState<TableConfig>(initialConfig);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [preview, setPreview] = useState(false);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
 
   const previewRows = parsed.rows.map((r, i) => ({
     id: String(i),
@@ -36,6 +36,16 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
     setConfig((c) => {
       const cols = [...c.columns];
       cols[i] = updated;
+      return { ...c, columns: cols };
+    });
+  };
+
+  const reorderColumns = (fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx) return;
+    setConfig((c) => {
+      const cols = [...c.columns];
+      const [moved] = cols.splice(fromIdx, 1);
+      cols.splice(toIdx, 0, moved);
       return { ...c, columns: cols };
     });
   };
@@ -119,12 +129,23 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <p className="text-sm font-600 text-soft">Columns</p>
+            <p className="text-sm font-600 text-soft">Columns <span className="text-muted font-600" style={{ fontSize: 11 }}>— drag to reorder</span></p>
             <p className="text-xs text-muted">{config.columns.filter((c) => c.visible).length} visible</p>
           </div>
           <div className="step-customise__cols">
             {config.columns.map((col, i) => (
-              <ColumnEditor key={col.key} column={col} onChange={(u) => updateColumn(i, u)} />
+              <ColumnEditor
+                key={col.key}
+                column={col}
+                onChange={(u) => updateColumn(i, u)}
+                isDragging={dragIdx === i}
+                onDragStart={() => setDragIdx(i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  if (dragIdx !== null) reorderColumns(dragIdx, i);
+                  setDragIdx(null);
+                }}
+              />
             ))}
           </div>
 
@@ -134,9 +155,6 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
 
           <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={onBack} disabled={saving}>← Back</button>
-            <button className="btn btn-secondary" onClick={() => setPreview((p) => !p)} disabled={saving}>
-              {preview ? 'Hide preview' : 'Preview table'}
-            </button>
             <button className="btn btn-secondary" onClick={() => save(false)} disabled={saving}>
               {saving ? 'Saving…' : 'Save draft'}
             </button>
@@ -146,14 +164,12 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
           </div>
         </div>
 
-        {preview && (
-          <div className="step-customise__preview">
-            <div style={{ padding: 24 }}>
-              <p className="text-sm font-600 text-soft" style={{ marginBottom: 12 }}>Live preview</p>
-              <InteractiveTable config={config} rows={previewRows} />
-            </div>
+        <div className="step-customise__preview">
+          <div style={{ padding: 24 }}>
+            <p className="text-sm font-600 text-soft" style={{ marginBottom: 12 }}>Live preview</p>
+            <InteractiveTable config={config} rows={previewRows} />
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

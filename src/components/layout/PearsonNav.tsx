@@ -30,7 +30,12 @@ export default function PearsonNav({ user }: Props) {
         <div className="pearson-nav__right">
           {user ? (
             <>
-              <span className="pearson-nav__email">{user.email}</span>
+              <div className="pearson-nav__user">
+                <div className="pearson-nav__avatar">
+                  {user.email?.charAt(0).toUpperCase() ?? '?'}
+                </div>
+                <span className="pearson-nav__email">{user.email}</span>
+              </div>
               <button className="btn btn-secondary btn-sm" onClick={handleSignOut}>
                 Sign out
               </button>

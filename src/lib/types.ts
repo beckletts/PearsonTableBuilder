@@ -1,4 +1,4 @@
-export type ColumnType = 'text' | 'number' | 'url' | 'badge';
+export type ColumnType = 'text' | 'number' | 'url' | 'badge' | 'date';
 
 export interface ColumnConfig {
   key: string;

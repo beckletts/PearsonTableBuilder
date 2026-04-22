@@ -4,22 +4,34 @@ import './ColumnEditor.css';
 interface Props {
   column: ColumnConfig;
   onChange: (updated: ColumnConfig) => void;
+  onDragStart?: () => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: () => void;
+  isDragging?: boolean;
 }
 
 const TYPE_OPTIONS: { value: ColumnType; label: string }[] = [
   { value: 'text',   label: 'Text' },
   { value: 'number', label: 'Number' },
+  { value: 'date',   label: 'Date' },
   { value: 'url',    label: 'URL / Link' },
   { value: 'badge',  label: 'Badge' },
 ];
 
-export default function ColumnEditor({ column, onChange }: Props) {
+export default function ColumnEditor({ column, onChange, onDragStart, onDragOver, onDrop, isDragging }: Props) {
   const set = <K extends keyof ColumnConfig>(key: K, val: ColumnConfig[K]) =>
     onChange({ ...column, [key]: val });
 
   return (
-    <div className={`col-editor ${column.visible ? '' : 'col-editor--hidden'}`}>
-      <div className="col-editor__drag">⠿</div>
+    <div
+      className={`col-editor ${column.visible ? '' : 'col-editor--hidden'} ${isDragging ? 'col-editor--dragging' : ''}`}
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={(e) => { e.preventDefault(); onDragOver?.(e); }}
+      onDrop={onDrop}
+      onDragEnd={() => { /* let parent clear state */ }}
+    >
+      <div className="col-editor__drag" title="Drag to reorder">⠿</div>
 
       <label className="col-editor__toggle toggle" title={column.visible ? 'Hide column' : 'Show column'}>
         <input

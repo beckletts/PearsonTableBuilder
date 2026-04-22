@@ -31,7 +31,7 @@ export default function StepAIConfig({ parsed, onAccept, onBack }: Props) {
         },
         body: JSON.stringify({
           headers: parsed.headers,
-          sampleRows: parsed.rows.slice(0, 20),
+          sampleRows: parsed.rows.slice(0, 50),
         }),
       });
 

@@ -14,6 +14,12 @@
   opacity: 0.5;
 }
 
+.col-editor--dragging {
+  opacity: 0.4;
+  border-style: dashed;
+  border-color: var(--color-primary);
+}
+
 .col-editor__drag {
   cursor: grab;
   color: var(--color-text-muted);
