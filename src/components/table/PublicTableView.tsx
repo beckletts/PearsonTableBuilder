@@ -32,7 +32,6 @@ export default function PublicTableView({ config, rows }: Props) {
   const [sortDir, setSortDir]     = useState<'asc' | 'desc'>(config.defaultSort.direction);
   const [page, setPage]           = useState(1);
   const [viewMode, setViewMode]   = useState<'table' | 'card'>('table');
-  const [showEmbed, setShowEmbed] = useState(false);
 
   const visibleCols  = useMemo(() => config.columns.filter((c) => c.visible), [config.columns]);
   const filterCols   = useMemo(() => visibleCols.filter((c) => c.filterable), [visibleCols]);
@@ -120,9 +119,6 @@ export default function PublicTableView({ config, rows }: Props) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-
-  const embedUrl = window.location.href;
-  const embedCode = `<iframe\n  src="${embedUrl}"\n  width="100%"\n  height="700"\n  frameborder="0"\n  title="${config.title}"\n></iframe>`;
 
   const renderCell = (col: ColumnConfig, row: TableRow) => {
     const raw = row.data[col.key];
@@ -313,10 +309,6 @@ export default function PublicTableView({ config, rows }: Props) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Export CSV
             </button>
-            <button className="pub-view__action-btn" onClick={() => setShowEmbed(true)} title="Embed this table">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-              Embed
-            </button>
             {cardWidget && (
               <div className="pub-view-toggle">
                 <button className={`pub-view-toggle__btn ${viewMode === 'table' ? 'pub-view-toggle__btn--active' : ''}`} onClick={() => setViewMode('table')}>
@@ -391,25 +383,6 @@ export default function PublicTableView({ config, rows }: Props) {
         );
       })()}
 
-      {/* ── Embed modal ── */}
-      {showEmbed && (
-        <div className="pub-embed-overlay" onClick={() => setShowEmbed(false)}>
-          <div className="pub-embed-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="pub-embed-modal__header">
-              <h3>Embed this table</h3>
-              <button className="pub-embed-modal__close" onClick={() => setShowEmbed(false)} aria-label="Close">✕</button>
-            </div>
-            <p className="pub-embed-modal__desc">Copy this code and paste it into any webpage to embed a live, interactive version of this table.</p>
-            <pre className="pub-embed-modal__code">{embedCode}</pre>
-            <button
-              className="pub-embed-modal__copy"
-              onClick={() => { void navigator.clipboard.writeText(embedCode); }}
-            >
-              Copy embed code
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

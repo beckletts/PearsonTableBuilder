@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { TableRecord } from '../../lib/types';
 import ShareModal from './ShareModal';
+import EmbedModal from './EmbedModal';
 import './TabGroupCard.css';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 export default function TabGroupCard({ primary, tabs, onUpdate }: Props) {
   const [busy, setBusy] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [embedding, setEmbedding] = useState(false);
 
   const allTabs = [primary, ...tabs];
   const isPublished = primary.is_published;
@@ -93,6 +95,9 @@ export default function TabGroupCard({ primary, tabs, onUpdate }: Props) {
           {isPublished && (
             <button className="btn btn-ghost btn-sm" onClick={copyLink}>Copy link</button>
           )}
+          {isPublished && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setEmbedding(true)}>Embed</button>
+          )}
           <button
             className={`btn btn-sm ${isPublished ? 'btn-secondary' : 'btn-primary'}`}
             onClick={() => void togglePublish()}
@@ -116,6 +121,13 @@ export default function TabGroupCard({ primary, tabs, onUpdate }: Props) {
           tableId={primary.id}
           tableTitle={primary.title}
           onClose={() => setSharing(false)}
+        />
+      )}
+      {embedding && (
+        <EmbedModal
+          tableTitle={primary.title}
+          tableSlug={primary.slug}
+          onClose={() => setEmbedding(false)}
         />
       )}
     </>

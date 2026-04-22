@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { TableRecord } from '../../lib/types';
 import ShareModal from './ShareModal';
+import EmbedModal from './EmbedModal';
 import './TableCard.css';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 export default function TableCard({ table, isOwner, onUpdate }: Props) {
   const [busy, setBusy] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [embedding, setEmbedding] = useState(false);
 
   const togglePublish = async () => {
     setBusy(true);
@@ -60,6 +62,7 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
             <>
               <Link to={`/t/${table.slug}`} target="_blank" className="btn btn-secondary btn-sm">View ↗</Link>
               <button className="btn btn-ghost btn-sm" onClick={copyLink}>Copy link</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setEmbedding(true)}>Embed</button>
             </>
           )}
           {isOwner && (
@@ -91,6 +94,13 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
           tableId={table.id}
           tableTitle={table.title}
           onClose={() => setSharing(false)}
+        />
+      )}
+      {embedding && (
+        <EmbedModal
+          tableTitle={table.title}
+          tableSlug={table.slug}
+          onClose={() => setEmbedding(false)}
         />
       )}
     </>

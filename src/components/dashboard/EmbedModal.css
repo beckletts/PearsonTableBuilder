@@ -1,0 +1,77 @@
+.embed-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.embed-modal {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  max-width: 540px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+}
+
+.embed-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.embed-modal__title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.embed-modal__sub {
+  font-size: 13px;
+  color: var(--color-text-soft);
+  margin: 4px 0 0;
+}
+
+.embed-modal__close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-text-soft);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.embed-modal__close:hover { background: var(--color-bg-soft); }
+
+.embed-modal__desc {
+  font-size: 13px;
+  color: var(--color-text-soft);
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.embed-modal__code {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  font-size: 12px;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+  color: var(--color-text);
+  white-space: pre;
+  overflow-x: auto;
+  margin: 0 0 16px;
+  line-height: 1.6;
+}
