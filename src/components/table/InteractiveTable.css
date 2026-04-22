@@ -77,3 +77,9 @@
   color: var(--color-text-muted);
   padding: 40px 20px !important;
 }
+
+/* ── Pearson purple variant ─────────────────────────────────────────────── */
+.itable--pearson .itable__table thead tr { background: #5B2D86; }
+.itable--pearson .itable__table th:hover  { background: #4a2470; }
+.itable--pearson .itable__table tbody tr:hover { background: #f5f0fa; }
+.itable--pearson .input:focus { border-color: #5B2D86; box-shadow: 0 0 0 3px rgba(91,45,134,0.12); }

@@ -21,9 +21,10 @@ function badgeColor(value: string): string {
 interface Props {
   config: TableConfig;
   rows: TableRow[];
+  variant?: 'default' | 'pearson';
 }
 
-export default function InteractiveTable({ config, rows }: Props) {
+export default function InteractiveTable({ config, rows, variant = 'default' }: Props) {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortCol, setSortCol] = useState(config.defaultSort.column);
@@ -120,7 +121,7 @@ export default function InteractiveTable({ config, rows }: Props) {
   const hasActiveFilters = search.trim() || Object.values(filters).some(Boolean);
 
   return (
-    <div className="itable">
+    <div className={`itable${variant === 'pearson' ? ' itable--pearson' : ''}`}>
       <div className="itable__controls">
         {searchableCols.length > 0 && (
           <TableSearch
