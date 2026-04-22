@@ -4,8 +4,12 @@ import { supabase } from '../lib/supabase';
 import PearsonNav from '../components/layout/PearsonNav';
 import StepCustomise from '../components/builder/StepCustomise';
 import StepUpload from '../components/builder/StepUpload';
+import DataEditor from '../components/builder/DataEditor';
 import type { ParsedFile, TableRecord, TableRow } from '../lib/types';
 import './BuilderPage.css';
+import './BuilderEditPage.css';
+
+type Tab = 'configure' | 'data';
 
 export default function BuilderEditPage() {
   const { id } = useParams<{ id: string }>();
@@ -14,23 +18,23 @@ export default function BuilderEditPage() {
   const [existingRows, setExistingRows] = useState<TableRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [tab, setTab] = useState<Tab>('configure');
   const [reupload, setReupload] = useState(false);
   const [newParsed, setNewParsed] = useState<ParsedFile | null>(null);
 
-  useEffect(() => {
+  const loadTable = async () => {
     if (!id) return;
-    const load = async () => {
-      const [{ data: t }, { data: rows }] = await Promise.all([
-        supabase.from('tables').select('*').eq('id', id).single(),
-        supabase.from('table_rows').select('*').eq('table_id', id).order('row_index'),
-      ]);
-      if (!t) { setError('Table not found.'); setLoading(false); return; }
-      setTable(t as TableRecord);
-      setExistingRows((rows as TableRow[]) ?? []);
-      setLoading(false);
-    };
-    void load();
-  }, [id]);
+    const [{ data: t }, { data: rows }] = await Promise.all([
+      supabase.from('tables').select('*').eq('id', id).single(),
+      supabase.from('table_rows').select('*').eq('table_id', id).order('row_index'),
+    ]);
+    if (!t) { setError('Table not found.'); setLoading(false); return; }
+    setTable(t as TableRecord);
+    setExistingRows((rows as TableRow[]) ?? []);
+    setLoading(false);
+  };
+
+  useEffect(() => { void loadTable(); }, [id]);
 
   if (loading) return (
     <div>
@@ -53,38 +57,82 @@ export default function BuilderEditPage() {
 
   const existingParsed: ParsedFile = {
     headers: table.config.columns.map((c) => c.key),
-    rows: existingRows.map((r) => Object.fromEntries(Object.entries(r.data).map(([k, v]) => [k, String(v ?? '')]))),
+    rows: existingRows.map((r) =>
+      Object.fromEntries(Object.entries(r.data).map(([k, v]) => [k, String(v ?? '')])),
+    ),
   };
-
   const activeParsed = newParsed ?? existingParsed;
 
   return (
     <div>
       <PearsonNav />
       <main className="builder-page">
-        {reupload && !newParsed ? (
-          <div className="builder-page__content card">
-            <div style={{ marginBottom: 20 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => setReupload(false)}>← Cancel re-upload</button>
-            </div>
-            <StepUpload onParsed={(data) => { setNewParsed(data); setReupload(false); }} />
+        <div className="builder-edit__header">
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/dashboard')}>← Dashboard</button>
+          <div className="builder-edit__tabs">
+            <button
+              className={`builder-edit__tab ${tab === 'configure' ? 'builder-edit__tab--active' : ''}`}
+              onClick={() => setTab('configure')}
+            >
+              Configure
+            </button>
+            <button
+              className={`builder-edit__tab ${tab === 'data' ? 'builder-edit__tab--active' : ''}`}
+              onClick={() => setTab('data')}
+            >
+              Edit data
+              {existingRows.length > 0 && (
+                <span className="builder-edit__tab-count">{existingRows.length.toLocaleString()}</span>
+              )}
+            </button>
           </div>
-        ) : (
-          <div className="builder-page__content card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/dashboard')}>← Dashboard</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {tab === 'configure' && (
               <button className="btn btn-secondary btn-sm" onClick={() => setReupload(true)}>
-                Replace data
+                Replace data file
               </button>
-            </div>
-            <StepCustomise
-              parsed={activeParsed}
-              config={table.config}
-              onBack={() => navigate('/dashboard')}
-              editingId={table.id}
-            />
+            )}
+            {table.is_published && (
+              <a
+                href={`/t/${table.slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-secondary btn-sm"
+              >
+                View live ↗
+              </a>
+            )}
           </div>
-        )}
+        </div>
+
+        <div className="builder-page__content card">
+          {tab === 'configure' && (
+            reupload && !newParsed ? (
+              <div>
+                <button className="btn btn-ghost btn-sm" style={{ marginBottom: 20 }} onClick={() => setReupload(false)}>
+                  ← Cancel
+                </button>
+                <StepUpload onParsed={(data) => { setNewParsed(data); setReupload(false); }} />
+              </div>
+            ) : (
+              <StepCustomise
+                parsed={activeParsed}
+                config={table.config}
+                onBack={() => navigate('/dashboard')}
+                editingId={table.id}
+              />
+            )
+          )}
+
+          {tab === 'data' && (
+            <DataEditor
+              tableId={table.id}
+              config={table.config}
+              initialRows={existingRows}
+              onSaved={() => void loadTable()}
+            />
+          )}
+        </div>
       </main>
     </div>
   );

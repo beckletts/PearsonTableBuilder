@@ -30,26 +30,15 @@
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
+  padding: 0.5rem 0;
 }
 
-.public-page__header-text {
-  flex: 1;
-}
-
-.public-page__title {
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  font-weight: 700;
-  color: #fff;
-  margin: 0 0 6px;
-  line-height: 1.25;
-}
-
-.public-page__desc {
+.public-page__header-wordmark {
   font-size: 1rem;
-  color: rgba(255,255,255,0.75);
-  margin: 0;
-  line-height: 1.5;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+  letter-spacing: 0.02em;
 }
 
 /* ── Main content ────────────────────────────────────────────────────────── */
