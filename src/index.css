@@ -201,12 +201,21 @@ textarea.input { resize: vertical; min-height: 80px; }
 .justify-between { justify-content: space-between; }
 .w-full { width: 100%; }
 
-/* ── Error message ─────────────────────────────────────────────────────── */
+/* ── Error / Warning messages ──────────────────────────────────────────── */
 .error-msg {
   padding: 10px 14px;
   background: var(--color-danger-lt);
   border: 1px solid #f5c2c7;
   border-radius: var(--radius-md);
   color: var(--color-danger);
+  font-size: 13px;
+}
+
+.warning-msg {
+  padding: 10px 14px;
+  background: var(--color-yellow-lt);
+  border: 1px solid #f0d060;
+  border-radius: var(--radius-md);
+  color: #7A5C00;
   font-size: 13px;
 }

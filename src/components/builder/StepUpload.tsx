@@ -13,6 +13,7 @@ interface Props {
 export default function StepUpload({ onParsed }: Props) {
   const [dragging, setDragging]     = useState(false);
   const [error, setError]           = useState('');
+  const [warning, setWarning]       = useState('');
   const [parsing, setParsing]       = useState(false);
   const [pdfFile, setPdfFile]       = useState<File | null>(null);
   const [analysing, setAnalysing]   = useState(false);
@@ -21,6 +22,7 @@ export default function StepUpload({ onParsed }: Props) {
 
   const handleFile = async (file: File) => {
     setError('');
+    setWarning('');
     setPreview(null);
     setPdfFile(null);
 
@@ -57,6 +59,7 @@ export default function StepUpload({ onParsed }: Props) {
     if (!pdfFile) return;
     setAnalysing(true);
     setError('');
+    setWarning('');
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Session expired — please refresh and log in again.');
@@ -76,14 +79,26 @@ export default function StepUpload({ onParsed }: Props) {
         body: JSON.stringify({ pdfBase64: base64 }),
       });
 
-      const data = await res.json() as { config?: TableConfig; rows?: Record<string, string>[]; error?: string };
+      let data: { config?: TableConfig; rows?: Record<string, string>[]; error?: string; truncated?: boolean; totalRowsEstimate?: number };
+      try {
+        data = await res.json() as typeof data;
+      } catch {
+        throw new Error('The PDF took too long to process. Try uploading a smaller PDF (single section or up to ~10 pages).');
+      }
+
       if (!res.ok || data.error) throw new Error(data.error ?? 'Failed to extract data from PDF.');
-      if (!data.config || !data.rows?.length) throw new Error('No table data found in this PDF.');
+      if (!data.config || !data.rows?.length) throw new Error('No table data found in this PDF. Make sure it contains a data table, not just charts or images.');
 
       const parsed: ParsedFile = {
         headers: data.config.columns.map((c) => c.key),
         rows: data.rows,
       };
+
+      if (data.truncated) {
+        const total = data.totalRowsEstimate ? ` — document has ~${data.totalRowsEstimate.toLocaleString()} rows total` : '';
+        setWarning(`Only the first ${data.rows.length} rows were extracted${total}. You can still continue — all extracted rows will be imported.`);
+      }
+
       onParsed(parsed, data.config);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to analyse PDF.');
@@ -152,7 +167,9 @@ export default function StepUpload({ onParsed }: Props) {
           <div className="spinner spinner-lg" />
           <div>
             <p className="font-600">Reading PDF with AI…</p>
-            <p className="text-sm text-muted mt-4">Extracting table data — this may take 15–30 seconds</p>
+            <p className="text-sm text-muted mt-4">
+              Claude is scanning for tables — this can take 20–30 seconds for large documents
+            </p>
           </div>
         </div>
       )}
@@ -168,6 +185,7 @@ export default function StepUpload({ onParsed }: Props) {
         </div>
       )}
 
+      {warning && <p className="warning-msg mt-12">{warning}</p>}
       {error && <p className="error-msg mt-12">{error}</p>}
 
       {/* ── Spreadsheet preview ── */}

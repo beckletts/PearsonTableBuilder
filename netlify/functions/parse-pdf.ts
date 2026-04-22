@@ -5,49 +5,62 @@ import type { Handler } from '@netlify/functions';
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const SYSTEM_PROMPT = `You are a data extraction assistant for Pearson's internal Table Builder tool.
-You will receive a PDF document. Extract all tabular data from it and return a single JSON object.
+You will receive a PDF document (which may be a Pearson fees schedule, qualification catalogue, assessment timetable, or similar). Extract tabular data and return a single JSON object.
 
-OUTPUT: ONLY valid JSON — no markdown fences, no explanation. Exact structure:
+OUTPUT: ONLY valid JSON — no markdown fences, no explanation, no preamble.
 
+EXACT OUTPUT STRUCTURE:
 {
   "config": {
     "title": string,
     "description": string,
     "columns": [
       {
-        "key": string,         // snake_case, no spaces (e.g. "subject_code", "first_name")
-        "label": string,       // Title Case display name
+        "key": string,         // snake_case identifier, no spaces (e.g. "qual_code", "fee_amount")
+        "label": string,       // Title Case display name (e.g. "Qualification Code", "Fee Amount")
         "visible": boolean,
         "filterable": boolean,
         "searchable": boolean,
-        "type": "text" | "number" | "url" | "badge"
+        "type": "text" | "number" | "url" | "badge" | "date"
       }
     ],
-    "primarySearchColumn": string,
+    "primarySearchColumn": string,  // key of the best search column (name, title, or code)
     "defaultSort": { "column": string, "direction": "asc" | "desc" }
   },
   "rows": [
-    { "column_key": "value" }
-  ]
+    { "column_key": "value", ... }
+  ],
+  "truncated": boolean,            // true if you could not fit all rows due to output length
+  "totalRowsEstimate": number      // your estimate of the total rows in the document
 }
 
-EXTRACTION RULES:
-- Extract ALL rows from the table(s) found in the document
-- If multiple tables exist, combine them if they share the same columns; otherwise use the largest
-- Every row object must have exactly the same keys as defined in config.columns
-- Missing cells should be empty string ""
+TABLE IDENTIFICATION RULES:
+- Scan every page of the PDF for tables (grids with headers and data rows)
+- If multiple tables share the same columns (e.g. fees split across pages or qualification types), MERGE them into one dataset
+- If multiple tables have DIFFERENT structures, choose the largest or most complete table
+- Ignore decorative tables, navigation bars, or tables that are just section headers
+
+COLUMN TYPE RULES:
+- "number": clearly numeric values — fees (£12.00), counts, percentages
+- "date": dates or periods — exam dates, academic years (2025-26), quarters
+- "badge": categorical with ≤15 distinct values — qualification type, level, tier, region, subject area
+- "url": web links or email addresses
+- "text": everything else — names, codes, descriptions
 
 COLUMN RULES:
-- "badge" type: categorical with ≤10 distinct values (status, type, grade, region)
-- "url" type: web addresses or email addresses
-- "number" type: clearly numeric values (integers, decimals, percentages)
-- "text" type: everything else
-- filterable = true for categorical/badge columns
-- searchable = true for at most 2 columns — the main name or title column only
-- Hide (visible: false) columns that appear to be internal IDs or system fields
+- filterable = true for badge/categorical columns and date columns
+- searchable = true for at most 2 columns — the primary name or code column
+- Hide (visible: false) internal ID fields or system reference columns
 
-TITLE: Short, professional title inferred from the document — do not include the word "Table".
-DESCRIPTION: One sentence describing what this data shows.`;
+ROW EXTRACTION RULES:
+- Extract up to 200 rows. If the table has more, extract the first 200 and set "truncated": true
+- Every row must have exactly the same keys as defined in config.columns
+- Missing or empty cells → empty string ""
+- Strip currency symbols from number values (£12.00 → "12.00")
+- Preserve leading zeros in codes (e.g. "0123" not "123")
+
+TITLE: Short, professional — infer from the document heading or filename context. Omit the word "Table".
+DESCRIPTION: One sentence summarising what data this is and who it is for (e.g. "UK general qualification fees for centres registering candidates in 2025–26").`;
 
 async function validateUser(jwt: string): Promise<boolean> {
   const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
@@ -84,34 +97,70 @@ const handler: Handler = async (event) => {
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 8192,
-      system: SYSTEM_PROMPT,
+      system: [
+        {
+          type: 'text',
+          text: SYSTEM_PROMPT,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
       messages: [{
         role: 'user',
         content: [
           {
             type: 'document',
             source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 },
+            cache_control: { type: 'ephemeral' },
           } as Parameters<typeof client.messages.create>[0]['messages'][0]['content'][0],
-          { type: 'text', text: 'Extract all tabular data from this PDF and return the JSON as specified.' },
+          {
+            type: 'text',
+            text: 'Extract the tabular data from this PDF. Return the JSON exactly as specified — no markdown, no explanation.',
+          },
         ],
       }],
     });
 
     if (message.stop_reason === 'max_tokens') {
-      return { statusCode: 500, headers, body: JSON.stringify({ error: 'PDF has too much data to extract in one pass. Try a PDF with fewer rows.' }) };
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'This PDF has too many tables or rows to extract in one go. Try uploading individual sections or pages of the document.',
+        }),
+      };
     }
 
     const text = message.content[0].type === 'text' ? message.content[0].text : '';
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return { statusCode: 500, headers, body: JSON.stringify({ error: 'Could not extract table data from this PDF. Make sure it contains a visible table.' }) };
 
-    let result: unknown;
-    try { result = JSON.parse(jsonMatch[0]); }
-    catch { return { statusCode: 500, headers, body: JSON.stringify({ error: 'AI returned malformed JSON. Please try again.' }) }; }
+    // Extract JSON — be tolerant of any leading/trailing text
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'No table data found in this PDF. Make sure it contains a visible data table (not just charts or images).' }),
+      };
+    }
+
+    let result: { config?: unknown; rows?: unknown[]; truncated?: boolean; totalRowsEstimate?: number };
+    try {
+      result = JSON.parse(jsonMatch[0]);
+    } catch {
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'AI returned malformed data. Please try again.' }) };
+    }
+
+    if (!result.config || !Array.isArray(result.rows) || result.rows.length === 0) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Could not extract table data from this PDF. The document may contain charts or images rather than data tables.' }),
+      };
+    }
 
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (err) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }) };
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    return { statusCode: 500, headers, body: JSON.stringify({ error: msg }) };
   }
 };
 
