@@ -21,7 +21,7 @@
 .public-page__header {
   background: linear-gradient(135deg, #2D1B5A 0%, #1B0F3A 40%, #0D0420 100%);
   color: #fff;
-  padding: 2.5rem 1.5rem;
+  padding: 1.25rem 1.5rem;
   box-shadow: 0 4px 12px rgba(13, 0, 77, 0.2);
 }
 
@@ -39,6 +39,45 @@
   font-weight: 700;
   color: rgba(255,255,255,0.9);
   letter-spacing: 0.02em;
+}
+
+/* ── Tab bar (multi-tab) ─────────────────────────────────────────────────── */
+.public-page__tab-bar {
+  background: #F5F5F5;
+  border-bottom: 2px solid #E0E0E0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.public-page__tab-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  gap: 4px;
+}
+
+.public-page__tab-btn {
+  padding: 14px 24px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: #666;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+  position: relative;
+  bottom: -2px;
+}
+
+.public-page__tab-btn:hover { color: #5B2D86; background: #fff; }
+
+.public-page__tab-btn--active {
+  color: #5B2D86;
+  border-bottom-color: #5B2D86;
 }
 
 /* ── Main content ────────────────────────────────────────────────────────── */

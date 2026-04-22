@@ -1,0 +1,92 @@
+.share-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 0, 77, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.share-modal {
+  background: var(--color-white);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.share-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.share-modal__title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+
+.share-modal__sub {
+  font-size: 13px;
+  color: var(--color-text-soft);
+  margin: 0;
+}
+
+.share-modal__close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+.share-modal__close:hover { color: var(--color-text); }
+
+.share-modal__form {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.share-modal__list {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.share-modal__person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  transition: background 0.1s;
+}
+.share-modal__person:hover { background: var(--color-bg); }
+
+.share-modal__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.share-modal__email {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 2px;
+}

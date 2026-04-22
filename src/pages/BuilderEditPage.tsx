@@ -92,6 +92,15 @@ export default function BuilderEditPage() {
                 Replace data file
               </button>
             )}
+            {!table.tab_group_id && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => navigate(`/builder/new?groupId=${table.id}&tabOrder=${existingRows.length > 0 ? 1 : 1}`)}
+                title="Add a second dataset as a tab on the same published page"
+              >
+                + Add tab
+              </button>
+            )}
             {table.is_published && (
               <a
                 href={`/t/${table.slug}`}

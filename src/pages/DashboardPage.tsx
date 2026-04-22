@@ -11,16 +11,32 @@ interface Props { user: User }
 
 export default function DashboardPage({ user }: Props) {
   const [tables, setTables] = useState<TableRecord[]>([]);
+  const [sharedTables, setSharedTables] = useState<TableRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('tables')
-      .select('*')
-      .eq('owner_id', user.id)
-      .order('updated_at', { ascending: false });
-    setTables((data as TableRecord[]) ?? []);
+    const userEmail = user.email ?? '';
+
+    const [{ data: ownData }, { data: shareData }] = await Promise.all([
+      supabase.from('tables').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
+      supabase.from('table_shares').select('table_id').eq('collaborator_email', userEmail),
+    ]);
+
+    setTables((ownData as TableRecord[]) ?? []);
+
+    if (shareData && shareData.length > 0) {
+      const ids = shareData.map((s: { table_id: string }) => s.table_id);
+      const { data: sharedData } = await supabase
+        .from('tables')
+        .select('*')
+        .in('id', ids)
+        .order('updated_at', { ascending: false });
+      setSharedTables((sharedData as TableRecord[]) ?? []);
+    } else {
+      setSharedTables([]);
+    }
+
     setLoading(false);
   };
 
@@ -47,7 +63,7 @@ export default function DashboardPage({ user }: Props) {
           </div>
         )}
 
-        {!loading && tables.length === 0 && (
+        {!loading && tables.length === 0 && sharedTables.length === 0 && (
           <div className="dashboard__empty card">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="1.2">
               <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -62,9 +78,23 @@ export default function DashboardPage({ user }: Props) {
         {!loading && tables.length > 0 && (
           <div className="dashboard__grid">
             {tables.map((t) => (
-              <TableCard key={t.id} table={t} onUpdate={() => void load()} />
+              <TableCard key={t.id} table={t} isOwner={true} onUpdate={() => void load()} />
             ))}
           </div>
+        )}
+
+        {!loading && sharedTables.length > 0 && (
+          <>
+            <div className="dashboard__section-heading">
+              <h2>Shared with me</h2>
+              <p className="text-soft text-sm">Tables others have shared with your account</p>
+            </div>
+            <div className="dashboard__grid">
+              {sharedTables.map((t) => (
+                <TableCard key={t.id} table={t} isOwner={false} onUpdate={() => void load()} />
+              ))}
+            </div>
+          </>
         )}
       </main>
     </div>

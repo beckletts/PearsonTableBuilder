@@ -28,8 +28,18 @@ export interface TableRecord {
   slug: string;
   config: TableConfig;
   is_published: boolean;
+  tab_group_id: string | null;
+  tab_order: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface TableShare {
+  id: string;
+  table_id: string;
+  owner_id: string;
+  collaborator_email: string;
+  created_at: string;
 }
 
 export interface TableRow {

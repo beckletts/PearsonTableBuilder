@@ -31,3 +31,15 @@
   text-align: center;
   padding: 64px 32px;
 }
+
+.dashboard__section-heading {
+  margin: 48px 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dashboard__section-heading h2 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}

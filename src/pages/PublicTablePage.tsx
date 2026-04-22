@@ -1,54 +1,93 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { TableRecord, TableRow } from '../lib/types';
 import PublicTableView from '../components/table/PublicTableView';
+import PearsonLogo from '../components/layout/PearsonLogo';
 import './PublicTablePage.css';
+
+interface TabData {
+  table: TableRecord;
+  rows: TableRow[];
+}
 
 export default function PublicTablePage() {
   const { slug } = useParams<{ slug: string }>();
-  const [table, setTable] = useState<TableRecord | null>(null);
-  const [rows, setRows] = useState<TableRow[]>([]);
+  const navigate = useNavigate();
+  const [tabs, setTabs] = useState<TabData[]>([]);
+  const [activeSlug, setActiveSlug] = useState(slug ?? '');
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
+    setActiveSlug(slug);
     const load = async () => {
+      setLoading(true);
+
+      // Load the requested table
       const { data: t } = await supabase
         .from('tables')
         .select('*')
         .eq('slug', slug)
-        .eq('is_published', true)
         .single();
 
       if (!t) { setNotFound(true); setLoading(false); return; }
+      const table = t as TableRecord;
 
-      const { data: rowData } = await supabase
-        .from('table_rows')
+      // Determine the primary table id (group root)
+      const primaryId = table.tab_group_id ?? table.id;
+
+      // Load all tables in the group (primary + all secondary tabs)
+      const { data: groupTables } = await supabase
+        .from('tables')
         .select('*')
-        .eq('table_id', t.id)
-        .order('row_index');
+        .or(`id.eq.${primaryId},tab_group_id.eq.${primaryId}`)
+        .order('tab_order', { ascending: true });
 
-      setTable(t as TableRecord);
-      setRows((rowData as TableRow[]) ?? []);
+      const allTables = (groupTables as TableRecord[]) ?? [table];
+
+      // Only show published tables to public
+      const publishedTables = allTables.filter((t) => t.is_published || t.id === primaryId);
+      if (publishedTables.length === 0 || !publishedTables.find((t) => t.id === primaryId)?.is_published) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      // Load rows for all tabs in parallel
+      const tabsWithRows = await Promise.all(
+        publishedTables.map(async (tabTable) => {
+          const { data: rows } = await supabase
+            .from('table_rows')
+            .select('*')
+            .eq('table_id', tabTable.id)
+            .order('row_index');
+          return { table: tabTable, rows: (rows as TableRow[]) ?? [] };
+        }),
+      );
+
+      setTabs(tabsWithRows);
       setLoading(false);
     };
     void load();
   }, [slug]);
 
+  const activeTab = tabs.find((t) => t.table.slug === activeSlug) ?? tabs[0];
+  const isMultiTab = tabs.length > 1;
+
   if (loading) return (
     <div className="public-page">
-      <div className="public-page__header-bar" />
+      <div className="public-page__header"><div className="public-page__header-inner"><PearsonLogo /></div></div>
       <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
         <div className="spinner spinner-lg" style={{ borderTopColor: '#5B2D86' }} />
       </div>
     </div>
   );
 
-  if (notFound || !table) return (
+  if (notFound || !activeTab) return (
     <div className="public-page">
-      <div className="public-page__header-bar" />
+      <div className="public-page__header"><div className="public-page__header-inner"><PearsonLogo /></div></div>
       <div className="public-page__not-found">
         <h1>Table not found</h1>
         <p>This table doesn't exist or hasn't been published yet.</p>
@@ -64,25 +103,33 @@ export default function PublicTablePage() {
         </div>
       </header>
 
+      {isMultiTab && (
+        <div className="public-page__tab-bar">
+          <div className="public-page__tab-inner">
+            {tabs.map(({ table }) => (
+              <button
+                key={table.slug}
+                className={`public-page__tab-btn ${table.slug === activeSlug ? 'public-page__tab-btn--active' : ''}`}
+                onClick={() => {
+                  setActiveSlug(table.slug);
+                  navigate(`/t/${table.slug}`, { replace: true });
+                }}
+              >
+                {table.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <main className="public-page__main">
-        <PublicTableView config={table.config} rows={rows} />
+        <PublicTableView config={activeTab.table.config} rows={activeTab.rows} />
       </main>
 
       <footer className="public-page__footer">
-        <PearsonLogo small />
+        <PearsonLogo width={70} />
         <p>© {new Date().getFullYear()} Pearson plc. All rights reserved.</p>
       </footer>
     </div>
-  );
-}
-
-function PearsonLogo({ small }: { small?: boolean }) {
-  const size = small ? 28 : 40;
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Pearson">
-      <rect width="48" height="48" rx="8" fill="white" fillOpacity="0.15" />
-      <path d="M12 10h14c5.523 0 10 4.477 10 10s-4.477 10-10 10H12V10z" fill="white" />
-      <rect x="12" y="32" width="8" height="6" rx="2" fill="white" />
-    </svg>
   );
 }

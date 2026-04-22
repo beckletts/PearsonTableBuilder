@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import PearsonNav from '../components/layout/PearsonNav';
 import StepUpload from '../components/builder/StepUpload';
 import StepAIConfig from '../components/builder/StepAIConfig';
@@ -11,6 +12,10 @@ type Step = 'upload' | 'ai' | 'customise';
 const STEPS = ['Upload', 'AI analysis', 'Customise'];
 
 export default function BuilderNewPage() {
+  const [searchParams] = useSearchParams();
+  const groupId = searchParams.get('groupId') ?? undefined;
+  const tabOrder = Number(searchParams.get('tabOrder') ?? 1);
+
   const [step, setStep] = useState<Step>('upload');
   const [parsed, setParsed] = useState<ParsedFile | null>(null);
   const [config, setConfig] = useState<TableConfig | null>(null);
@@ -21,6 +26,12 @@ export default function BuilderNewPage() {
     <div>
       <PearsonNav />
       <main className="builder-page">
+        {groupId && (
+          <div style={{ marginBottom: 16 }}>
+            <span className="badge badge-purple">Adding tab to existing table</span>
+          </div>
+        )}
+
         <div className="builder-page__progress">
           {STEPS.map((label, i) => (
             <div key={label} className={`builder-step ${i === stepIndex ? 'builder-step--active' : i < stepIndex ? 'builder-step--done' : ''}`}>
@@ -33,9 +44,7 @@ export default function BuilderNewPage() {
 
         <div className="builder-page__content card">
           {step === 'upload' && (
-            <StepUpload
-              onParsed={(data) => { setParsed(data); setStep('ai'); }}
-            />
+            <StepUpload onParsed={(data) => { setParsed(data); setStep('ai'); }} />
           )}
           {step === 'ai' && parsed && (
             <StepAIConfig
@@ -49,6 +58,8 @@ export default function BuilderNewPage() {
               parsed={parsed}
               config={config}
               onBack={() => setStep('ai')}
+              groupId={groupId}
+              tabOrder={tabOrder}
             />
           )}
         </div>

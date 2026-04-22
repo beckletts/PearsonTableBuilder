@@ -12,9 +12,11 @@ interface Props {
   config: TableConfig;
   onBack: () => void;
   editingId?: string;
+  groupId?: string;
+  tabOrder?: number;
 }
 
-export default function StepCustomise({ parsed, config: initialConfig, onBack, editingId }: Props) {
+export default function StepCustomise({ parsed, config: initialConfig, onBack, editingId, groupId, tabOrder = 0 }: Props) {
   const navigate = useNavigate();
   const [config, setConfig] = useState<TableConfig>(initialConfig);
   const [saving, setSaving] = useState(false);
@@ -60,7 +62,7 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
         const slug = await generateUniqueSlug(finalConfig.title);
         const { data: table, error: tErr } = await supabase
           .from('tables')
-          .insert({ owner_id: user.id, title: finalConfig.title, description: finalConfig.description, slug, config: finalConfig, is_published: publish })
+          .insert({ owner_id: user.id, title: finalConfig.title, description: finalConfig.description, slug, config: finalConfig, is_published: publish, tab_group_id: groupId ?? null, tab_order: tabOrder })
           .select()
           .single();
         if (tErr) throw tErr;
