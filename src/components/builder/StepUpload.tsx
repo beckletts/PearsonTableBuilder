@@ -62,7 +62,13 @@ export default function StepUpload({ onParsed }: Props) {
       if (!session) throw new Error('Session expired — please refresh and log in again.');
 
       const arrayBuffer = await pdfFile.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      const chunk = 8192;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      const base64 = btoa(binary);
 
       const res = await fetch('/api/parse-pdf', {
         method: 'POST',
