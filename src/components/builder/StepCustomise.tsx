@@ -43,8 +43,13 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
     setSaving(true);
     setError('');
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('Your session has expired. Please refresh the page and log in again — your column settings will be preserved.');
+        setSaving(false);
+        return;
+      }
+      const user = session.user;
 
       const finalConfig = { ...config, title: config.title.trim() || 'Untitled Table' };
 
@@ -75,7 +80,8 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
         navigate('/dashboard');
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Save failed. Please try again.');
+      const msg = e instanceof Error ? e.message : (e as { message?: string })?.message;
+      setError(msg || 'Save failed. Please try again.');
     } finally {
       setSaving(false);
     }
