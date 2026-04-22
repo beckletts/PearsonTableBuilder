@@ -1,0 +1,30 @@
+.table-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.table-card__title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.table-card__desc {
+  font-size: 13px;
+  color: var(--color-text-soft);
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.table-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.table-card__date {
+  margin-top: auto;
+}

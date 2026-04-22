@@ -1,0 +1,79 @@
+.itable {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.itable__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.itable__meta {
+  padding: 0 2px;
+}
+
+.itable__scroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.itable__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.itable__table thead tr {
+  background: var(--color-primary);
+}
+
+.itable__table th {
+  padding: 11px 14px;
+  text-align: left;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.itable__table th:hover { background: var(--color-primary-dk); }
+
+.itable__th--num { text-align: right !important; }
+.itable__td--num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.itable__th-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.itable__sort-icon {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.itable__table tbody tr {
+  border-bottom: 1px solid var(--color-border-soft);
+  transition: background 0.1s;
+}
+
+.itable__table tbody tr:hover { background: var(--color-primary-lt); }
+.itable__table tbody tr:last-child { border-bottom: none; }
+
+.itable__table td {
+  padding: 10px 14px;
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.itable__empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 40px 20px !important;
+}

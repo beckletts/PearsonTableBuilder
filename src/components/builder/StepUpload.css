@@ -1,0 +1,61 @@
+.step-upload__heading {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.step-upload__zone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 48px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.step-upload__zone:hover,
+.step-upload__zone--drag {
+  border-color: var(--color-primary);
+  background: var(--color-primary-lt);
+}
+
+.step-upload__preview {
+  margin-top: 16px;
+}
+
+.step-upload__table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.step-upload__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.step-upload__table th {
+  background: var(--color-bg-soft);
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-text-soft);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.step-upload__table td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--color-border-soft);
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.step-upload__table tbody tr:last-child td { border-bottom: none; }
