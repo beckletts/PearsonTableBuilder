@@ -56,9 +56,12 @@ export default function PublicTableView({ config, rows }: Props) {
         activeFilters.every(([key, vals]) => key === col.key || vals.includes(String(row.data[key] ?? ''))),
       );
       const vals = new Set<string>();
+      const colLabelLower = col.label.toLowerCase();
+      const colKeyLower = col.key.toLowerCase();
       for (const row of otherFiltered) {
         const v = String(row.data[col.key] ?? '').trim();
-        if (v) vals.add(v);
+        const vLower = v.toLowerCase();
+        if (v && vLower !== colLabelLower && vLower !== colKeyLower) vals.add(v);
       }
       opts[col.key] = Array.from(vals).sort();
     }
@@ -120,12 +123,17 @@ export default function PublicTableView({ config, rows }: Props) {
     URL.revokeObjectURL(url);
   };
 
+  const TICK_CHARS  = new Set(['✓', '✔', '✅']);
+  const CROSS_CHARS = new Set(['✗', '✘', '❌']);
+
   const renderCell = (col: ColumnConfig, row: TableRow) => {
     const raw = row.data[col.key];
     const val = raw !== null && raw !== undefined ? String(raw) : '';
     if (!val) return <span style={{ color: '#bbb' }}>—</span>;
     if (col.type === 'url') return <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">View ↗</a>;
     if (col.type === 'badge') return <span className="pub-badge" style={getBadgeStyle(col.key, badgeColKeys)}>{val}</span>;
+    if (TICK_CHARS.has(val))  return <span style={{ color: '#22A051', fontWeight: 700, fontSize: '1.1em' }}>{val}</span>;
+    if (CROSS_CHARS.has(val)) return <span style={{ color: '#D0021B', fontWeight: 700, fontSize: '1.1em' }}>{val}</span>;
     return val;
   };
 

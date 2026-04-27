@@ -43,7 +43,8 @@ VISIBILITY RULES:
 
 FILTERABLE RULES:
 - true for clearly categorical columns (type, status, region, subject, grade, category, level, tier)
-- true for date columns (allow filtering by year/period)
+- false for year or academic-year columns — show them in the table but do not make them filterable
+- false for date columns
 - false for free-text, high-cardinality columns like names, descriptions, or nearly-unique identifiers
 - false for URL columns
 
