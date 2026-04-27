@@ -7,6 +7,7 @@ import StepCustomise from '../components/builder/StepCustomise';
 import StepUpload from '../components/builder/StepUpload';
 import DataEditor from '../components/builder/DataEditor';
 import type { ParsedFile, TableRecord, TableRow } from '../lib/types';
+import { fetchAllRows } from '../utils/fetchAllRows';
 import './BuilderPage.css';
 import './BuilderEditPage.css';
 
@@ -27,13 +28,11 @@ export default function BuilderEditPage({ user }: Props) {
 
   const loadTable = async () => {
     if (!id) return;
-    const [{ data: t }, { data: rows }] = await Promise.all([
-      supabase.from('tables').select('*').eq('id', id).single(),
-      supabase.from('table_rows').select('*').eq('table_id', id).order('row_index'),
-    ]);
+    const { data: t } = await supabase.from('tables').select('*').eq('id', id).single();
     if (!t) { setError('Table not found.'); setLoading(false); return; }
     setTable(t as TableRecord);
-    setExistingRows((rows as TableRow[]) ?? []);
+    const allRows = await fetchAllRows(id);
+    setExistingRows(allRows);
     setLoading(false);
   };
 

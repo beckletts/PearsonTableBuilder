@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { TableRecord, TableRow } from '../lib/types';
+import { fetchAllRows } from '../utils/fetchAllRows';
 import PublicTableView from '../components/table/PublicTableView';
 import PearsonLogo from '../components/layout/PearsonLogo';
 import './PublicTablePage.css';
@@ -58,12 +59,8 @@ export default function PublicTablePage() {
       // Load rows for all tabs in parallel
       const tabsWithRows = await Promise.all(
         publishedTables.map(async (tabTable) => {
-          const { data: rows } = await supabase
-            .from('table_rows')
-            .select('*')
-            .eq('table_id', tabTable.id)
-            .order('row_index');
-          return { table: tabTable, rows: (rows as TableRow[]) ?? [] };
+          const rows = await fetchAllRows(tabTable.id);
+          return { table: tabTable, rows };
         }),
       );
 
