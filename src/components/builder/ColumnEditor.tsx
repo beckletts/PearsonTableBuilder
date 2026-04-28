@@ -83,6 +83,26 @@ export default function ColumnEditor({ column, onChange, onDragStart, onDragOver
         />
         <span className="text-sm">Search</span>
       </label>
+
+      {column.filterable && column.visible && (
+        <div className="col-editor__filter-opts">
+          <label className="col-editor__check" title="Show column name above the filter dropdown">
+            <input
+              type="checkbox"
+              checked={column.filterLabel !== false}
+              onChange={(e) => set('filterLabel', e.target.checked)}
+            />
+            <span className="text-sm">Show label</span>
+          </label>
+          <input
+            className="input col-editor__filter-placeholder"
+            value={column.filterPlaceholder ?? ''}
+            onChange={(e) => set('filterPlaceholder', e.target.value || undefined)}
+            placeholder={`All ${column.label}s`}
+            title="Placeholder text shown in dropdown when nothing is selected"
+          />
+        </div>
+      )}
     </div>
   );
 }

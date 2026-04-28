@@ -255,7 +255,9 @@ export default function PublicTableView({ config, rows }: Props) {
               const available = (contextualOptions[col.key] ?? []).filter((o) => !selected.includes(o));
               return (
                 <div key={col.key} className="pub-view__form-field">
-                  <label className="pub-view__form-label">{col.label}</label>
+                  {col.filterLabel !== false && (
+                    <label className="pub-view__form-label">{col.label}</label>
+                  )}
                   {selected.length > 0 && (
                     <div className="pub-view__chips">
                       {selected.map((v) => (
@@ -266,8 +268,13 @@ export default function PublicTableView({ config, rows }: Props) {
                       ))}
                     </div>
                   )}
-                  <select className="pub-view__select" value="" onChange={(e) => { if (e.target.value) addFilter(col.key, e.target.value); }}>
-                    <option value="">All {col.label}s</option>
+                  <select
+                    className="pub-view__select"
+                    value=""
+                    aria-label={col.label}
+                    onChange={(e) => { if (e.target.value) addFilter(col.key, e.target.value); }}
+                  >
+                    <option value="">{col.filterPlaceholder || `All ${col.label}s`}</option>
                     {available.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>

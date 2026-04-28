@@ -7,6 +7,8 @@ export interface ColumnConfig {
   filterable: boolean;
   searchable: boolean;
   type: ColumnType;
+  filterLabel?: boolean;       // show label above filter dropdown (default true)
+  filterPlaceholder?: string;  // default option text, e.g. "All Universities"
 }
 
 // ── Widgets ──────────────────────────────────────────────────────────────────

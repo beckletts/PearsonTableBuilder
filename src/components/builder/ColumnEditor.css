@@ -64,6 +64,23 @@
 
 .col-editor__check input { cursor: pointer; }
 
+.col-editor__filter-opts {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 2px;
+  border-top: 1px solid var(--color-border-soft);
+  margin-top: 2px;
+}
+
+.col-editor__filter-placeholder {
+  padding: 4px 8px;
+  font-size: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
 @media (max-width: 680px) {
   .col-editor {
     grid-template-columns: 20px 36px 1fr;
