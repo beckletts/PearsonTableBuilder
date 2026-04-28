@@ -72,7 +72,8 @@ DESCRIPTION: One clear sentence describing what this dataset shows and who it is
 DATA QUALITY ISSUES:
 Inspect the actual cell values in sampleRows for these problems:
 - "html_artifacts": cells contain HTML tags (<br>, <p>, <div>, <strong>, etc.) or HTML entities (&nbsp;, &amp;, &lt;, &gt;). Use suggestedFix "strip_html".
-- "text_date": a date column where values use inconsistent formats in the same column (e.g. "01/04/2025" mixed with "April 2025" or "Q1 2025"). Use suggestedFix "flag_only".
+- "text_date" (serial numbers): a date column where values are plain integers in the range 25000–60000 — these are Excel serial date numbers (e.g. "45292", "44927"). Use suggestedFix "convert_date_serial". The fix will convert them to DD/MM/YYYY dates.
+- "text_date" (inconsistent formats): a date column where values use inconsistent text formats in the same column (e.g. "01/04/2025" mixed with "April 2025" or "Q1 2025"), but are NOT serial numbers. Use suggestedFix "flag_only".
 - "text_number": a numeric column where values are stored as text with currency symbols, thousands separators, or percent signs (e.g. "£45.00", "1,234", "95%"). Use suggestedFix "flag_only".
 - "whitespace": cells with leading or trailing whitespace. Use suggestedFix "trim_whitespace".
 - "mixed_case": a badge or categorical column where the same value appears in inconsistent cases (e.g. "Yes", "yes", "YES" all present). Use suggestedFix "normalise_case".

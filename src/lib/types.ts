@@ -77,7 +77,7 @@ export interface ParsedFile {
   rows: Record<string, string>[];
 }
 
-export type DataQualityFixType = 'strip_html' | 'trim_whitespace' | 'normalise_case' | 'flag_only';
+export type DataQualityFixType = 'strip_html' | 'trim_whitespace' | 'normalise_case' | 'convert_date_serial' | 'flag_only';
 
 export interface DataQualityIssue {
   column: string;

@@ -18,10 +18,22 @@ function stripHtml(val: string): string {
   }
 }
 
+// Excel stores dates as days since Dec 30 1899; JS epoch is Jan 1 1970 (25569 days later)
+function excelSerialToDate(val: string): string {
+  const serial = parseFloat(val);
+  if (isNaN(serial) || serial < 25000 || serial > 60000) return val;
+  const date = new Date((serial - 25569) * 86400000);
+  const d = String(date.getUTCDate()).padStart(2, '0');
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const y = date.getUTCFullYear();
+  return `${d}/${m}/${y}`;
+}
+
 function applyFixToValue(val: string, fix: DataQualityIssue['suggestedFix']): string {
   if (fix === 'strip_html') return stripHtml(val);
   if (fix === 'trim_whitespace') return val.trim();
   if (fix === 'normalise_case') return val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val;
+  if (fix === 'convert_date_serial') return excelSerialToDate(val);
   return val;
 }
 
