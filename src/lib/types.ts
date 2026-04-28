@@ -76,3 +76,14 @@ export interface ParsedFile {
   headers: string[];
   rows: Record<string, string>[];
 }
+
+export type DataQualityFixType = 'strip_html' | 'trim_whitespace' | 'normalise_case' | 'flag_only';
+
+export interface DataQualityIssue {
+  column: string;
+  type: 'html_artifacts' | 'text_date' | 'text_number' | 'whitespace' | 'mixed_case';
+  description: string;
+  examples: string[];
+  suggestedFix: DataQualityFixType;
+  fixDescription: string;
+}

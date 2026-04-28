@@ -37,3 +37,116 @@
   font-size: 13px;
   font-weight: 600;
 }
+
+/* ── Data quality issues ───────────────────────────────────────────────────── */
+
+.dq-section {
+  margin-top: 20px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.dq-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--color-yellow-lt);
+  border-bottom: 1.5px solid var(--color-border);
+}
+
+.dq-section__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #7A5C00;
+}
+
+.dq-issues {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.dq-issue {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border-soft);
+  background: var(--color-white);
+  transition: background 0.15s;
+}
+
+.dq-issue:last-child {
+  border-bottom: none;
+}
+
+.dq-issue--fixed {
+  background: var(--color-success-lt);
+}
+
+.dq-issue__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.dq-issue__col {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.dq-issue__desc {
+  font-size: 13px;
+  color: var(--color-text-soft);
+  margin: 0 0 8px;
+}
+
+.dq-issue__examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.dq-issue__example {
+  font-family: monospace;
+  font-size: 11px;
+  padding: 2px 6px;
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text);
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dq-issue__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dq-issue__fix-desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+  flex: 1;
+}
+
+.dq-issue__actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.dq-issue__fixed-msg {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-success);
+  margin: 0;
+}

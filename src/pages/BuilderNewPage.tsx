@@ -56,7 +56,7 @@ export default function BuilderNewPage({ user }: Props) {
           {step === 'ai' && parsed && (
             <StepAIConfig
               parsed={parsed}
-              onAccept={(cfg) => { setConfig(cfg); setStep('customise'); }}
+              onAccept={(cfg, cleanedParsed) => { setConfig(cfg); if (cleanedParsed) setParsed(cleanedParsed); setStep('customise'); }}
               onBack={() => setStep('upload')}
             />
           )}

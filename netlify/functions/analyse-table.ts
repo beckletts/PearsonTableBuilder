@@ -26,7 +26,17 @@ OUTPUT RULES:
     }
   ],
   "primarySearchColumn": string,
-  "defaultSort": { "column": string, "direction": "asc" | "desc" }
+  "defaultSort": { "column": string, "direction": "asc" | "desc" },
+  "dataQualityIssues": [
+    {
+      "column": string,        // exact header key
+      "type": "html_artifacts" | "text_date" | "text_number" | "whitespace" | "mixed_case",
+      "description": string,   // plain English description of the problem
+      "examples": string[],    // up to 3 example problematic cell values
+      "suggestedFix": "strip_html" | "trim_whitespace" | "normalise_case" | "flag_only",
+      "fixDescription": string // what the fix will do, in plain English
+    }
+  ]
 }
 
 COLUMN TYPE RULES:
@@ -57,7 +67,16 @@ DEFAULT SORT:
 - If no obvious sort column, use the first visible column ascending
 
 TITLE: Short, professional title describing the dataset. Infer from column names and data context. Do not include the word "Table".
-DESCRIPTION: One clear sentence describing what this dataset shows and who it is for.`;
+DESCRIPTION: One clear sentence describing what this dataset shows and who it is for.
+
+DATA QUALITY ISSUES:
+Inspect the actual cell values in sampleRows for these problems:
+- "html_artifacts": cells contain HTML tags (<br>, <p>, <div>, <strong>, etc.) or HTML entities (&nbsp;, &amp;, &lt;, &gt;). Use suggestedFix "strip_html".
+- "text_date": a date column where values use inconsistent formats in the same column (e.g. "01/04/2025" mixed with "April 2025" or "Q1 2025"). Use suggestedFix "flag_only".
+- "text_number": a numeric column where values are stored as text with currency symbols, thousands separators, or percent signs (e.g. "£45.00", "1,234", "95%"). Use suggestedFix "flag_only".
+- "whitespace": cells with leading or trailing whitespace. Use suggestedFix "trim_whitespace".
+- "mixed_case": a badge or categorical column where the same value appears in inconsistent cases (e.g. "Yes", "yes", "YES" all present). Use suggestedFix "normalise_case".
+Only report issues you actually observe in the sample data. If no issues are found, return an empty array for "dataQualityIssues".`;
 
 async function validateUser(jwt: string): Promise<boolean> {
   const supabase = createClient(
@@ -136,14 +155,16 @@ const handler: Handler = async (event) => {
       return { statusCode: 500, headers, body: JSON.stringify({ error: 'AI did not return a valid configuration. Please try again.' }) };
     }
 
-    let config: unknown;
+    let parsed: Record<string, unknown>;
     try {
-      config = JSON.parse(jsonMatch[0]);
+      parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
     } catch {
       return { statusCode: 500, headers, body: JSON.stringify({ error: 'AI returned malformed JSON. Please try again.' }) };
     }
 
-    return { statusCode: 200, headers, body: JSON.stringify({ config }) };
+    const { dataQualityIssues, ...config } = parsed;
+
+    return { statusCode: 200, headers, body: JSON.stringify({ config, dataQualityIssues: dataQualityIssues ?? [] }) };
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     return { statusCode: 500, headers, body: JSON.stringify({ error: msg }) };
