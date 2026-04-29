@@ -9,6 +9,7 @@ export interface ColumnConfig {
   type: ColumnType;
   filterLabel?: boolean;       // show label above filter dropdown (default true)
   filterPlaceholder?: string;  // default option text, e.g. "All Universities"
+  fontColor?: string;          // optional hex colour applied to all cell values in this column
 }
 
 // ── Widgets ──────────────────────────────────────────────────────────────────
@@ -42,6 +43,11 @@ export interface TableConfig {
     direction: 'asc' | 'desc';
   };
   widgets?: Widget[];
+  dataRefresh?: {
+    enabled: boolean;
+    customText: string;
+    lastUpdated?: string;
+  };
 }
 
 export interface TableRecord {

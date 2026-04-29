@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import type { TableRecord } from '../../lib/types';
 import ShareModal from './ShareModal';
 import EmbedModal from './EmbedModal';
+import AuditModal from './AuditModal';
 import './TableCard.css';
 
 interface Props {
@@ -16,6 +17,7 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
   const [busy, setBusy] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [embedding, setEmbedding] = useState(false);
+  const [auditing, setAuditing] = useState(false);
 
   const togglePublish = async () => {
     setBusy(true);
@@ -25,7 +27,17 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
   };
 
   const deleteTable = async () => {
-    if (!confirm(`Delete "${table.title}"? This cannot be undone.`)) return;
+    setBusy(true);
+    const { data: shares } = await supabase.from('table_shares').select('collaborator_email').eq('table_id', table.id);
+    setBusy(false);
+
+    let message = `Delete "${table.title}"? This cannot be undone.`;
+    if (shares && shares.length > 0) {
+      const names = shares.map((s: { collaborator_email: string }) => s.collaborator_email).join(', ');
+      message = `Delete "${table.title}"?\n\nThis table is currently shared with ${shares.length} colleague${shares.length > 1 ? 's' : ''}: ${names}.\n\nDeleting it will immediately remove their access. This cannot be undone.`;
+    }
+
+    if (!confirm(message)) return;
     setBusy(true);
     await supabase.from('tables').delete().eq('id', table.id);
     onUpdate();
@@ -77,6 +89,9 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
               <button className="btn btn-ghost btn-sm" onClick={() => setSharing(true)}>
                 Share
               </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setAuditing(true)}>
+                History
+              </button>
               <button className="btn btn-danger btn-sm" onClick={() => void deleteTable()} disabled={busy}>
                 Delete
               </button>
@@ -101,6 +116,13 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
           tableTitle={table.title}
           tableSlug={table.slug}
           onClose={() => setEmbedding(false)}
+        />
+      )}
+      {auditing && (
+        <AuditModal
+          tableId={table.id}
+          tableTitle={table.title}
+          onClose={() => setAuditing(false)}
         />
       )}
     </>

@@ -7,6 +7,9 @@ import './InteractiveTable.css';
 
 const PAGE_SIZE = 25;
 
+const TICK_CHARS  = new Set(['✓', '✔', '✅']);
+const CROSS_CHARS = new Set(['✗', '✘', '❌', 'x', 'X']);
+
 function badgeColor(value: string): string {
   // Deterministic colour from string hash
   let hash = 0;
@@ -194,6 +197,12 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
                           </a>
                         ) : col.type === 'badge' && val !== '—' ? (
                           <span className={`badge ${badgeColor(val)}`}>{val}</span>
+                        ) : col.fontColor && val !== '—' ? (
+                          <span style={{ color: col.fontColor, fontWeight: 600 }}>{val}</span>
+                        ) : TICK_CHARS.has(val) ? (
+                          <span style={{ color: '#007A3D', fontWeight: 700 }}>{val}</span>
+                        ) : CROSS_CHARS.has(val) ? (
+                          <span style={{ color: '#C8001E', fontWeight: 700 }}>{val}</span>
                         ) : (
                           val
                         )}

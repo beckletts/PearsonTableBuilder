@@ -486,6 +486,26 @@
 }
 .pub-widget-footer__count { color: #5B2D86; font-weight: 600; }
 
+/* Data refresh notice */
+.pub-data-refresh {
+  text-align: center;
+  padding: 1.25rem 0;
+  border-top: 2px solid #5B2D86;
+}
+.pub-data-refresh__date {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #1A1A1A;
+  margin-bottom: 4px;
+}
+.pub-data-refresh__note {
+  font-size: 0.825rem;
+  color: #888;
+}
+
 /* Empty state (card view) */
 .pub-view__empty-state {
   text-align: center;

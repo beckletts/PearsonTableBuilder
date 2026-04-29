@@ -111,7 +111,12 @@ export default function PublicTableView({ config, rows }: Props) {
         return `"${str.replace(/"/g, '""')}"`;
       }).join(','),
     );
-    const csv = [header, ...csvRows].join('\n');
+    const lines = [header, ...csvRows];
+    if (config.dataRefresh?.enabled && config.dataRefresh.lastUpdated) {
+      const date = new Date(config.dataRefresh.lastUpdated).toLocaleString('en-GB', { dateStyle: 'full', timeStyle: 'short' });
+      lines.push('', `"Data last refreshed: ${date}"`, '"This export may be out of date — check the live table for the most current information."');
+    }
+    const csv = lines.join('\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -124,7 +129,7 @@ export default function PublicTableView({ config, rows }: Props) {
   };
 
   const TICK_CHARS  = new Set(['✓', '✔', '✅']);
-  const CROSS_CHARS = new Set(['✗', '✘', '❌']);
+  const CROSS_CHARS = new Set(['✗', '✘', '❌', 'x', 'X']);
 
   const renderCell = (col: ColumnConfig, row: TableRow) => {
     const raw = row.data[col.key];
@@ -132,6 +137,7 @@ export default function PublicTableView({ config, rows }: Props) {
     if (!val) return <span style={{ color: '#bbb' }}>—</span>;
     if (col.type === 'url') return <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">View ↗</a>;
     if (col.type === 'badge') return <span className="pub-badge" style={getBadgeStyle(col.key, badgeColKeys)}>{val}</span>;
+    if (col.fontColor) return <span style={{ color: col.fontColor, fontWeight: 600 }}>{val}</span>;
     if (TICK_CHARS.has(val))  return <span style={{ color: '#22A051', fontWeight: 700, fontSize: '1.1em' }}>{val}</span>;
     if (CROSS_CHARS.has(val)) return <span style={{ color: '#D0021B', fontWeight: 700, fontSize: '1.1em' }}>{val}</span>;
     return val;
@@ -386,6 +392,22 @@ export default function PublicTableView({ config, rows }: Props) {
           <TablePagination page={page} totalPages={totalPages} onChange={setPage} total={sorted.length} />
         )}
       </div>
+
+      {/* ── Data refresh notice ── */}
+      {config.dataRefresh?.enabled && config.dataRefresh.lastUpdated && (
+        <div className="pub-data-refresh">
+          <p className="pub-data-refresh__date">
+            <span>📋</span>
+            <strong>Data last refreshed:</strong>{' '}
+            {new Date(config.dataRefresh.lastUpdated).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+          </p>
+          {config.dataRefresh.customText && (
+            <p className="pub-data-refresh__note">
+              <span>💡</span> <em>{config.dataRefresh.customText}</em>
+            </p>
+          )}
+        </div>
+      )}
 
       {/* ── Footer note ── */}
       {footerWidget && (() => {

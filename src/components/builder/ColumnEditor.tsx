@@ -31,9 +31,9 @@ export default function ColumnEditor({ column, onChange, onDragStart, onDragOver
       onDrop={onDrop}
       onDragEnd={() => { /* let parent clear state */ }}
     >
-      <div className="col-editor__drag" title="Drag to reorder">⠿</div>
+      <div className="col-editor__drag" data-tooltip="Drag to reorder columns">⠿</div>
 
-      <label className="col-editor__toggle toggle" title={column.visible ? 'Hide column' : 'Show column'}>
+      <label className="col-editor__toggle toggle" data-tooltip={column.visible ? 'Hide this column from the published table' : 'Show this column in the published table'}>
         <input
           type="checkbox"
           checked={column.visible}
@@ -50,6 +50,7 @@ export default function ColumnEditor({ column, onChange, onDragStart, onDragOver
           onChange={(e) => set('label', e.target.value)}
           placeholder="Display name"
           disabled={!column.visible}
+          data-tooltip="The heading shown for this column in the published table"
         />
       </div>
 
@@ -58,13 +59,14 @@ export default function ColumnEditor({ column, onChange, onDragStart, onDragOver
         value={column.type}
         onChange={(e) => set('type', e.target.value as ColumnType)}
         disabled={!column.visible}
+        data-tooltip="How this column's values are displayed: Text, Number, Date, clickable URL, or colour-coded Badge"
       >
         {TYPE_OPTIONS.map((o) => (
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
 
-      <label className="col-editor__check" title="Show as filter">
+      <label className="col-editor__check" data-tooltip="Add a dropdown filter for this column so users can narrow results by value">
         <input
           type="checkbox"
           checked={column.filterable}
@@ -74,7 +76,7 @@ export default function ColumnEditor({ column, onChange, onDragStart, onDragOver
         <span className="text-sm">Filter</span>
       </label>
 
-      <label className="col-editor__check" title="Include in search">
+      <label className="col-editor__check" data-tooltip="Include this column in the search bar so users can find rows by its values">
         <input
           type="checkbox"
           checked={column.searchable}
@@ -84,9 +86,23 @@ export default function ColumnEditor({ column, onChange, onDragStart, onDragOver
         <span className="text-sm">Search</span>
       </label>
 
+      <div className="col-editor__colour-wrap" data-tooltip={column.fontColor ? 'Custom text colour applied — click to change, × to remove' : 'Set a custom text colour for all values in this column'}>
+        <input
+          type="color"
+          className={`col-editor__colour-swatch ${column.fontColor ? '' : 'col-editor__colour-swatch--unset'}`}
+          value={column.fontColor ?? '#1A1A1A'}
+          onChange={(e) => set('fontColor', e.target.value)}
+          disabled={!column.visible}
+          aria-label="Column text colour"
+        />
+        {column.fontColor && (
+          <button className="col-editor__colour-clear" onClick={() => set('fontColor', undefined)} aria-label="Clear colour">✕</button>
+        )}
+      </div>
+
       {column.filterable && column.visible && (
         <div className="col-editor__filter-opts">
-          <label className="col-editor__check" title="Show column name above the filter dropdown">
+          <label className="col-editor__check" data-tooltip="Show the column name as a label above the filter dropdown">
             <input
               type="checkbox"
               checked={column.filterLabel !== false}
@@ -99,7 +115,7 @@ export default function ColumnEditor({ column, onChange, onDragStart, onDragOver
             value={column.filterPlaceholder ?? ''}
             onChange={(e) => set('filterPlaceholder', e.target.value || undefined)}
             placeholder={`All ${column.label}s`}
-            title="Placeholder text shown in dropdown when nothing is selected"
+            data-tooltip="Default text shown in the filter dropdown before a value is selected"
           />
         </div>
       )}

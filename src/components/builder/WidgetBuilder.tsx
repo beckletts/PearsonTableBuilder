@@ -95,6 +95,7 @@ export default function WidgetBuilder({ config, parsed, onChange }: Props) {
           className="btn btn-primary btn-sm widget-builder__generate-btn"
           onClick={() => void generate()}
           disabled={busy || !prompt.trim()}
+          data-tooltip="Use AI to add a heading, callout, stat cards, card view, or footer to your table page"
         >
           {busy ? 'Generating…' : '✦ Generate with AI'}
         </button>

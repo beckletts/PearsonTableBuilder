@@ -64,7 +64,15 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
       }
       const user = session.user;
 
-      const finalConfig = { ...config, title: config.title.trim() || 'Untitled Table' };
+      const finalConfig = {
+        ...config,
+        title: config.title.trim() || 'Untitled Table',
+        dataRefresh: config.dataRefresh?.enabled
+          ? { ...config.dataRefresh, lastUpdated: new Date().toISOString() }
+          : config.dataRefresh,
+      };
+
+      let savedTableId: string;
 
       if (editingId) {
         const { error: upErr } = await supabase
@@ -75,7 +83,7 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
 
         await supabase.from('table_rows').delete().eq('table_id', editingId);
         await insertRows(editingId, parsed.rows);
-        navigate('/dashboard');
+        savedTableId = editingId;
       } else {
         const slug = await generateUniqueSlug(finalConfig.title);
         const { data: table, error: tErr } = await supabase
@@ -86,12 +94,22 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
         if (tErr) throw tErr;
 
         await insertRows(table.id, parsed.rows);
+        savedTableId = table.id;
 
         if (publish) {
           await navigator.clipboard.writeText(`${window.location.origin}/t/${slug}`).catch(() => null);
         }
-        navigate('/dashboard');
       }
+
+      void supabase.from('table_audit_log').insert({
+        table_id: savedTableId,
+        user_id: user.id,
+        user_email: user.email ?? '',
+        action: publish ? 'publish' : 'save_draft',
+        row_count: parsed.rows.length,
+      });
+
+      navigate('/dashboard');
     } catch (e) {
       const msg = e instanceof Error ? e.message : (e as { message?: string })?.message;
       setError(msg || 'Save failed. Please try again.');
@@ -108,7 +126,7 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
 
           <div className="card" style={{ marginBottom: 16 }}>
             <div className="input-group" style={{ marginBottom: 14 }}>
-              <label className="input-label">Table title</label>
+              <label className="input-label" data-tooltip="The name displayed at the top of your published table page">Table title</label>
               <input
                 className="input"
                 value={config.title}
@@ -117,7 +135,7 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
               />
             </div>
             <div className="input-group">
-              <label className="input-label">Description <span className="text-muted">(optional)</span></label>
+              <label className="input-label" data-tooltip="A short summary shown beneath the title to help users understand the data">Description <span className="text-muted">(optional)</span></label>
               <textarea
                 className="input"
                 value={config.description}
@@ -151,14 +169,43 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
 
           <WidgetBuilder config={config} parsed={parsed} onChange={updateWidgets} />
 
+          <div className="card" style={{ marginTop: 16, padding: 16 }}>
+            <label className="col-editor__check" style={{ marginBottom: config.dataRefresh?.enabled ? 10 : 0 }}>
+              <input
+                type="checkbox"
+                checked={config.dataRefresh?.enabled ?? false}
+                onChange={(e) => setConfig((c) => ({
+                  ...c,
+                  dataRefresh: {
+                    enabled: e.target.checked,
+                    customText: c.dataRefresh?.customText ?? '',
+                    lastUpdated: c.dataRefresh?.lastUpdated,
+                  },
+                }))}
+              />
+              <span className="text-sm font-600">Show "data last refreshed" notice</span>
+            </label>
+            {config.dataRefresh?.enabled && (
+              <input
+                className="input"
+                value={config.dataRefresh.customText}
+                onChange={(e) => setConfig((c) => ({
+                  ...c,
+                  dataRefresh: { ...c.dataRefresh!, enabled: true, customText: e.target.value },
+                }))}
+                placeholder="e.g. Assessment dates may be updated — please check this page for the latest information"
+              />
+            )}
+          </div>
+
           {error && <p className="error-msg mt-16">{error}</p>}
 
           <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
-            <button className="btn btn-secondary" onClick={onBack} disabled={saving}>← Back</button>
-            <button className="btn btn-secondary" onClick={() => save(false)} disabled={saving}>
+            <button className="btn btn-secondary" onClick={onBack} disabled={saving} data-tooltip="Go back to the upload step">← Back</button>
+            <button className="btn btn-secondary" onClick={() => save(false)} disabled={saving} data-tooltip="Save your settings without making the table visible to others yet">
               {saving ? 'Saving…' : 'Save draft'}
             </button>
-            <button className="btn btn-primary" onClick={() => save(true)} disabled={saving}>
+            <button className="btn btn-primary" onClick={() => save(true)} disabled={saving} data-tooltip="Make this table live and copy the shareable link to your clipboard">
               {saving ? 'Publishing…' : 'Publish →'}
             </button>
           </div>
