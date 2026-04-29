@@ -133,7 +133,7 @@ export default function PublicTableView({ config, rows }: Props) {
 
   const renderCell = (col: ColumnConfig, row: TableRow) => {
     const raw = row.data[col.key];
-    const val = raw !== null && raw !== undefined ? String(raw) : '';
+    const val = raw !== null && raw !== undefined ? String(raw).trim() : '';
     if (!val) return <span style={{ color: '#bbb' }}>—</span>;
     if (col.type === 'url') return <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">View ↗</a>;
     if (col.type === 'badge') return <span className="pub-badge" style={getBadgeStyle(col.key, badgeColKeys)}>{val}</span>;
@@ -345,6 +345,21 @@ export default function PublicTableView({ config, rows }: Props) {
           </div>
         </div>
 
+        {config.dataRefresh?.enabled && config.dataRefresh.lastUpdated && (
+          <div className="pub-data-refresh">
+            <p className="pub-data-refresh__date">
+              <span>📋</span>
+              <strong>Data last refreshed:</strong>{' '}
+              {new Date(config.dataRefresh.lastUpdated).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+            </p>
+            {config.dataRefresh.customText && (
+              <p className="pub-data-refresh__note">
+                <span>💡</span> <em>{config.dataRefresh.customText}</em>
+              </p>
+            )}
+          </div>
+        )}
+
         {viewMode === 'card' && cardWidget ? renderCardGrid() : (
           <>
             <div className="pub-view__table-scroll">
@@ -392,22 +407,6 @@ export default function PublicTableView({ config, rows }: Props) {
           <TablePagination page={page} totalPages={totalPages} onChange={setPage} total={sorted.length} />
         )}
       </div>
-
-      {/* ── Data refresh notice ── */}
-      {config.dataRefresh?.enabled && config.dataRefresh.lastUpdated && (
-        <div className="pub-data-refresh">
-          <p className="pub-data-refresh__date">
-            <span>📋</span>
-            <strong>Data last refreshed:</strong>{' '}
-            {new Date(config.dataRefresh.lastUpdated).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
-          </p>
-          {config.dataRefresh.customText && (
-            <p className="pub-data-refresh__note">
-              <span>💡</span> <em>{config.dataRefresh.customText}</em>
-            </p>
-          )}
-        </div>
-      )}
 
       {/* ── Footer note ── */}
       {footerWidget && (() => {

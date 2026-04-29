@@ -1,8 +1,7 @@
 .col-editor {
-  display: grid;
-  grid-template-columns: 20px 36px 1fr 120px 44px 70px 70px;
-  align-items: center;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 12px;
   background: var(--color-white);
   border: 1px solid var(--color-border);
@@ -10,32 +9,43 @@
   transition: opacity 0.15s;
 }
 
-.col-editor--hidden {
-  opacity: 0.5;
-}
-
+.col-editor--hidden  { opacity: 0.5; }
 .col-editor--dragging {
   opacity: 0.4;
   border-style: dashed;
   border-color: var(--color-primary);
 }
 
+/* ── Row 1: drag · toggle · name ────────────────────────────────────────── */
+.col-editor__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .col-editor__drag {
   cursor: grab;
   color: var(--color-text-muted);
   font-size: 16px;
+  width: 20px;
+  flex-shrink: 0;
   line-height: 1;
+  text-align: center;
 }
 
+/* toggle width is controlled by .toggle-track in global CSS (~36px) */
+.col-editor__toggle { flex-shrink: 0; }
+
 .col-editor__name {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  min-width: 0;
 }
 
 .col-editor__key {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--color-text-muted);
   font-family: monospace;
   overflow: hidden;
@@ -48,27 +58,39 @@
   font-size: 13px;
 }
 
+/* ── Row 2: type · colour · filter · search ─────────────────────────────── */
+/* indent to align with the name field: 20px drag + 10px gap + 36px toggle + 10px gap = 76px */
+.col-editor__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 76px;
+}
+
 .col-editor__type {
+  flex: 1;
+  min-width: 0;
   padding: 5px 8px;
   font-size: 13px;
-  width: 100%;
 }
 
 .col-editor__check {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 13px;
 }
-
 .col-editor__check input { cursor: pointer; }
 
+/* ── Colour picker ──────────────────────────────────────────────────────── */
 .col-editor__colour-wrap {
   display: flex;
   align-items: center;
   gap: 3px;
-  position: relative;
+  flex-shrink: 0;
 }
 
 .col-editor__colour-swatch {
@@ -79,9 +101,7 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   background: none;
-  flex-shrink: 0;
 }
-.col-editor__colour-swatch:disabled { opacity: 0.4; cursor: not-allowed; }
 .col-editor__colour-swatch--unset { opacity: 0.35; }
 
 .col-editor__colour-clear {
@@ -95,14 +115,13 @@
 }
 .col-editor__colour-clear:hover { color: var(--color-danger); }
 
+/* ── Filter sub-options ─────────────────────────────────────────────────── */
 .col-editor__filter-opts {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 0 2px;
+  padding: 6px 0 2px 76px;
   border-top: 1px solid var(--color-border-soft);
-  margin-top: 2px;
 }
 
 .col-editor__filter-placeholder {
@@ -113,10 +132,6 @@
 }
 
 @media (max-width: 680px) {
-  .col-editor {
-    grid-template-columns: 20px 36px 1fr 44px;
-    grid-template-rows: auto auto;
-  }
-  .col-editor__type,
-  .col-editor__check { grid-column: span 1; }
+  .col-editor__controls,
+  .col-editor__filter-opts { padding-left: 0; flex-wrap: wrap; }
 }
