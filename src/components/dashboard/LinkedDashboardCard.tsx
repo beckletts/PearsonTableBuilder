@@ -55,6 +55,9 @@ export default function LinkedDashboardCard({ dashboard, onUpdate }: Props) {
       </div>
 
       <div className="ld-card__actions">
+        <Link to={`/linked/${dashboard.id}/edit`} className="btn btn-secondary btn-sm">
+          Edit
+        </Link>
         {dashboard.is_published && (
           <>
             <Link to={`/ld/${dashboard.slug}`} target="_blank" className="btn btn-secondary btn-sm">

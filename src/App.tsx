@@ -14,6 +14,7 @@ import BuilderEditPage      from './pages/BuilderEditPage';
 import PublicTablePage      from './pages/PublicTablePage';
 import LinkedBuilderPage    from './pages/LinkedBuilderPage';
 import LinkedDashboardPage  from './pages/LinkedDashboardPage';
+import LinkedEditPage       from './pages/LinkedEditPage';
 
 export default function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -58,6 +59,11 @@ export default function App() {
         <Route path="/linked/new" element={
           <ProtectedRoute user={user}>
             <LinkedBuilderPage user={user!} />
+          </ProtectedRoute>
+        } />
+        <Route path="/linked/:id/edit" element={
+          <ProtectedRoute user={user}>
+            <LinkedEditPage user={user!} />
           </ProtectedRoute>
         } />
 
