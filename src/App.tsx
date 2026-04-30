@@ -3,15 +3,17 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
-import ProtectedRoute   from './components/layout/ProtectedRoute';
-import LandingPage      from './pages/LandingPage';
-import LoginPage        from './pages/LoginPage';
-import SignupPage       from './pages/SignupPage';
-import AuthCallbackPage from './pages/AuthCallbackPage';
-import DashboardPage    from './pages/DashboardPage';
-import BuilderNewPage   from './pages/BuilderNewPage';
-import BuilderEditPage  from './pages/BuilderEditPage';
-import PublicTablePage  from './pages/PublicTablePage';
+import ProtectedRoute       from './components/layout/ProtectedRoute';
+import LandingPage          from './pages/LandingPage';
+import LoginPage            from './pages/LoginPage';
+import SignupPage           from './pages/SignupPage';
+import AuthCallbackPage     from './pages/AuthCallbackPage';
+import DashboardPage        from './pages/DashboardPage';
+import BuilderNewPage       from './pages/BuilderNewPage';
+import BuilderEditPage      from './pages/BuilderEditPage';
+import PublicTablePage      from './pages/PublicTablePage';
+import LinkedBuilderPage    from './pages/LinkedBuilderPage';
+import LinkedDashboardPage  from './pages/LinkedDashboardPage';
 
 export default function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -35,6 +37,7 @@ export default function App() {
         <Route path="/signup"        element={user ? <Navigate to="/dashboard" replace /> : <SignupPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/t/:slug"       element={<PublicTablePage />} />
+        <Route path="/ld/:slug"      element={<LinkedDashboardPage />} />
 
         {/* Protected */}
         <Route path="/dashboard" element={
@@ -50,6 +53,11 @@ export default function App() {
         <Route path="/builder/:id" element={
           <ProtectedRoute user={user}>
             <BuilderEditPage user={user!} />
+          </ProtectedRoute>
+        } />
+        <Route path="/linked/new" element={
+          <ProtectedRoute user={user}>
+            <LinkedBuilderPage user={user!} />
           </ProtectedRoute>
         } />
 

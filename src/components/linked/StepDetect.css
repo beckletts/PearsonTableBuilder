@@ -1,0 +1,104 @@
+.step-detect__heading {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.step-detect__loading {
+  text-align: center;
+  padding: 60px 24px;
+}
+
+.step-detect__error { text-align: center; padding: 24px 0; }
+
+.step-detect__result {
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.step-detect__result-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.step-detect__result-icon { font-size: 32px; flex-shrink: 0; }
+
+.step-detect__key-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.step-detect__confidence {
+  margin-left: auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.step-detect__confidence-pct {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.step-detect__reasoning {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-soft);
+  line-height: 1.6;
+}
+
+.step-detect__mappings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.step-detect__mapping {
+  padding: 16px;
+}
+
+.step-detect__mapping-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.step-detect__mapping-sheet {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.step-detect__mapping-badge {
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.step-detect__mapping-col { margin-bottom: 10px; }
+
+.step-detect__sample-vals {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.step-detect__val-chip {
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--color-text-soft);
+}

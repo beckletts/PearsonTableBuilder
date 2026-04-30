@@ -1,0 +1,115 @@
+.step-sources__heading {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.step-sources__drop {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.step-sources__drop:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-lt);
+}
+
+.step-sources__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.step-sources__item {
+  padding: 16px;
+}
+
+.step-sources__item-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.step-sources__item-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.step-sources__name-input {
+  padding: 6px 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.step-sources__cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.step-sources__col-pill {
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 2px 10px;
+  font-size: 11px;
+  color: var(--color-text-soft);
+  font-family: monospace;
+}
+
+.step-sources__col-pill--more {
+  color: var(--color-text-muted);
+  font-style: italic;
+  font-family: var(--font-sans);
+}
+
+.step-sources__preview {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.step-sources__preview-scroll {
+  overflow-x: auto;
+  max-height: 120px;
+  overflow-y: hidden;
+}
+
+.step-sources__preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.step-sources__preview-table th {
+  background: var(--color-bg-soft);
+  padding: 6px 10px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--color-text-soft);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.step-sources__preview-table td {
+  padding: 5px 10px;
+  color: var(--color-text-soft);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border-soft);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

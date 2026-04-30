@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import type { TableRecord } from '../lib/types';
+import type { TableRecord, LinkedDashboard } from '../lib/types';
 import PearsonNav from '../components/layout/PearsonNav';
 import TableCard from '../components/dashboard/TableCard';
 import TabGroupCard from '../components/dashboard/TabGroupCard';
+import LinkedDashboardCard from '../components/dashboard/LinkedDashboardCard';
 import './DashboardPage.css';
 
 interface Props { user: User }
@@ -13,16 +14,20 @@ interface Props { user: User }
 export default function DashboardPage({ user }: Props) {
   const [tables, setTables] = useState<TableRecord[]>([]);
   const [sharedTables, setSharedTables] = useState<TableRecord[]>([]);
+  const [linkedDashboards, setLinkedDashboards] = useState<LinkedDashboard[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
     const userEmail = user.email ?? '';
 
-    const [{ data: ownData }, { data: shareData }] = await Promise.all([
+    const [{ data: ownData }, { data: shareData }, { data: linkedData }] = await Promise.all([
       supabase.from('tables').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('table_shares').select('table_id').eq('collaborator_email', userEmail),
+      supabase.from('linked_dashboards').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
     ]);
+
+    setLinkedDashboards((linkedData as LinkedDashboard[]) ?? []);
 
     setTables((ownData as TableRecord[]) ?? []);
 
@@ -63,10 +68,16 @@ export default function DashboardPage({ user }: Props) {
             <h1 className="dashboard__title">My tables</h1>
             <p className="text-soft mt-4">Create and manage your Pearson interactive tables</p>
           </div>
-          <Link to="/builder/new" className="btn btn-primary">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
-            New table
-          </Link>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Link to="/linked/new" className="btn btn-secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              Linked dashboard
+            </Link>
+            <Link to="/builder/new" className="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              New table
+            </Link>
+          </div>
         </div>
 
         {loading && (
@@ -106,6 +117,20 @@ export default function DashboardPage({ user }: Props) {
             <div className="dashboard__grid">
               {sharedTables.map((t) => (
                 <TableCard key={t.id} table={t} isOwner={false} onUpdate={() => void load()} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {!loading && linkedDashboards.length > 0 && (
+          <>
+            <div className="dashboard__section-heading">
+              <h2>Linked dashboards</h2>
+              <p className="text-soft text-sm">Multi-spreadsheet dashboards joined by a common key</p>
+            </div>
+            <div className="dashboard__grid">
+              {linkedDashboards.map((d) => (
+                <LinkedDashboardCard key={d.id} dashboard={d} onUpdate={() => void load()} />
               ))}
             </div>
           </>

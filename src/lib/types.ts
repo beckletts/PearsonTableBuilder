@@ -85,6 +85,71 @@ export interface ParsedFile {
   rows: Record<string, string>[];
 }
 
+// ── Linked dashboards ─────────────────────────────────────────────────────────
+
+export interface LinkedColumnConfig {
+  key: string;
+  label: string;
+  visible: boolean;
+  filterable: boolean;
+  searchable: boolean;
+  type: ColumnType;
+  sourceId?: string;
+}
+
+export interface LinkedDashboardConfig {
+  columns: LinkedColumnConfig[];
+  sources: { id: string; name: string; join_key_column: string }[];
+  defaultSort: { column: string; direction: 'asc' | 'desc' };
+}
+
+export interface LinkedDashboard {
+  id: string;
+  owner_id: string;
+  title: string;
+  description: string | null;
+  slug: string;
+  join_key: string;
+  config: LinkedDashboardConfig;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LinkedSource {
+  id: string;
+  dashboard_id: string;
+  name: string;
+  join_key_column: string;
+  row_count: number;
+  created_at: string;
+}
+
+export interface LinkedRow {
+  id: string;
+  dashboard_id: string;
+  source_id: string;
+  join_value: string;
+  data: Record<string, string | number | null>;
+  row_index: number;
+}
+
+export interface ParsedSource {
+  name: string;
+  fileName: string;
+  headers: string[];
+  rows: Record<string, string>[];
+  columnSuggestions?: ColumnConfig[];
+}
+
+export interface JoinDetectResult {
+  canonical_name: string;
+  confidence: number;
+  mappings: { source_name: string; column: string; confidence: number }[];
+  reasoning: string;
+  pattern: string;
+}
+
 export type DataQualityFixType = 'strip_html' | 'trim_whitespace' | 'normalise_case' | 'convert_date_serial' | 'flag_only';
 
 export interface DataQualityIssue {
