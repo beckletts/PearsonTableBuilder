@@ -2,7 +2,15 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import type { ParsedFile } from '../lib/types';
 
-export async function parseFile(file: File): Promise<ParsedFile> {
+export async function getSheetNames(file: File): Promise<string[]> {
+  const name = file.name.toLowerCase();
+  if (!name.endsWith('.xlsx') && !name.endsWith('.xls')) return [];
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array', bookSheets: true });
+  return wb.SheetNames;
+}
+
+export async function parseFile(file: File, sheetName?: string): Promise<ParsedFile> {
   const name = file.name.toLowerCase();
 
   if (name.endsWith('.csv')) {
@@ -24,7 +32,8 @@ export async function parseFile(file: File): Promise<ParsedFile> {
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: 'array' });
-    const ws = wb.Sheets[wb.SheetNames[0]];
+    const ws = wb.Sheets[sheetName ?? wb.SheetNames[0]];
+    if (!ws) throw new Error(`Sheet "${sheetName}" not found in workbook.`);
     const json = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: '' });
     const headers = json.length > 0 ? Object.keys(json[0]) : [];
     return { headers, rows: json };

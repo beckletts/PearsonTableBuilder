@@ -113,3 +113,56 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ── Sheet picker ───────────────────────────────────────────────────────────── */
+.step-sources__sheet-picker {
+  margin-top: 16px;
+  padding: 16px;
+  border: 2px solid var(--color-primary);
+  background: var(--color-primary-lt);
+}
+
+.step-sources__sheet-picker-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.step-sources__sheet-picker-icon { font-size: 22px; flex-shrink: 0; }
+
+.step-sources__sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding-left: 2px;
+}
+
+.step-sources__sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.1s;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+}
+
+.step-sources__sheet-item:hover { background: #f0eaf8; border-color: var(--color-primary); }
+
+.step-sources__sheet-item input[type="checkbox"] { accent-color: var(--color-primary); }
+
+.step-sources__sheet-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.step-sources__sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
