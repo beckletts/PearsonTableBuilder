@@ -69,7 +69,7 @@ export default function StepSources({ sources, onChange, onNext }: Props) {
           rows: parsed.rows,
         });
       }
-      if (newSources.length === 0) throw new Error('No data found in the selected tabs.');
+      if (newSources.length === 0) throw new Error('No data found in the selected sheets.');
       onChange([...sources, ...newSources]);
       setPendingSheets(null);
     } catch (e) {
@@ -135,7 +135,7 @@ export default function StepSources({ sources, onChange, onNext }: Props) {
             <span className="step-sources__sheet-picker-icon">📊</span>
             <div>
               <p className="font-600" style={{ fontSize: 14 }}>{pendingSheets.fileName}</p>
-              <p className="text-xs text-muted mt-2">This workbook has {pendingSheets.sheetNames.length} tabs. Select the ones you want to include.</p>
+              <p className="text-xs text-muted mt-2">This workbook has {pendingSheets.sheetNames.length} sheets. Select the ones you want to include.</p>
             </div>
           </div>
           <div className="step-sources__sheet-list">
@@ -157,7 +157,7 @@ export default function StepSources({ sources, onChange, onNext }: Props) {
               disabled={pendingSheets.selected.size === 0 || parsing}
               onClick={() => void confirmSheets()}
             >
-              {parsing ? 'Importing…' : `Add ${pendingSheets.selected.size} tab${pendingSheets.selected.size !== 1 ? 's' : ''} →`}
+              {parsing ? 'Importing…' : `Add ${pendingSheets.selected.size} sheet${pendingSheets.selected.size !== 1 ? 's' : ''} →`}
             </button>
           </div>
         </div>
