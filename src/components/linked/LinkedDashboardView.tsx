@@ -7,7 +7,7 @@ interface Props {
   rawRows: LinkedRow[];
 }
 
-function mergeRows(rawRows: LinkedRow[], joinKey: string): Record<string, unknown>[] {
+function mergeRows(rawRows: LinkedRow[]): Record<string, unknown>[] {
   const groups = new Map<string, Record<string, unknown>>();
   for (const row of rawRows) {
     const key = row.join_value;
@@ -40,7 +40,7 @@ export default function LinkedDashboardView({ dashboard, rawRows }: Props) {
   const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
   const [showColPicker, setShowColPicker] = useState(false);
 
-  const merged = useMemo(() => mergeRows(rawRows, dashboard.join_key), [rawRows]);
+  const merged = useMemo(() => mergeRows(rawRows), [rawRows]);
 
   const filtered = useMemo(() => {
     let rows = merged;

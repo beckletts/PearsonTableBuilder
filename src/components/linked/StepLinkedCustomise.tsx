@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { generateUniqueSlug } from '../../utils/generateSlug';
 import type {
   JoinDetectResult, LinkedColumnConfig, LinkedDashboardConfig,
-  LinkedRow, ParsedSource,
+  ParsedSource,
 } from '../../lib/types';
 import './StepLinkedCustomise.css';
 
@@ -66,7 +66,7 @@ const TYPE_OPTIONS = [
   { value: 'badge',  label: 'Badge' },
 ] as const;
 
-export default function StepLinkedCustomise({ sources, joinResult, editingId }: Props) {
+export default function StepLinkedCustomise({ sources, joinResult }: Props) {
   const navigate = useNavigate();
   const [title, setTitle]           = useState('');
   const [description, setDescription] = useState('');
@@ -114,7 +114,7 @@ export default function StepLinkedCustomise({ sources, joinResult, editingId }: 
       if (dashErr) throw dashErr;
 
       // Insert sources
-      const sourceInserts = sources.map((s, i) => ({
+      const sourceInserts = sources.map((s) => ({
         dashboard_id: dashboard.id,
         name: s.name,
         join_key_column: joinResult.mappings.find((m) => m.source_name === s.name)?.column ?? s.headers[0],
