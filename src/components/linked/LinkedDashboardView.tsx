@@ -307,7 +307,7 @@ export default function LinkedDashboardView({ dashboard, rawRows }: Props) {
             <div className="ld-modal__body">
               <table className="ld-modal__table">
                 <tbody>
-                  {config.columns.filter((c) => c.visible && c.inDetails !== false).map((col) => {
+                  {config.columns.filter((c) => c.inDetails === true || (c.visible && c.inDetails !== false)).map((col) => {
                     const val = getCellVal(detailRow, col.key);
                     if (!val) return null;
                     return (

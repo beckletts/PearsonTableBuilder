@@ -228,6 +228,18 @@ export default function LinkedEditPage({ user }: Props) {
                     </label>
                   </div>
                 )}
+                {!col.visible && (
+                  <div className="le-col__controls">
+                    <label className="col-editor__check">
+                      <input
+                        type="checkbox"
+                        checked={col.inDetails === true}
+                        onChange={(e) => setCol(i, { inDetails: e.target.checked ? true : undefined })}
+                      />
+                      <span className="text-sm">Show in details only</span>
+                    </label>
+                  </div>
+                )}
               </div>
             ))}
           </div>

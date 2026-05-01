@@ -244,6 +244,18 @@ export default function StepLinkedCustomise({ sources, joinResult }: Props) {
                 </label>
               </div>
             )}
+            {!col.visible && (
+              <div className="step-lc__col-controls">
+                <label className="col-editor__check">
+                  <input
+                    type="checkbox"
+                    checked={col.inDetails === true}
+                    onChange={(e) => setCol(i, { inDetails: e.target.checked ? true : undefined })}
+                  />
+                  <span className="text-sm">Show in details only</span>
+                </label>
+              </div>
+            )}
           </div>
         ))}
       </div>
