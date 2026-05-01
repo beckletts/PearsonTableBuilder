@@ -31,6 +31,7 @@ function buildInitialColumns(
     visible: true,
     filterable: false,
     searchable: true,
+    inDetails: true,
     type: 'text',
   });
   seen.add('__join_value');
@@ -50,6 +51,7 @@ function buildInitialColumns(
         visible: suggestion ? suggestion.visible : true,
         filterable: suggestion?.filterable ?? false,
         searchable: suggestion?.searchable ?? false,
+        inDetails: true,
         type: suggestion?.type ?? 'text',
         sourceId: undefined,
       });
@@ -235,6 +237,10 @@ export default function StepLinkedCustomise({ sources, joinResult }: Props) {
                 <label className="col-editor__check">
                   <input type="checkbox" checked={col.searchable} onChange={(e) => setCol(i, { searchable: e.target.checked })} />
                   <span className="text-sm">Search</span>
+                </label>
+                <label className="col-editor__check">
+                  <input type="checkbox" checked={col.inDetails !== false} onChange={(e) => setCol(i, { inDetails: e.target.checked })} />
+                  <span className="text-sm">Details</span>
                 </label>
               </div>
             )}

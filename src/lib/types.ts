@@ -93,6 +93,7 @@ export interface LinkedColumnConfig {
   visible: boolean;
   filterable: boolean;
   searchable: boolean;
+  inDetails?: boolean;
   type: ColumnType;
   sourceId?: string;
 }

@@ -54,6 +54,15 @@ export default function LinkedEditPage({ user }: Props) {
   const setCol = (i: number, patch: Partial<LinkedColumnConfig>) =>
     setColumns((cs) => cs.map((c, idx) => idx === i ? { ...c, ...patch } : c));
 
+  const moveCol = (i: number, dir: -1 | 1) =>
+    setColumns((cs) => {
+      const next = [...cs];
+      const target = i + dir;
+      if (target < 0 || target >= next.length) return cs;
+      [next[i], next[target]] = [next[target], next[i]];
+      return next;
+    });
+
   const save = async (publish?: boolean) => {
     if (!dashboard) return;
     setSaving(true);
@@ -162,6 +171,20 @@ export default function LinkedEditPage({ user }: Props) {
             {columns.map((col, i) => (
               <div key={col.key} className={`le-col card ${col.visible ? '' : 'le-col--hidden'}`}>
                 <div className="le-col__top">
+                  <div className="le-col__reorder">
+                    <button
+                      className="le-col__reorder-btn"
+                      onClick={() => moveCol(i, -1)}
+                      disabled={i === 0}
+                      aria-label="Move up"
+                    >▲</button>
+                    <button
+                      className="le-col__reorder-btn"
+                      onClick={() => moveCol(i, 1)}
+                      disabled={i === columns.length - 1}
+                      aria-label="Move down"
+                    >▼</button>
+                  </div>
                   <label className="toggle">
                     <input
                       type="checkbox"
@@ -198,6 +221,10 @@ export default function LinkedEditPage({ user }: Props) {
                     <label className="col-editor__check">
                       <input type="checkbox" checked={col.searchable} onChange={(e) => setCol(i, { searchable: e.target.checked })} />
                       <span className="text-sm">Search</span>
+                    </label>
+                    <label className="col-editor__check">
+                      <input type="checkbox" checked={col.inDetails !== false} onChange={(e) => setCol(i, { inDetails: e.target.checked })} />
+                      <span className="text-sm">Details</span>
                     </label>
                   </div>
                 )}
