@@ -23,7 +23,7 @@ export default function DataEditor({ tableId, config, initialRows, onSaved }: Pr
   const [rows, setRows] = useState<EditRow[]>(() =>
     initialRows.map((r) => ({
       _id: r.id,
-      ...Object.fromEntries(allCols.map((c) => [c.key, String(r.data[c.key] ?? '')])),
+      ...Object.fromEntries(allCols.map((c) => [c.key, String(r.data[c.key] ?? '').replace(/​/g, '').trim()])),
     })),
   );
 
@@ -38,7 +38,7 @@ export default function DataEditor({ tableId, config, initialRows, onSaved }: Pr
     setRows(
       initialRows.map((r) => ({
         _id: r.id,
-        ...Object.fromEntries(config.columns.map((c) => [c.key, String(r.data[c.key] ?? '')])),
+        ...Object.fromEntries(config.columns.map((c) => [c.key, String(r.data[c.key] ?? '').replace(/​/g, '').trim()])),
       })),
     );
     setDirty(false);
