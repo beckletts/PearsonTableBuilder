@@ -52,6 +52,24 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
 
   const updateWidgets = (widgets: Widget[]) => setConfig((c) => ({ ...c, widgets }));
 
+  const markRefreshed = async () => {
+    if (!editingId || !config.dataRefresh?.enabled) return;
+    setSaving(true);
+    setError('');
+    try {
+      const now = new Date().toISOString();
+      const updatedConfig = { ...config, dataRefresh: { ...config.dataRefresh, lastUpdated: now } };
+      const { error: upErr } = await supabase.from('tables').update({ config: updatedConfig }).eq('id', editingId);
+      if (upErr) throw upErr;
+      setConfig(updatedConfig);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : (e as { message?: string })?.message;
+      setError(msg || 'Update failed.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const save = async (publish: boolean) => {
     setSaving(true);
     setError('');
@@ -186,15 +204,28 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
               <span className="text-sm font-600">Show "data last refreshed" notice</span>
             </label>
             {config.dataRefresh?.enabled && (
-              <input
-                className="input"
-                value={config.dataRefresh.customText}
-                onChange={(e) => setConfig((c) => ({
-                  ...c,
-                  dataRefresh: { ...c.dataRefresh!, enabled: true, customText: e.target.value },
-                }))}
-                placeholder="e.g. Assessment dates may be updated — please check this page for the latest information"
-              />
+              <>
+                <input
+                  className="input"
+                  value={config.dataRefresh.customText}
+                  onChange={(e) => setConfig((c) => ({
+                    ...c,
+                    dataRefresh: { ...c.dataRefresh!, enabled: true, customText: e.target.value },
+                  }))}
+                  placeholder="e.g. Assessment dates may be updated — please check this page for the latest information"
+                />
+                {editingId && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    style={{ marginTop: 8 }}
+                    onClick={() => void markRefreshed()}
+                    disabled={saving}
+                    title="Update the 'data last refreshed' timestamp to right now without republishing"
+                  >
+                    Mark as refreshed now
+                  </button>
+                )}
+              </>
             )}
           </div>
 

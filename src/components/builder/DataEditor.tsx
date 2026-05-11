@@ -85,12 +85,33 @@ export default function DataEditor({ tableId, config, initialRows, onSaved }: Pr
         if (insertErr) throw insertErr;
       }
 
-      await supabase.from('tables').update({ updated_at: new Date().toISOString() }).eq('id', tableId);
+      const now = new Date().toISOString();
+      const updatedConfig = config.dataRefresh?.enabled
+        ? { ...config, dataRefresh: { ...config.dataRefresh, lastUpdated: now } }
+        : config;
+      await supabase.from('tables').update({ config: updatedConfig, updated_at: now }).eq('id', tableId);
       setDirty(false);
       setSaved(true);
       onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const markRefreshed = async () => {
+    setSaving(true);
+    setError('');
+    try {
+      const now = new Date().toISOString();
+      const updatedConfig = { ...config, dataRefresh: { ...config.dataRefresh!, lastUpdated: now } };
+      const { error: upErr } = await supabase.from('tables').update({ config: updatedConfig }).eq('id', tableId);
+      if (upErr) throw upErr;
+      setSaved(true);
+      onSaved();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Update failed.');
     } finally {
       setSaving(false);
     }
@@ -113,6 +134,16 @@ export default function DataEditor({ tableId, config, initialRows, onSaved }: Pr
             Show hidden columns
           </label>
           <button className="btn btn-secondary btn-sm" onClick={addRow}>+ Add row</button>
+          {config.dataRefresh?.enabled && (
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => void markRefreshed()}
+              disabled={saving}
+              title="Update the 'data last refreshed' timestamp to right now without changing any rows"
+            >
+              Mark as refreshed now
+            </button>
+          )}
           <button className="btn btn-primary" onClick={() => void save()} disabled={saving || !dirty}>
             {saving ? 'Saving…' : 'Save & publish'}
           </button>
