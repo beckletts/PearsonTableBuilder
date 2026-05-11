@@ -34,7 +34,17 @@ export default function DataEditor({ tableId, config, initialRows, onSaved }: Pr
   const [showHidden, setShowHidden] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setDirty(false); setSaved(false); }, [initialRows]);
+  useEffect(() => {
+    setRows(
+      initialRows.map((r) => ({
+        _id: r.id,
+        ...Object.fromEntries(config.columns.map((c) => [c.key, String(r.data[c.key] ?? '')])),
+      })),
+    );
+    setDirty(false);
+    setSaved(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialRows]);
 
   const displayCols = showHidden ? allCols : visibleCols;
 
