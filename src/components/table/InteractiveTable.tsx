@@ -188,7 +188,7 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
                 <tr key={row.id}>
                   {visibleCols.map((col) => {
                     const raw = row.data[col.key];
-                    const val = raw !== null && raw !== undefined ? String(raw).trim() : '—';
+                    const val = raw !== null && raw !== undefined ? String(raw).replace(/​/g, '').trim() : '—';
                     return (
                       <td key={col.key} className={col.type === 'number' ? 'itable__td--num' : ''}>
                         {col.type === 'url' && val !== '—' ? (

@@ -133,7 +133,7 @@ export default function PublicTableView({ config, rows }: Props) {
 
   const renderCell = (col: ColumnConfig, row: TableRow) => {
     const raw = row.data[col.key];
-    const val = raw !== null && raw !== undefined ? String(raw).trim() : '';
+    const val = raw !== null && raw !== undefined ? String(raw).replace(/​/g, '').trim() : '';
     if (!val) return <span style={{ color: '#bbb' }}>—</span>;
     if (col.type === 'url') return <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">View ↗</a>;
     if (col.type === 'badge') return <span className="pub-badge" style={getBadgeStyle(col.key, badgeColKeys)}>{val}</span>;
