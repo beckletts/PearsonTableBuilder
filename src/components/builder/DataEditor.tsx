@@ -87,7 +87,8 @@ export default function DataEditor({ tableId, config, initialRows, onSaved }: Pr
           const data: Record<string, string | number | null> = {};
           for (const col of allCols) {
             const v = String(row[col.key] ?? '');
-            data[col.key] = col.type === 'number' && v !== '' ? Number(v) : v || null;
+            const num = col.type === 'number' && v !== '' ? Number(v) : NaN;
+            data[col.key] = !isNaN(num) ? num : v || null;
           }
           return { table_id: tableId, data, row_index: i + j };
         });
@@ -198,7 +199,7 @@ export default function DataEditor({ tableId, config, initialRows, onSaved }: Pr
                     <td key={col.key}>
                       <input
                         className="data-editor__cell-input"
-                        type={col.type === 'number' ? 'number' : 'text'}
+                        type="text"
                         value={String(row[col.key] ?? '')}
                         onChange={(e) => updateCell(rowIdx, col.key, e.target.value)}
                       />
