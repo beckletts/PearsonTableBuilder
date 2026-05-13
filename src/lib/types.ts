@@ -104,6 +104,7 @@ export interface LinkedDashboardConfig {
   columns: LinkedColumnConfig[];
   sources: { id: string; name: string; join_key_column: string }[];
   defaultSort: { column: string; direction: 'asc' | 'desc' };
+  filterOrder?: string[];
 }
 
 export interface LinkedDashboard {

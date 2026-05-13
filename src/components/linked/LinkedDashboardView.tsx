@@ -89,8 +89,8 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
   const [hiddenCols, setHiddenCols]   = useState<Set<string>>(new Set());
   const [showColPicker, setShowColPicker] = useState(false);
 
-  // Filter bar drag-to-reorder state
-  const [filterOrder, setFilterOrder] = useState<string[]>([]);
+  // Filter bar drag-to-reorder state — seeded from saved config.filterOrder
+  const [filterOrder, setFilterOrder] = useState<string[]>(() => config.filterOrder ?? []);
   const [filterDragKey, setFilterDragKey] = useState<string | null>(null);
   const filterDragOverKey = useRef<string | null>(null);
 
@@ -100,10 +100,13 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
   // Keep filterOrder in sync with filterable columns
   useEffect(() => {
     const keys = allFilterCols.map((c) => c.key);
-    setFilterOrder((prev) => [
-      ...prev.filter((k) => keys.includes(k)),
-      ...keys.filter((k) => !prev.includes(k)),
-    ]);
+    setFilterOrder((prev) => {
+      const base = prev.length ? prev : (config.filterOrder ?? []);
+      return [
+        ...base.filter((k) => keys.includes(k)),
+        ...keys.filter((k) => !base.includes(k)),
+      ];
+    });
   }, [allFilterCols]);
 
   const filterCols = useMemo(() => {
