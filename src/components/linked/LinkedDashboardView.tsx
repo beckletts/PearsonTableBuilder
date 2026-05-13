@@ -16,9 +16,13 @@ function normalizeCode(code: string): string {
 }
 
 // Merge rows from multiple sources into display rows.
-// primarySourceId = the source_id of the timetable (first uploaded source, by created_at).
-// Each primary row becomes its own display row, enriched with data from the secondary
-// sources (overview tabs) matched by normalized examination code.
+//
+// Sources are classified per-pair against the primary:
+//   "parallel"  — ≥50% column overlap (e.g. two timetables) → their rows are unioned
+//   "lookup"    — <50% column overlap (e.g. an overview sheet) → used to enrich rows by join key
+//
+// Primary rows come first, then each parallel source's rows in creation order.
+// Every row is optionally enriched with matching lookup data.
 function mergeRows(rawRows: LinkedRow[], primarySourceId?: string): Record<string, unknown>[] {
   const sourceIds = [...new Set(rawRows.map((r) => r.source_id))];
 
@@ -39,29 +43,51 @@ function mergeRows(rawRows: LinkedRow[], primarySourceId?: string): Record<strin
         .map((id) => ({ id, count: rawRows.filter((r) => r.source_id === id).length }))
         .sort((a, b) => b.count - a.count)[0].id;
 
-  const primaryRows   = rawRows.filter((r) => r.source_id === resolvedPrimaryId);
-  const secondaryRows = rawRows.filter((r) => r.source_id !== resolvedPrimaryId);
+  const primaryRows = rawRows.filter((r) => r.source_id === resolvedPrimaryId);
+  const primaryCols = new Set(primaryRows.flatMap((r) => Object.keys(r.data)));
 
-  const lookup = new Map<string, Record<string, unknown>>();
-  for (const row of secondaryRows) {
-    const key = normalizeCode(row.join_value);
-    if (!lookup.has(key)) lookup.set(key, {});
-    Object.assign(lookup.get(key)!, row.data);
+  const parallelIds = new Set<string>();
+  const lookupMap   = new Map<string, Record<string, unknown>>();
+
+  for (const sid of sourceIds) {
+    if (sid === resolvedPrimaryId) continue;
+    const sRows = rawRows.filter((r) => r.source_id === sid);
+    const sCols = new Set(sRows.flatMap((r) => Object.keys(r.data)));
+    const overlap = [...sCols].filter((k) => primaryCols.has(k)).length;
+    const ratio   = overlap / Math.max(primaryCols.size, sCols.size, 1);
+
+    if (ratio >= 0.5) {
+      parallelIds.add(sid);
+    } else {
+      for (const row of sRows) {
+        const key = normalizeCode(row.join_value);
+        if (!lookupMap.has(key)) lookupMap.set(key, {});
+        Object.assign(lookupMap.get(key)!, row.data);
+      }
+    }
   }
 
-  return primaryRows
-    .slice()
-    .sort((a, b) => a.row_index - b.row_index)
-    .map((row, i) => {
-      const key = normalizeCode(row.join_value);
-      const secondary = lookup.get(key) ?? {};
-      return {
+  const orderedSourceIds = [resolvedPrimaryId, ...sourceIds.filter((id) => parallelIds.has(id))];
+  const result: Record<string, unknown>[] = [];
+  let i = 0;
+  for (const sid of orderedSourceIds) {
+    const sRows = rawRows
+      .filter((r) => r.source_id === sid)
+      .slice()
+      .sort((a, b) => a.row_index - b.row_index);
+    for (const row of sRows) {
+      const key        = normalizeCode(row.join_value);
+      const enrichment = lookupMap.get(key) ?? {};
+      result.push({
         __join_value: row.join_value,
-        __row_key: `${row.source_id}_${row.row_index}_${i}`,
-        ...secondary,
+        __row_key:    `${row.source_id}_${row.row_index}_${i}`,
+        ...enrichment,
         ...row.data,
-      };
-    });
+      });
+      i++;
+    }
+  }
+  return result;
 }
 
 function getCellVal(row: Record<string, unknown>, key: string): string {
