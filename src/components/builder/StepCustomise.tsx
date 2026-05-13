@@ -131,7 +131,21 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
         if (upErr) throw upErr;
 
         await supabase.from('table_rows').delete().eq('table_id', editingId);
-        await insertRows(editingId, parsed.rows);
+
+        // Remap rows so keys match existing config column keys, not raw file headers
+        const remappedRows = parsed.rows.map((r) => {
+          const mapped: Record<string, string> = {};
+          for (const col of finalConfig.columns) {
+            const matchHeader = parsed.headers.find(
+              (h) =>
+                h.toLowerCase().trim() === col.key.toLowerCase().trim() ||
+                h.toLowerCase().trim() === col.label.toLowerCase().trim()
+            );
+            mapped[col.key] = matchHeader ? String(r[matchHeader] ?? '') : '';
+          }
+          return mapped;
+        });
+        await insertRows(editingId, remappedRows);
         savedTableId = editingId;
       } else {
         const slug = await generateUniqueSlug(finalConfig.title);
