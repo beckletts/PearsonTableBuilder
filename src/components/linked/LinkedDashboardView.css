@@ -542,9 +542,10 @@
 .ld-modal__table { width: 100%; border-collapse: collapse; }
 
 .ld-modal__label {
-  padding: 8px 12px 8px 12px;
-  vertical-align: top;
-  width: 200px;
+  padding: 3px 10px 3px 16px;
+  vertical-align: middle;
+  width: 190px;
+  border-bottom: 1px solid #EFEFEF;
 }
 
 .ld-modal__label-inner {
@@ -552,23 +553,21 @@
   background: #EDE5F7;
   color: #5B2D86;
   border-radius: 8px;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 8px 14px;
+  padding: 7px 12px;
   width: 100%;
 }
 
 .ld-modal__value {
   font-size: 14px;
   color: #0D004D;
-  padding: 8px 12px;
-  vertical-align: top;
+  padding: 3px 16px;
+  vertical-align: middle;
   word-break: break-word;
   line-height: 1.55;
-  border-bottom: 1px solid #F5F5F5;
+  border-bottom: 1px solid #EFEFEF;
 }
-
-.ld-modal__label { border-bottom: 1px solid #F5F5F5; }
 
 @keyframes ld-fade-in  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ld-slide-up { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
