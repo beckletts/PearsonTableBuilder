@@ -16,6 +16,56 @@ interface EditRow {
   [key: string]: string | boolean | undefined;
 }
 
+interface ColumnIssue {
+  column:        string;
+  dominantValue: string;
+  dominantCount: number;
+  outlierValues: Array<{ value: string; count: number }>;
+  outlierCount:  number;
+  totalRows:     number;
+}
+
+const SEASON_RE  = /^(summer|winter|spring|autumn)\s*'?\d{2,4}$/i;
+const SERIES_COL = /series|session|sitting/i;
+
+function detectColumnIssues(rows: EditRow[], headers: string[]): ColumnIssue[] {
+  const issues: ColumnIssue[] = [];
+
+  for (const h of headers) {
+    const vals     = rows.map((r) => String(r[h] ?? '').trim());
+    const nonEmpty = vals.filter(Boolean);
+    if (nonEmpty.length < 2) continue;
+
+    const counts = new Map<string, number>();
+    for (const v of nonEmpty) counts.set(v, (counts.get(v) ?? 0) + 1);
+    if (counts.size < 2) continue;
+
+    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    const [dominantValue, dominantCount] = sorted[0];
+    const ratio = dominantCount / nonEmpty.length;
+
+    const isSeriesCol = SERIES_COL.test(h);
+    const isSeasonVal = SEASON_RE.test(dominantValue);
+
+    if ((!isSeriesCol && !isSeasonVal) || ratio < 0.5) continue;
+
+    const outliers     = sorted.slice(1);
+    const outlierCount = outliers.reduce((sum, [, c]) => sum + c, 0);
+    if (outlierCount === 0) continue;
+
+    issues.push({
+      column: h,
+      dominantValue,
+      dominantCount,
+      outlierValues: outliers.slice(0, 5).map(([v, c]) => ({ value: v || '(empty)', count: c })),
+      outlierCount,
+      totalRows: vals.length,
+    });
+  }
+
+  return issues;
+}
+
 export default function LinkedSourceEditor({ source, dashboardId, onClose, onSaved }: Props) {
   const [rows, setRows]       = useState<EditRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -29,6 +79,10 @@ export default function LinkedSourceEditor({ source, dashboardId, onClose, onSav
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [bulkCol, setBulkCol]   = useState('');
   const [bulkVal, setBulkVal]   = useState('');
+
+  // Smart fix
+  const [columnIssues, setColumnIssues] = useState<ColumnIssue[]>([]);
+  const [fixTargets, setFixTargets]     = useState<Record<string, string>>({});
 
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -58,12 +112,12 @@ export default function LinkedSourceEditor({ source, dashboardId, onClose, onSav
       }
       const hdrs = Array.from(headerSet);
       setHeaders(hdrs);
-      setRows(
-        allRows.map((r) => ({
-          _rowId: r.id,
-          ...Object.fromEntries(hdrs.map((h) => [h, String(r.data[h] ?? '')])),
-        })),
-      );
+      const editRows = allRows.map((r) => ({
+        _rowId: r.id,
+        ...Object.fromEntries(hdrs.map((h) => [h, String(r.data[h] ?? '')])),
+      }));
+      setRows(editRows);
+      setColumnIssues(detectColumnIssues(editRows, hdrs));
       setLoading(false);
     };
     void load();
@@ -121,6 +175,19 @@ export default function LinkedSourceEditor({ source, dashboardId, onClose, onSav
     setDirty(true);
     setSaved(false);
     setSelected(new Set());
+  };
+
+  const applyFix = (column: string) => {
+    const target = fixTargets[column] ?? columnIssues.find((i) => i.column === column)?.dominantValue ?? '';
+    if (!target) return;
+    setRows((prev) => prev.map((r) => ({ ...r, [column]: target })));
+    setDirty(true);
+    setSaved(false);
+    setColumnIssues((prev) => prev.filter((i) => i.column !== column));
+  };
+
+  const dismissFix = (column: string) => {
+    setColumnIssues((prev) => prev.filter((i) => i.column !== column));
   };
 
   const save = async () => {
@@ -184,6 +251,42 @@ export default function LinkedSourceEditor({ source, dashboardId, onClose, onSav
           <button className="btn btn-ghost btn-sm" onClick={onClose}>Close ✕</button>
         </div>
       </div>
+
+      {/* Smart fix panel */}
+      {columnIssues.length > 0 && (
+        <div className="lse__smart-fixes">
+          <p className="lse__smart-fixes-heading">
+            ⚡ {columnIssues.length} smart fix{columnIssues.length !== 1 ? 'es' : ''} detected
+          </p>
+          {columnIssues.map((issue) => (
+            <div key={issue.column} className="lse__fix-card">
+              <div className="lse__fix-info">
+                <span className="lse__fix-col">"{issue.column}"</span>
+                <span className="text-xs text-muted">
+                  {issue.outlierCount} inconsistent value{issue.outlierCount !== 1 ? 's' : ''} — {issue.outlierValues.map((v) => `"${v.value}" ×${v.count}`).join(', ')}
+                </span>
+              </div>
+              <div className="lse__fix-controls">
+                <span className="text-xs text-soft">Standardize all {issue.totalRows} rows to:</span>
+                <input
+                  className="input lse__fix-input"
+                  value={fixTargets[issue.column] ?? issue.dominantValue}
+                  onChange={(e) => setFixTargets((prev) => ({ ...prev, [issue.column]: e.target.value }))}
+                />
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => applyFix(issue.column)}
+                >
+                  Apply
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => dismissFix(issue.column)}>
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Bulk edit bar */}
       {selected.size > 0 && (

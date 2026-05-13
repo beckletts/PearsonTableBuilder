@@ -61,6 +61,66 @@
 .lse__bulk-col { width: auto; min-width: 160px; max-width: 220px; }
 .lse__bulk-val { flex: 1; min-width: 120px; max-width: 260px; }
 
+/* ── Smart fix panel ─────────────────────────────────────────────────────── */
+.lse__smart-fixes {
+  background: var(--color-yellow-lt);
+  border: 1.5px solid var(--color-yellow);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lse__smart-fixes-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7A5C00;
+  margin: 0;
+}
+
+.lse__fix-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid var(--color-yellow);
+  border-radius: var(--radius-md);
+}
+
+.lse__fix-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.lse__fix-col {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.lse__fix-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lse__fix-input {
+  width: auto;
+  min-width: 140px;
+  max-width: 200px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 8px;
+}
+
 /* ── Table ───────────────────────────────────────────────────────────────── */
 .lse__scroll {
   overflow: auto;
