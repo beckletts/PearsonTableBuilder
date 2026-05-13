@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { LinkedDashboard } from '../../lib/types';
+import LinkedShareModal from './LinkedShareModal';
 import './LinkedDashboardCard.css';
 
 interface Props {
@@ -10,7 +11,8 @@ interface Props {
 }
 
 export default function LinkedDashboardCard({ dashboard, onUpdate }: Props) {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy]         = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   const togglePublish = async () => {
     setBusy(true);
@@ -68,6 +70,9 @@ export default function LinkedDashboardCard({ dashboard, onUpdate }: Props) {
             </button>
           </>
         )}
+        <button className="btn btn-ghost btn-sm" onClick={() => setShowShare(true)}>
+          Share
+        </button>
         <button
           className={`btn btn-sm ${dashboard.is_published ? 'btn-secondary' : 'btn-primary'}`}
           onClick={() => void togglePublish()}
@@ -79,6 +84,14 @@ export default function LinkedDashboardCard({ dashboard, onUpdate }: Props) {
           Delete
         </button>
       </div>
+
+      {showShare && (
+        <LinkedShareModal
+          dashboardId={dashboard.id}
+          dashboardTitle={dashboard.title}
+          onClose={() => setShowShare(false)}
+        />
+      )}
 
       <p className="ld-card__date text-xs text-muted">
         Updated {new Date(dashboard.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}

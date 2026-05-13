@@ -15,20 +15,21 @@ export default function DashboardPage({ user }: Props) {
   const [tables, setTables] = useState<TableRecord[]>([]);
   const [sharedTables, setSharedTables] = useState<TableRecord[]>([]);
   const [linkedDashboards, setLinkedDashboards] = useState<LinkedDashboard[]>([]);
+  const [sharedLinkedDashboards, setSharedLinkedDashboards] = useState<LinkedDashboard[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
     const userEmail = user.email ?? '';
 
-    const [{ data: ownData }, { data: shareData }, { data: linkedData }] = await Promise.all([
+    const [{ data: ownData }, { data: shareData }, { data: linkedData }, { data: ldShareData }] = await Promise.all([
       supabase.from('tables').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('table_shares').select('table_id').eq('collaborator_email', userEmail),
       supabase.from('linked_dashboards').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
+      supabase.from('linked_dashboard_shares').select('dashboard_id').eq('collaborator_email', userEmail),
     ]);
 
     setLinkedDashboards((linkedData as LinkedDashboard[]) ?? []);
-
     setTables((ownData as TableRecord[]) ?? []);
 
     if (shareData && shareData.length > 0) {
@@ -41,6 +42,18 @@ export default function DashboardPage({ user }: Props) {
       setSharedTables((sharedData as TableRecord[]) ?? []);
     } else {
       setSharedTables([]);
+    }
+
+    if (ldShareData && ldShareData.length > 0) {
+      const ids = ldShareData.map((s: { dashboard_id: string }) => s.dashboard_id);
+      const { data: sharedLdData } = await supabase
+        .from('linked_dashboards')
+        .select('*')
+        .in('id', ids)
+        .order('updated_at', { ascending: false });
+      setSharedLinkedDashboards((sharedLdData as LinkedDashboard[]) ?? []);
+    } else {
+      setSharedLinkedDashboards([]);
     }
 
     setLoading(false);
@@ -130,6 +143,20 @@ export default function DashboardPage({ user }: Props) {
             </div>
             <div className="dashboard__grid">
               {linkedDashboards.map((d) => (
+                <LinkedDashboardCard key={d.id} dashboard={d} onUpdate={() => void load()} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {!loading && sharedLinkedDashboards.length > 0 && (
+          <>
+            <div className="dashboard__section-heading">
+              <h2>Shared dashboards</h2>
+              <p className="text-soft text-sm">Linked dashboards others have shared with your account</p>
+            </div>
+            <div className="dashboard__grid">
+              {sharedLinkedDashboards.map((d) => (
                 <LinkedDashboardCard key={d.id} dashboard={d} onUpdate={() => void load()} />
               ))}
             </div>

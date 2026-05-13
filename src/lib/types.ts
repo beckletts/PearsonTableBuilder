@@ -73,6 +73,14 @@ export interface TableShare {
   created_at: string;
 }
 
+export interface LinkedDashboardShare {
+  id: string;
+  dashboard_id: string;
+  owner_id: string;
+  collaborator_email: string;
+  created_at: string;
+}
+
 export interface TableRow {
   id: string;
   table_id: string;
