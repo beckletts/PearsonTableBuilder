@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TableConfig, TableRow, ColumnConfig, CardViewConfig, StatCardsConfig, IntroBannerConfig, CalloutBoxConfig, FooterNoteConfig } from '../../lib/types';
-import TablePagination from './TablePagination';
 import './PublicTableView.css';
 
-const PAGE_SIZE = 25;
+const BATCH = 50;
 
 const BADGE_COL_COLORS = [
   { bg: '#5B2D86', text: '#fff' },
@@ -26,12 +25,13 @@ interface Props {
 }
 
 export default function PublicTableView({ config, rows }: Props) {
-  const [search, setSearch]       = useState('');
-  const [filters, setFilters]     = useState<Record<string, string[]>>({});
-  const [sortCol, setSortCol]     = useState(config.defaultSort.column);
-  const [sortDir, setSortDir]     = useState<'asc' | 'desc'>(config.defaultSort.direction);
-  const [page, setPage]           = useState(1);
-  const [viewMode, setViewMode]   = useState<'table' | 'card'>('table');
+  const [search, setSearch]         = useState('');
+  const [filters, setFilters]       = useState<Record<string, string[]>>({});
+  const [sortCol, setSortCol]       = useState(config.defaultSort.column);
+  const [sortDir, setSortDir]       = useState<'asc' | 'desc'>(config.defaultSort.direction);
+  const [visibleCount, setVisibleCount] = useState(BATCH);
+  const [viewMode, setViewMode]     = useState<'table' | 'card'>('table');
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const visibleCols  = useMemo(() => config.columns.filter((c) => c.visible), [config.columns]);
   const filterCols   = useMemo(() => visibleCols.filter((c) => c.filterable), [visibleCols]);
@@ -68,9 +68,9 @@ export default function PublicTableView({ config, rows }: Props) {
     return opts;
   }, [filterCols, rows, activeFilters]);
 
-  const addFilter    = (key: string, val: string) => { setFilters((f) => ({ ...f, [key]: [...(f[key] ?? []), val] })); setPage(1); };
-  const removeFilter = (key: string, val: string) => { setFilters((f) => ({ ...f, [key]: (f[key] ?? []).filter((v) => v !== val) })); setPage(1); };
-  const resetAll     = () => { setFilters({}); setSearch(''); setPage(1); };
+  const addFilter    = (key: string, val: string) => { setFilters((f) => ({ ...f, [key]: [...(f[key] ?? []), val] })); };
+  const removeFilter = (key: string, val: string) => { setFilters((f) => ({ ...f, [key]: (f[key] ?? []).filter((v) => v !== val) })); };
+  const resetAll     = () => { setFilters({}); setSearch(''); };
 
   const hasActiveFilters = search.trim() || activeFilters.length > 0;
 
@@ -93,13 +93,26 @@ export default function PublicTableView({ config, rows }: Props) {
     })
   ), [filtered, sortCol, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  const paginated  = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginated = sorted.slice(0, visibleCount);
+
+  // Reset visible count when results change
+  useEffect(() => { setVisibleCount(BATCH); }, [sorted]);
+
+  // Infinite scroll
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) setVisibleCount((n) => Math.min(n + BATCH, sorted.length)); },
+      { threshold: 0.1 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [sorted.length, visibleCount]);
 
   const handleSort = (key: string) => {
     if (sortCol === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else { setSortCol(key); setSortDir('asc'); }
-    setPage(1);
   };
 
   const exportCSV = () => {
@@ -245,7 +258,7 @@ export default function PublicTableView({ config, rows }: Props) {
               className="pub-view__search-input"
               type="text"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              onChange={(e) => { setSearch(e.target.value); }}
               placeholder={`Search ${config.columns.find((c) => c.key === config.primarySearchColumn)?.label ?? ''}…`}
             />
             {search && (
@@ -397,14 +410,21 @@ export default function PublicTableView({ config, rows }: Props) {
                 </tbody>
               </table>
             </div>
-            {totalPages > 1 && (
-              <TablePagination page={page} totalPages={totalPages} onChange={setPage} total={sorted.length} />
-            )}
           </>
         )}
 
-        {viewMode === 'card' && totalPages > 1 && (
-          <TablePagination page={page} totalPages={totalPages} onChange={setPage} total={sorted.length} />
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} style={{ height: 1 }} />
+        {visibleCount < sorted.length && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 20, color: '#999' }}>
+            <div className="spinner" style={{ borderTopColor: '#5B2D86' }} />
+            <span style={{ fontSize: 13 }}>Loading more…</span>
+          </div>
+        )}
+        {sorted.length > 0 && visibleCount >= sorted.length && sorted.length > BATCH && (
+          <p style={{ textAlign: 'center', padding: 20, fontSize: 12, color: '#AAA' }}>
+            All {sorted.length.toLocaleString()} results shown
+          </p>
         )}
       </div>
 
