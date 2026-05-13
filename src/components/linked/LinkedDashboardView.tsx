@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LinkedDashboard, LinkedRow, LinkedColumnConfig } from '../../lib/types';
+import PearsonLogo from '../layout/PearsonLogo';
 import pearsonWave from '../../assets/pearson-wave.jpg';
 import './LinkedDashboardView.css';
 
@@ -276,9 +277,12 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
       {/* ── Hero ── */}
       <div className="ld-hero">
         <div className="ld-hero__wave-container">
-          <img src={pearsonWave} alt="" aria-hidden="true" className="ld-hero__wave" />
+          <img src={pearsonWave} alt="" role="presentation" className="ld-hero__wave" />
         </div>
         <div className="ld-hero__inner">
+          <div className="ld-hero__logo">
+            <PearsonLogo width={110} />
+          </div>
           <h1 className="ld-hero__title">{dashboard.title}</h1>
           {dashboard.description && <p className="ld-hero__desc">{dashboard.description}</p>}
         </div>

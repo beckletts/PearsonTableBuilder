@@ -22,7 +22,7 @@
 .ld-hero {
   background: linear-gradient(135deg, var(--ld-purple-dark) 0%, #1B0F3A 40%, var(--ld-purple-deep) 100%);
   color: #fff;
-  padding: 48px 24px 56px;
+  padding: 24px 24px 40px;
   position: relative;
   overflow: hidden;
   min-height: 180px;
@@ -40,9 +40,8 @@
   overflow: hidden;
   z-index: 1;
   pointer-events: none;
-  /* Fade in from the left so the wave blends into the gradient */
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 25%);
-  mask-image: linear-gradient(to right, transparent 0%, black 25%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%);
+  mask-image: linear-gradient(to right, transparent 0%, black 20%);
 }
 
 .ld-hero__wave {
@@ -51,9 +50,8 @@
   object-fit: cover;
   object-position: left center;
   display: block;
-  opacity: 0.95;
-  /* Screen blend: dark areas of the JPG vanish; bright wave/sphere elements glow */
   mix-blend-mode: screen;
+  opacity: 0.95;
 }
 
 .ld-hero__inner {
@@ -64,12 +62,16 @@
   z-index: 2;
 }
 
+.ld-hero__logo {
+  margin-bottom: 20px;
+  opacity: 0.95;
+}
+
 .ld-hero__title {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 800;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
   margin: 0 0 8px;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.25);
 }
 
 .ld-hero__desc {

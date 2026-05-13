@@ -83,11 +83,6 @@ export default function LinkedDashboardPage() {
 
   return (
     <>
-      <header className="public-page__header">
-        <div className="public-page__header-inner">
-          <PearsonLogo />
-        </div>
-      </header>
       <LinkedDashboardView
         dashboard={dashboard}
         rawRows={rows}
