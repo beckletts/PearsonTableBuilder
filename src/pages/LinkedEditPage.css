@@ -100,7 +100,9 @@
   transition: opacity 0.15s;
 }
 
-.le-col--hidden { opacity: 0.5; }
+.le-col--hidden { opacity: 0.55; }
+.le-col--dragging { opacity: 0.35; box-shadow: 0 0 0 2px var(--color-primary); }
+.le-col { cursor: grab; }
 
 .le-col__top {
   display: flex;
@@ -108,32 +110,23 @@
   gap: 10px;
 }
 
-.le-col__reorder {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+/* Drag handle replaces the old ▲▼ buttons */
+.le-col__drag {
+  font-size: 16px;
+  color: #BBB;
+  cursor: grab;
+  user-select: none;
   flex-shrink: 0;
+  padding: 0 2px;
+  line-height: 1;
 }
+.le-col__drag:hover { color: var(--color-primary); }
 
-.le-col__reorder-btn {
-  background: none;
-  border: 1px solid var(--color-border);
-  border-radius: 3px;
-  padding: 0 4px;
-  font-size: 9px;
-  line-height: 16px;
-  cursor: pointer;
+.le-cols-hint {
+  font-size: 11px;
+  font-weight: 400;
   color: var(--color-text-muted);
-  transition: all 0.1s;
 }
-
-.le-col__reorder-btn:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-primary-lt);
-}
-
-.le-col__reorder-btn:disabled { opacity: 0.25; cursor: not-allowed; }
 
 .le-col__key {
   font-size: 10px;
@@ -152,13 +145,34 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-left: 72px;
+  padding-left: 52px;
 }
 
 .le-col__type {
   flex: 1;
   padding: 5px 8px;
   font-size: 13px;
+}
+
+/* Filter placeholder text row */
+.le-col__filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 52px;
+}
+
+.le-col__filter-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.le-col__filter-text {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 12px;
 }
 
 /* ── Actions ───────────────────────────────────────────────────────────────── */

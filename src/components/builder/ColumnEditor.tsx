@@ -107,17 +107,36 @@ export default function ColumnEditor({ column, onChange, onDragStart, onDragOver
         </div>
       )}
 
-      {/* Filter sub-options */}
-      {column.filterable && column.visible && (
-        <div className="col-editor__filter-opts">
-          <label className="col-editor__check" data-tooltip="Show the column name as a label above the filter dropdown">
+      {/* Filter-only option for hidden columns */}
+      {!column.visible && (
+        <div className="col-editor__controls">
+          <label
+            className="col-editor__check"
+            data-tooltip="Show a filter dropdown for this column even though it's hidden from the table"
+          >
             <input
               type="checkbox"
-              checked={column.filterLabel !== false}
-              onChange={(e) => set('filterLabel', e.target.checked)}
+              checked={column.filterable}
+              onChange={(e) => set('filterable', e.target.checked)}
             />
-            <span className="text-sm">Show label</span>
+            <span className="text-sm">Filter only</span>
           </label>
+        </div>
+      )}
+
+      {/* Filter sub-options — shown for any filterable column regardless of visibility */}
+      {column.filterable && (
+        <div className="col-editor__filter-opts">
+          {column.visible && (
+            <label className="col-editor__check" data-tooltip="Show the column name as a label above the filter dropdown">
+              <input
+                type="checkbox"
+                checked={column.filterLabel !== false}
+                onChange={(e) => set('filterLabel', e.target.checked)}
+              />
+              <span className="text-sm">Show label</span>
+            </label>
+          )}
           <input
             className="input col-editor__filter-placeholder"
             value={column.filterPlaceholder ?? ''}

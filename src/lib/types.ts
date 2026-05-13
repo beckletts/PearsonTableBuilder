@@ -96,6 +96,7 @@ export interface LinkedColumnConfig {
   inDetails?: boolean;
   type: ColumnType;
   sourceId?: string;
+  filterPlaceholder?: string; // custom text for the filter dropdown's default option
 }
 
 export interface LinkedDashboardConfig {

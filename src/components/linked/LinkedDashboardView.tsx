@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LinkedDashboard, LinkedRow, LinkedColumnConfig } from '../../lib/types';
+import pearsonWave from '../../assets/pearson-wave.jpg';
 import './LinkedDashboardView.css';
 
 interface Props {
   dashboard: LinkedDashboard;
   rawRows: LinkedRow[];
-  primarySourceId?: string; // source_id of the primary (timetable) source; derived from first linked_source by created_at
+  primarySourceId?: string;
 }
 
 // Normalize an examination code for cross-source matching.
@@ -18,12 +19,10 @@ function normalizeCode(code: string): string {
 // primarySourceId = the source_id of the timetable (first uploaded source, by created_at).
 // Each primary row becomes its own display row, enriched with data from the secondary
 // sources (overview tabs) matched by normalized examination code.
-// Falls back to "source with most rows" when primarySourceId is not provided.
 function mergeRows(rawRows: LinkedRow[], primarySourceId?: string): Record<string, unknown>[] {
   const sourceIds = [...new Set(rawRows.map((r) => r.source_id))];
 
   if (sourceIds.length === 1) {
-    // Single source — every row is its own display row
     return rawRows
       .slice()
       .sort((a, b) => a.row_index - b.row_index)
@@ -34,8 +33,6 @@ function mergeRows(rawRows: LinkedRow[], primarySourceId?: string): Record<strin
       }));
   }
 
-  // Identify primary and secondary sources.
-  // Prefer the explicitly provided primarySourceId; fall back to most-rows heuristic.
   const resolvedPrimaryId = primarySourceId && sourceIds.includes(primarySourceId)
     ? primarySourceId
     : sourceIds
@@ -45,7 +42,6 @@ function mergeRows(rawRows: LinkedRow[], primarySourceId?: string): Record<strin
   const primaryRows   = rawRows.filter((r) => r.source_id === resolvedPrimaryId);
   const secondaryRows = rawRows.filter((r) => r.source_id !== resolvedPrimaryId);
 
-  // Build a lookup from normalized code → merged secondary data
   const lookup = new Map<string, Record<string, unknown>>();
   for (const row of secondaryRows) {
     const key = normalizeCode(row.join_value);
@@ -62,8 +58,8 @@ function mergeRows(rawRows: LinkedRow[], primarySourceId?: string): Record<strin
       return {
         __join_value: row.join_value,
         __row_key: `${row.source_id}_${row.row_index}_${i}`,
-        ...secondary,   // overview data first (lower priority)
-        ...row.data,    // timetable data wins
+        ...secondary,
+        ...row.data,
       };
     });
 }
@@ -73,23 +69,51 @@ function getCellVal(row: Record<string, unknown>, key: string): string {
   return v !== null && v !== undefined ? String(v).trim() : '';
 }
 
-const PAGE_SIZE = 50;
+const BATCH = 50;
 
 export default function LinkedDashboardView({ dashboard, rawRows, primarySourceId }: Props) {
   const { config } = dashboard;
   const visibleCols = useMemo(() => config.columns.filter((c) => c.visible), [config.columns]);
-  const filterCols  = useMemo(() => visibleCols.filter((c) => c.filterable), [visibleCols]);
-  const searchCols  = useMemo(() => config.columns.filter((c) => c.searchable).map((c) => c.key), [config.columns]);
+  // All filterable columns, including hidden ones (filter-only feature)
+  const allFilterCols = useMemo(() => config.columns.filter((c) => c.filterable), [config.columns]);
+  // Universal search — searches across every column in the data
+  const searchCols = useMemo(() => config.columns.map((c) => c.key), [config.columns]);
 
-  const [search, setSearch]       = useState('');
-  const [filters, setFilters]     = useState<Record<string, string>>({});
-  const [sortCol, setSortCol]     = useState(config.defaultSort.column);
-  const [sortDir, setSortDir]     = useState<'asc' | 'desc'>(config.defaultSort.direction);
-  const [page, setPage]           = useState(1);
-  const [selected, setSelected]   = useState<Set<string>>(new Set());
-  const [detailRow, setDetailRow] = useState<Record<string, unknown> | null>(null);
-  const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
+  const [search, setSearch]           = useState('');
+  const [filters, setFilters]         = useState<Record<string, string>>({});
+  const [sortCol, setSortCol]         = useState(config.defaultSort.column);
+  const [sortDir, setSortDir]         = useState<'asc' | 'desc'>(config.defaultSort.direction);
+  const [visibleCount, setVisibleCount] = useState(BATCH);
+  const [selected, setSelected]       = useState<Set<string>>(new Set());
+  const [detailRow, setDetailRow]     = useState<Record<string, unknown> | null>(null);
+  const [hiddenCols, setHiddenCols]   = useState<Set<string>>(new Set());
   const [showColPicker, setShowColPicker] = useState(false);
+
+  // Filter bar drag-to-reorder state
+  const [filterOrder, setFilterOrder] = useState<string[]>([]);
+  const [filterDragKey, setFilterDragKey] = useState<string | null>(null);
+  const filterDragOverKey = useRef<string | null>(null);
+
+  // Sentinel element for infinite scroll
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Keep filterOrder in sync with filterable columns
+  useEffect(() => {
+    const keys = allFilterCols.map((c) => c.key);
+    setFilterOrder((prev) => [
+      ...prev.filter((k) => keys.includes(k)),
+      ...keys.filter((k) => !prev.includes(k)),
+    ]);
+  }, [allFilterCols]);
+
+  const filterCols = useMemo(() => {
+    if (!filterOrder.length) return allFilterCols;
+    return [...allFilterCols].sort((a, b) => {
+      const ai = filterOrder.indexOf(a.key);
+      const bi = filterOrder.indexOf(b.key);
+      return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
+    });
+  }, [allFilterCols, filterOrder]);
 
   const merged = useMemo(() => mergeRows(rawRows, primarySourceId), [rawRows, primarySourceId]);
 
@@ -108,11 +132,10 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
     return rows;
   }, [merged, search, filters, searchCols]);
 
-  // Parse DD/MM/YYYY to a sortable number; returns NaN if not a date
-  const parseDMY = (s: string): number => {
+  // Parse DD/MM/YYYY to a sortable timestamp; NaN if not a date
+  const parseDMY = (s: string) => {
     const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (!m) return NaN;
-    return Date.UTC(+m[3], +m[2] - 1, +m[1]);
+    return m ? Date.UTC(+m[3], +m[2] - 1, +m[1]) : NaN;
   };
 
   const sorted = useMemo(() => {
@@ -120,23 +143,39 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
     return [...filtered].sort((a, b) => {
       const av = getCellVal(a, sortCol);
       const bv = getCellVal(b, sortCol);
-      // Try date-aware comparison first
       const ad = parseDMY(av);
       const bd = parseDMY(bv);
-      const cmp = (!isNaN(ad) && !isNaN(bd))
+      const cmp = !isNaN(ad) && !isNaN(bd)
         ? ad - bd
         : av.localeCompare(bv, undefined, { numeric: true });
       return sortDir === 'asc' ? cmp : -cmp;
     });
   }, [filtered, sortCol, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  const paginated  = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Reset visible count when results change
+  useEffect(() => { setVisibleCount(BATCH); }, [sorted]);
+
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((n) => Math.min(n + BATCH, sorted.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [sorted.length, visibleCount]);
+
+  const paginated = sorted.slice(0, visibleCount);
 
   const toggleSort = (key: string) => {
-    if (sortCol === key) setSortDir((d) => d === 'asc' ? 'desc' : 'asc');
+    if (sortCol === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else { setSortCol(key); setSortDir('asc'); }
-    setPage(1);
   };
 
   const rowKey = (row: Record<string, unknown>) =>
@@ -181,27 +220,50 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
     URL.revokeObjectURL(url);
   };
 
+  // Filter bar drag-to-reorder
+  const handleFilterDragStart = (key: string) => setFilterDragKey(key);
+  const handleFilterDragOver = (e: React.DragEvent, key: string) => {
+    e.preventDefault();
+    filterDragOverKey.current = key;
+  };
+  const handleFilterDrop = (dropKey: string) => {
+    if (!filterDragKey || filterDragKey === dropKey) { setFilterDragKey(null); return; }
+    setFilterOrder((prev) => {
+      const next = [...prev];
+      const fromIdx = next.indexOf(filterDragKey);
+      const toIdx   = next.indexOf(dropKey);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+      next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, filterDragKey);
+      return next;
+    });
+    setFilterDragKey(null);
+  };
+
   const displayCols = visibleCols.filter((c) => !hiddenCols.has(c.key));
 
   return (
     <div className="ld-view">
-      {/* Hero */}
+      {/* ── Hero ── */}
       <div className="ld-hero">
+        <div className="ld-hero__wave-container">
+          <img src={pearsonWave} alt="" aria-hidden="true" className="ld-hero__wave" />
+        </div>
         <div className="ld-hero__inner">
           <h1 className="ld-hero__title">{dashboard.title}</h1>
           {dashboard.description && <p className="ld-hero__desc">{dashboard.description}</p>}
         </div>
       </div>
 
-      {/* Search */}
+      {/* ── Search ── */}
       <div className="ld-search-bar">
         <div className="ld-search-bar__inner">
           <svg className="ld-search-bar__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input
             className="ld-search-bar__input"
-            placeholder={`Search ${merged.length.toLocaleString()} records…`}
+            placeholder={`Search all ${merged.length.toLocaleString()} records…`}
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => setSearch(e.target.value)}
           />
           {search && (
             <button className="ld-search-bar__clear" onClick={() => setSearch('')}>✕</button>
@@ -209,23 +271,33 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
         </div>
       </div>
 
-      {/* Filters */}
+      {/* ── Filters (draggable to reorder) ── */}
       {filterCols.length > 0 && (
         <div className="ld-filters">
           <div className="ld-filters__inner">
             {filterCols.map((col) => (
-              <select
+              <div
                 key={col.key}
-                className="ld-filter-select"
-                value={filters[col.key] ?? ''}
-                onChange={(e) => { setFilters((f) => ({ ...f, [col.key]: e.target.value })); setPage(1); }}
+                className={`ld-filter-wrap ${filterDragKey === col.key ? 'ld-filter-wrap--dragging' : ''}`}
+                draggable
+                onDragStart={() => handleFilterDragStart(col.key)}
+                onDragOver={(e) => handleFilterDragOver(e, col.key)}
+                onDrop={() => handleFilterDrop(col.key)}
+                onDragEnd={() => setFilterDragKey(null)}
               >
-                <option value="">All {col.label}s</option>
-                {filterOptions(col).map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
+                <span className="ld-filter-drag" title="Drag to reorder">⠿</span>
+                <select
+                  className="ld-filter-select"
+                  value={filters[col.key] ?? ''}
+                  onChange={(e) => { setFilters((f) => ({ ...f, [col.key]: e.target.value })); }}
+                >
+                  <option value="">{col.filterPlaceholder ?? `All ${col.label}s`}</option>
+                  {filterOptions(col).map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
             ))}
             {Object.values(filters).some(Boolean) && (
-              <button className="ld-filter-reset" onClick={() => { setFilters({}); setPage(1); }}>
+              <button className="ld-filter-reset" onClick={() => setFilters({})}>
                 Reset filters
               </button>
             )}
@@ -233,7 +305,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
         </div>
       )}
 
-      {/* Results toolbar */}
+      {/* ── Results toolbar ── */}
       <div className="ld-toolbar">
         <div className="ld-toolbar__left">
           <span className="ld-toolbar__count">
@@ -242,13 +314,10 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
               : `${merged.length.toLocaleString()} results`}
           </span>
           {selected.size > 0 && (
-            <span className="ld-toolbar__selected-badge">
-              {selected.size} selected
-            </span>
+            <span className="ld-toolbar__selected-badge">{selected.size} selected</span>
           )}
         </div>
         <div className="ld-toolbar__right">
-          {/* Column picker */}
           <div style={{ position: 'relative' }}>
             <button className="ld-toolbar-btn" onClick={() => setShowColPicker((v) => !v)}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -271,18 +340,14 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
               </div>
             )}
           </div>
-
-          <button
-            className="ld-toolbar-btn ld-toolbar-btn--primary"
-            onClick={downloadCSV}
-          >
+          <button className="ld-toolbar-btn ld-toolbar-btn--primary" onClick={downloadCSV}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             {selected.size > 0 ? `Download ${selected.size} rows` : 'Download CSV'}
           </button>
         </div>
       </div>
 
-      {/* Table */}
+      {/* ── Table ── */}
       <div className="ld-table-wrap">
         <table className="ld-table">
           <thead>
@@ -314,7 +379,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
                   <div style={{ textAlign: 'center', padding: '40px 24px' }}>
                     <p style={{ fontSize: 24, marginBottom: 8 }}>🔍</p>
                     <p style={{ fontWeight: 600 }}>No results found</p>
-                    <p style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>Try adjusting your search or filters</p>
+                    <p style={{ color: '#999', fontSize: 13 }}>Try adjusting your search or filters</p>
                   </div>
                 </td>
               </tr>
@@ -323,10 +388,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
                 const key = rowKey(row);
                 const isSelected = selected.has(key);
                 return (
-                  <tr
-                    key={key}
-                    className={`ld-table__row ${isSelected ? 'ld-table__row--selected' : ''}`}
-                  >
+                  <tr key={key} className={`ld-table__row ${isSelected ? 'ld-table__row--selected' : ''}`}>
                     <td className="ld-table__td-check" onClick={(e) => e.stopPropagation()}>
                       <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(key)} />
                     </td>
@@ -338,7 +400,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
                             <span className="ld-badge">{val}</span>
                           ) : col.type === 'url' && val ? (
                             <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>View ↗</a>
-                          ) : val || <span style={{ color: '#ccc' }}>—</span>}
+                          ) : val || <span className="ld-empty-cell">—</span>}
                         </td>
                       );
                     })}
@@ -351,18 +413,21 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
             )}
           </tbody>
         </table>
+
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} className="ld-scroll-sentinel" />
+        {visibleCount < sorted.length && (
+          <div className="ld-scroll-loading">
+            <div className="spinner" style={{ borderTopColor: '#5B2D86' }} />
+            <span className="text-xs text-muted">Loading more…</span>
+          </div>
+        )}
+        {sorted.length > 0 && visibleCount >= sorted.length && sorted.length > BATCH && (
+          <p className="ld-scroll-end">All {sorted.length.toLocaleString()} results shown</p>
+        )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="ld-pagination">
-          <button className="ld-pager-btn" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Prev</button>
-          <span className="ld-pager-info">Page {page} of {totalPages}</span>
-          <button className="ld-pager-btn" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>Next →</button>
-        </div>
-      )}
-
-      {/* Details modal */}
+      {/* ── Details modal ── */}
       {detailRow && (
         <div className="ld-modal-overlay" onClick={() => setDetailRow(null)}>
           <div className="ld-modal" onClick={(e) => e.stopPropagation()}>
@@ -378,20 +443,22 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
             <div className="ld-modal__body">
               <table className="ld-modal__table">
                 <tbody>
-                  {config.columns.filter((c) => c.inDetails === true || (c.visible && c.inDetails !== false)).map((col) => {
-                    const val = getCellVal(detailRow, col.key);
-                    if (!val) return null;
-                    return (
-                      <tr key={col.key}>
-                        <td className="ld-modal__label">{col.label}</td>
-                        <td className="ld-modal__value">
-                          {col.type === 'url'
-                            ? <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">{val} ↗</a>
-                            : val}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {config.columns
+                    .filter((c) => c.inDetails === true || (c.visible && c.inDetails !== false))
+                    .map((col) => {
+                      const val = getCellVal(detailRow, col.key);
+                      if (!val) return null;
+                      return (
+                        <tr key={col.key}>
+                          <td className="ld-modal__label">{col.label}</td>
+                          <td className="ld-modal__value">
+                            {col.type === 'url'
+                              ? <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">{val} ↗</a>
+                              : val}
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>

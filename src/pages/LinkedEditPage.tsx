@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
@@ -30,6 +30,11 @@ export default function LinkedEditPage({ user }: Props) {
   const [saving, setSaving]         = useState(false);
   const [error, setError]           = useState('');
 
+  // Drag-and-drop state
+  const dragIdx    = useRef<number | null>(null);
+  const dragOverIdx = useRef<number | null>(null);
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+
   useEffect(() => {
     if (!id) return;
     const load = async () => {
@@ -54,14 +59,38 @@ export default function LinkedEditPage({ user }: Props) {
   const setCol = (i: number, patch: Partial<LinkedColumnConfig>) =>
     setColumns((cs) => cs.map((c, idx) => idx === i ? { ...c, ...patch } : c));
 
-  const moveCol = (i: number, dir: -1 | 1) =>
+  const reorderCols = (fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx) return;
     setColumns((cs) => {
       const next = [...cs];
-      const target = i + dir;
-      if (target < 0 || target >= next.length) return cs;
-      [next[i], next[target]] = [next[target], next[i]];
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, moved);
       return next;
     });
+  };
+
+  const handleDragStart = (i: number) => {
+    dragIdx.current = i;
+    setDraggingIdx(i);
+  };
+
+  const handleDragOver = (e: React.DragEvent, i: number) => {
+    e.preventDefault();
+    dragOverIdx.current = i;
+  };
+
+  const handleDrop = (i: number) => {
+    if (dragIdx.current !== null) reorderCols(dragIdx.current, i);
+    dragIdx.current    = null;
+    dragOverIdx.current = null;
+    setDraggingIdx(null);
+  };
+
+  const handleDragEnd = () => {
+    dragIdx.current    = null;
+    dragOverIdx.current = null;
+    setDraggingIdx(null);
+  };
 
   const save = async (publish?: boolean) => {
     if (!dashboard) return;
@@ -127,12 +156,7 @@ export default function LinkedEditPage({ user }: Props) {
             <span>🔗</span>
             <span className="text-sm">Linked via <strong>{dashboard.join_key}</strong> across {dashboard.config.sources.length} sheet{dashboard.config.sources.length !== 1 ? 's' : ''}</span>
             {dashboard.is_published && (
-              <a
-                href={`/ld/${dashboard.slug}`}
-                target="_blank"
-                rel="noreferrer"
-                className="le-info-bar__link"
-              >
+              <a href={`/ld/${dashboard.slug}`} target="_blank" rel="noreferrer" className="le-info-bar__link">
                 View live ↗
               </a>
             )}
@@ -163,28 +187,25 @@ export default function LinkedEditPage({ user }: Props) {
 
           {/* Column list */}
           <div className="le-cols-header">
-            <p className="text-sm font-600 text-soft">Columns</p>
+            <p className="text-sm font-600 text-soft">Columns <span className="le-cols-hint">— drag to reorder</span></p>
             <p className="text-xs text-muted">{visibleCount} of {columns.length} visible</p>
           </div>
 
           <div className="le-cols">
             {columns.map((col, i) => (
-              <div key={col.key} className={`le-col card ${col.visible ? '' : 'le-col--hidden'}`}>
+              <div
+                key={col.key}
+                className={`le-col card ${col.visible ? '' : 'le-col--hidden'} ${draggingIdx === i ? 'le-col--dragging' : ''}`}
+                draggable
+                onDragStart={() => handleDragStart(i)}
+                onDragOver={(e) => handleDragOver(e, i)}
+                onDrop={() => handleDrop(i)}
+                onDragEnd={handleDragEnd}
+              >
                 <div className="le-col__top">
-                  <div className="le-col__reorder">
-                    <button
-                      className="le-col__reorder-btn"
-                      onClick={() => moveCol(i, -1)}
-                      disabled={i === 0}
-                      aria-label="Move up"
-                    >▲</button>
-                    <button
-                      className="le-col__reorder-btn"
-                      onClick={() => moveCol(i, 1)}
-                      disabled={i === columns.length - 1}
-                      aria-label="Move down"
-                    >▼</button>
-                  </div>
+                  {/* Drag handle */}
+                  <span className="le-col__drag" title="Drag to reorder">⠿</span>
+
                   <label className="toggle">
                     <input
                       type="checkbox"
@@ -194,50 +215,91 @@ export default function LinkedEditPage({ user }: Props) {
                     />
                     <span className="toggle-track" />
                   </label>
+
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span className="le-col__key">{col.key === '__join_value' ? '🔗 join key' : col.key}</span>
                     <input
                       className="input le-col__label-input"
                       value={col.label}
                       onChange={(e) => setCol(i, { label: e.target.value })}
-                      disabled={!col.visible}
                       placeholder="Column label"
                     />
                   </div>
                 </div>
+
+                {/* Controls for VISIBLE columns */}
                 {col.visible && (
-                  <div className="le-col__controls">
-                    <select
-                      className="input le-col__type"
-                      value={col.type}
-                      onChange={(e) => setCol(i, { type: e.target.value as LinkedColumnConfig['type'] })}
-                    >
-                      {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                    <label className="col-editor__check">
-                      <input type="checkbox" checked={col.filterable} onChange={(e) => setCol(i, { filterable: e.target.checked })} />
-                      <span className="text-sm">Filter</span>
-                    </label>
-                    <label className="col-editor__check">
-                      <input type="checkbox" checked={col.searchable} onChange={(e) => setCol(i, { searchable: e.target.checked })} />
-                      <span className="text-sm">Search</span>
-                    </label>
-                    <label className="col-editor__check">
-                      <input type="checkbox" checked={col.inDetails !== false} onChange={(e) => setCol(i, { inDetails: e.target.checked })} />
-                      <span className="text-sm">Details</span>
-                    </label>
-                  </div>
+                  <>
+                    <div className="le-col__controls">
+                      <select
+                        className="input le-col__type"
+                        value={col.type}
+                        onChange={(e) => setCol(i, { type: e.target.value as LinkedColumnConfig['type'] })}
+                      >
+                        {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                      <label className="col-editor__check">
+                        <input type="checkbox" checked={col.filterable} onChange={(e) => setCol(i, { filterable: e.target.checked })} />
+                        <span className="text-sm">Filter</span>
+                      </label>
+                      <label className="col-editor__check">
+                        <input type="checkbox" checked={col.searchable} onChange={(e) => setCol(i, { searchable: e.target.checked })} />
+                        <span className="text-sm">Search</span>
+                      </label>
+                      <label className="col-editor__check">
+                        <input type="checkbox" checked={col.inDetails !== false} onChange={(e) => setCol(i, { inDetails: e.target.checked })} />
+                        <span className="text-sm">Details</span>
+                      </label>
+                    </div>
+                    {/* Filter placeholder text — shown when filterable */}
+                    {col.filterable && (
+                      <div className="le-col__filter-row">
+                        <label className="le-col__filter-label">Filter label text</label>
+                        <input
+                          className="input le-col__filter-text"
+                          value={col.filterPlaceholder ?? ''}
+                          onChange={(e) => setCol(i, { filterPlaceholder: e.target.value || undefined })}
+                          placeholder={`All ${col.label}s`}
+                          title="Text shown in the filter dropdown before a value is selected"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
+
+                {/* Controls for HIDDEN columns */}
                 {!col.visible && (
                   <div className="le-col__controls">
+                    <label className="col-editor__check" title="Show in the filter bar even though the column is hidden from the table">
+                      <input
+                        type="checkbox"
+                        checked={col.filterable}
+                        onChange={(e) => setCol(i, { filterable: e.target.checked })}
+                      />
+                      <span className="text-sm">Filter only</span>
+                    </label>
                     <label className="col-editor__check">
                       <input
                         type="checkbox"
                         checked={col.inDetails === true}
                         onChange={(e) => setCol(i, { inDetails: e.target.checked ? true : undefined })}
                       />
-                      <span className="text-sm">Show in details only</span>
+                      <span className="text-sm">Details only</span>
                     </label>
+                  </div>
+                )}
+
+                {/* Filter placeholder text for filter-only hidden columns */}
+                {!col.visible && col.filterable && (
+                  <div className="le-col__filter-row">
+                    <label className="le-col__filter-label">Filter label text</label>
+                    <input
+                      className="input le-col__filter-text"
+                      value={col.filterPlaceholder ?? ''}
+                      onChange={(e) => setCol(i, { filterPlaceholder: e.target.value || undefined })}
+                      placeholder={`All ${col.label}s`}
+                      title="Text shown in the filter dropdown before a value is selected"
+                    />
                   </div>
                 )}
               </div>
