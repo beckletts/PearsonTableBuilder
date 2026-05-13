@@ -40,6 +40,9 @@
   overflow: hidden;
   z-index: 1;
   pointer-events: none;
+  /* Fade in from the left so the wave blends into the gradient */
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 25%);
+  mask-image: linear-gradient(to right, transparent 0%, black 25%);
 }
 
 .ld-hero__wave {
@@ -48,7 +51,9 @@
   object-fit: cover;
   object-position: left center;
   display: block;
-  opacity: 0.9;
+  opacity: 0.95;
+  /* Screen blend: dark areas of the JPG vanish; bright wave/sphere elements glow */
+  mix-blend-mode: screen;
 }
 
 .ld-hero__inner {
@@ -356,6 +361,33 @@
   white-space: nowrap;
 }
 .ld-detail-btn:hover { border-color: var(--ld-purple); color: var(--ld-purple); background: #F9F7FD; }
+
+/* ── Data refresh notice ─────────────────────────────────────────────────── */
+.ld-data-refresh {
+  max-width: 1200px;
+  margin: 12px auto 0;
+  padding: 10px 24px;
+  background: #F9F7FD;
+  border: 1px solid #E8E0F0;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.ld-data-refresh__date {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #444;
+  margin: 0 0 2px;
+}
+
+.ld-data-refresh__note {
+  font-size: 12px;
+  color: #888;
+  margin: 0;
+}
 
 /* ── Infinite scroll indicators ──────────────────────────────────────────── */
 .ld-scroll-sentinel {

@@ -37,6 +37,7 @@ export default function LinkedEditPage({ user }: Props) {
   const [description, setDescription] = useState('');
   const [columns, setColumns]     = useState<LinkedColumnConfig[]>([]);
   const [filterOrder, setFilterOrder] = useState<string[]>([]);
+  const [dataRefresh, setDataRefresh] = useState<{ enabled: boolean; customText: string; lastUpdated?: string }>({ enabled: false, customText: '' });
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState('');
 
@@ -88,6 +89,7 @@ export default function LinkedEditPage({ user }: Props) {
       setDescription(dash.description ?? '');
       setColumns(dash.config.columns);
       setFilterOrder(dash.config.filterOrder ?? []);
+      setDataRefresh(dash.config.dataRefresh ?? { enabled: false, customText: '' });
 
       const { data: srcData } = await supabase
         .from('linked_sources')
@@ -162,6 +164,15 @@ export default function LinkedEditPage({ user }: Props) {
 
   // ── Save ────────────────────────────────────────────────────────────────────
 
+  const markRefreshed = async () => {
+    if (!dashboard) return;
+    const now = new Date().toISOString();
+    const updated = { ...dataRefresh, lastUpdated: now };
+    setDataRefresh(updated);
+    const updatedConfig = { ...dashboard.config, columns, filterOrder: syncedFilterOrder, dataRefresh: updated };
+    await supabase.from('linked_dashboards').update({ config: updatedConfig }).eq('id', dashboard.id);
+  };
+
   const save = async (publish?: boolean) => {
     if (!dashboard) return;
     setSaving(true);
@@ -171,6 +182,7 @@ export default function LinkedEditPage({ user }: Props) {
         ...dashboard.config,
         columns,
         filterOrder: syncedFilterOrder,
+        dataRefresh: dataRefresh.enabled ? dataRefresh : undefined,
       };
       const patch: Record<string, unknown> = {
         title: title.trim() || dashboard.title,
@@ -555,6 +567,41 @@ export default function LinkedEditPage({ user }: Props) {
                   </div>
                 </div>
               )}
+
+              {/* Data refresh */}
+              <div className="card le-card">
+                <label className="col-editor__check" style={{ marginBottom: dataRefresh.enabled ? 10 : 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={dataRefresh.enabled}
+                    onChange={(e) => setDataRefresh((d) => ({ ...d, enabled: e.target.checked }))}
+                  />
+                  <span className="text-sm font-600">Show "data last refreshed" notice</span>
+                </label>
+                {dataRefresh.enabled && (
+                  <>
+                    <input
+                      className="input"
+                      value={dataRefresh.customText}
+                      onChange={(e) => setDataRefresh((d) => ({ ...d, customText: e.target.value }))}
+                      placeholder="e.g. Assessment dates may be updated — please check this page for the latest information"
+                    />
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      style={{ marginTop: 8 }}
+                      onClick={() => void markRefreshed()}
+                      disabled={saving}
+                    >
+                      Mark as refreshed now
+                    </button>
+                    {dataRefresh.lastUpdated && (
+                      <p className="text-xs text-muted" style={{ marginTop: 4 }}>
+                        Last marked: {new Date(dataRefresh.lastUpdated).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
 
               {error && <p className="error-msg mt-16">{error}</p>}
 

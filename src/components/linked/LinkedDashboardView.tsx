@@ -376,6 +376,22 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
         </div>
       </div>
 
+      {/* ── Data refresh notice ── */}
+      {config.dataRefresh?.enabled && config.dataRefresh.lastUpdated && (
+        <div className="ld-data-refresh">
+          <p className="ld-data-refresh__date">
+            <span>📋</span>
+            <strong>Data last refreshed:</strong>{' '}
+            {new Date(config.dataRefresh.lastUpdated).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+          </p>
+          {config.dataRefresh.customText && (
+            <p className="ld-data-refresh__note">
+              <span>💡</span> <em>{config.dataRefresh.customText}</em>
+            </p>
+          )}
+        </div>
+      )}
+
       {/* ── Table ── */}
       <div className="ld-table-wrap">
         <table className="ld-table">

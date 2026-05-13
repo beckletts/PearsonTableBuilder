@@ -113,6 +113,11 @@ export interface LinkedDashboardConfig {
   sources: { id: string; name: string; join_key_column: string }[];
   defaultSort: { column: string; direction: 'asc' | 'desc' };
   filterOrder?: string[];
+  dataRefresh?: {
+    enabled: boolean;
+    customText: string;
+    lastUpdated?: string;
+  };
 }
 
 export interface LinkedDashboard {
