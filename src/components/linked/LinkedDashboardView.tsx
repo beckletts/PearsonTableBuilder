@@ -5,16 +5,67 @@ import './LinkedDashboardView.css';
 interface Props {
   dashboard: LinkedDashboard;
   rawRows: LinkedRow[];
+  primarySourceId?: string; // source_id of the primary (timetable) source; derived from first linked_source by created_at
 }
 
-function mergeRows(rawRows: LinkedRow[]): Record<string, unknown>[] {
-  const groups = new Map<string, Record<string, unknown>>();
-  for (const row of rawRows) {
-    const key = row.join_value;
-    if (!groups.has(key)) groups.set(key, { __join_value: key });
-    Object.assign(groups.get(key)!, row.data);
+// Normalize an examination code for cross-source matching.
+// Tech Award timetable codes use "/01" suffixes (BAC03/01) while overview codes don't (BAC03).
+function normalizeCode(code: string): string {
+  return code.replace(/\/\d+$/, '').trim().toUpperCase();
+}
+
+// Merge rows from multiple sources into display rows.
+// primarySourceId = the source_id of the timetable (first uploaded source, by created_at).
+// Each primary row becomes its own display row, enriched with data from the secondary
+// sources (overview tabs) matched by normalized examination code.
+// Falls back to "source with most rows" when primarySourceId is not provided.
+function mergeRows(rawRows: LinkedRow[], primarySourceId?: string): Record<string, unknown>[] {
+  const sourceIds = [...new Set(rawRows.map((r) => r.source_id))];
+
+  if (sourceIds.length === 1) {
+    // Single source — every row is its own display row
+    return rawRows
+      .slice()
+      .sort((a, b) => a.row_index - b.row_index)
+      .map((r, i) => ({
+        __join_value: r.join_value,
+        __row_key: `${r.source_id}_${r.row_index}_${i}`,
+        ...r.data,
+      }));
   }
-  return Array.from(groups.values());
+
+  // Identify primary and secondary sources.
+  // Prefer the explicitly provided primarySourceId; fall back to most-rows heuristic.
+  const resolvedPrimaryId = primarySourceId && sourceIds.includes(primarySourceId)
+    ? primarySourceId
+    : sourceIds
+        .map((id) => ({ id, count: rawRows.filter((r) => r.source_id === id).length }))
+        .sort((a, b) => b.count - a.count)[0].id;
+
+  const primaryRows   = rawRows.filter((r) => r.source_id === resolvedPrimaryId);
+  const secondaryRows = rawRows.filter((r) => r.source_id !== resolvedPrimaryId);
+
+  // Build a lookup from normalized code → merged secondary data
+  const lookup = new Map<string, Record<string, unknown>>();
+  for (const row of secondaryRows) {
+    const key = normalizeCode(row.join_value);
+    if (!lookup.has(key)) lookup.set(key, {});
+    Object.assign(lookup.get(key)!, row.data);
+  }
+
+  return primaryRows
+    .slice()
+    .sort((a, b) => a.row_index - b.row_index)
+    .map((row, i) => {
+      const key = normalizeCode(row.join_value);
+      const secondary = lookup.get(key) ?? {};
+      return {
+        __join_value: row.join_value,
+        __row_key: `${row.source_id}_${row.row_index}_${i}`,
+        ...secondary,   // overview data first (lower priority)
+        ...row.data,    // timetable data wins
+      };
+    });
 }
 
 function getCellVal(row: Record<string, unknown>, key: string): string {
@@ -24,7 +75,7 @@ function getCellVal(row: Record<string, unknown>, key: string): string {
 
 const PAGE_SIZE = 50;
 
-export default function LinkedDashboardView({ dashboard, rawRows }: Props) {
+export default function LinkedDashboardView({ dashboard, rawRows, primarySourceId }: Props) {
   const { config } = dashboard;
   const visibleCols = useMemo(() => config.columns.filter((c) => c.visible), [config.columns]);
   const filterCols  = useMemo(() => visibleCols.filter((c) => c.filterable), [visibleCols]);
@@ -40,7 +91,7 @@ export default function LinkedDashboardView({ dashboard, rawRows }: Props) {
   const [hiddenCols, setHiddenCols] = useState<Set<string>>(new Set());
   const [showColPicker, setShowColPicker] = useState(false);
 
-  const merged = useMemo(() => mergeRows(rawRows), [rawRows]);
+  const merged = useMemo(() => mergeRows(rawRows, primarySourceId), [rawRows, primarySourceId]);
 
   const filtered = useMemo(() => {
     let rows = merged;
@@ -57,12 +108,24 @@ export default function LinkedDashboardView({ dashboard, rawRows }: Props) {
     return rows;
   }, [merged, search, filters, searchCols]);
 
+  // Parse DD/MM/YYYY to a sortable number; returns NaN if not a date
+  const parseDMY = (s: string): number => {
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return NaN;
+    return Date.UTC(+m[3], +m[2] - 1, +m[1]);
+  };
+
   const sorted = useMemo(() => {
     if (!sortCol) return filtered;
     return [...filtered].sort((a, b) => {
       const av = getCellVal(a, sortCol);
       const bv = getCellVal(b, sortCol);
-      const cmp = av.localeCompare(bv, undefined, { numeric: true });
+      // Try date-aware comparison first
+      const ad = parseDMY(av);
+      const bd = parseDMY(bv);
+      const cmp = (!isNaN(ad) && !isNaN(bd))
+        ? ad - bd
+        : av.localeCompare(bv, undefined, { numeric: true });
       return sortDir === 'asc' ? cmp : -cmp;
     });
   }, [filtered, sortCol, sortDir]);
@@ -76,13 +139,16 @@ export default function LinkedDashboardView({ dashboard, rawRows }: Props) {
     setPage(1);
   };
 
+  const rowKey = (row: Record<string, unknown>) =>
+    String(row.__row_key ?? row.__join_value);
+
   const toggleSelect = (key: string) => {
     setSelected((s) => { const n = new Set(s); n.has(key) ? n.delete(key) : n.add(key); return n; });
   };
 
   const toggleAll = () => {
     if (selected.size === paginated.length) setSelected(new Set());
-    else setSelected(new Set(paginated.map((r) => String(r.__join_value))));
+    else setSelected(new Set(paginated.map(rowKey)));
   };
 
   const filterOptions = (col: LinkedColumnConfig) => {
@@ -96,7 +162,7 @@ export default function LinkedDashboardView({ dashboard, rawRows }: Props) {
 
   const downloadCSV = () => {
     const rows = selected.size > 0
-      ? sorted.filter((r) => selected.has(String(r.__join_value)))
+      ? sorted.filter((r) => selected.has(rowKey(r)))
       : sorted;
     const cols = visibleCols.filter((c) => !hiddenCols.has(c.key));
     const header = cols.map((c) => `"${c.label.replace(/"/g, '""')}"`).join(',');
@@ -254,7 +320,7 @@ export default function LinkedDashboardView({ dashboard, rawRows }: Props) {
               </tr>
             ) : (
               paginated.map((row) => {
-                const key = String(row.__join_value);
+                const key = rowKey(row);
                 const isSelected = selected.has(key);
                 return (
                   <tr
@@ -301,7 +367,12 @@ export default function LinkedDashboardView({ dashboard, rawRows }: Props) {
         <div className="ld-modal-overlay" onClick={() => setDetailRow(null)}>
           <div className="ld-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ld-modal__header">
-              <h2 className="ld-modal__title">{getCellVal(detailRow, '__join_value') || 'Details'}</h2>
+              <h2 className="ld-modal__title">
+                {getCellVal(detailRow, 'Component Name') ||
+                 getCellVal(detailRow, 'Title') ||
+                 getCellVal(detailRow, '__join_value') ||
+                 'Details'}
+              </h2>
               <button className="ld-modal__close" onClick={() => setDetailRow(null)}>✕</button>
             </div>
             <div className="ld-modal__body">

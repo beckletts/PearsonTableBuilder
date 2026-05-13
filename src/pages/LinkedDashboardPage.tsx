@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { LinkedDashboard, LinkedRow } from '../lib/types';
+import type { LinkedDashboard, LinkedRow, LinkedSource } from '../lib/types';
 import LinkedDashboardView from '../components/linked/LinkedDashboardView';
 import PearsonLogo from '../components/layout/PearsonLogo';
 import './PublicTablePage.css';
 
 export default function LinkedDashboardPage() {
   const { slug } = useParams<{ slug: string }>();
-  const [dashboard, setDashboard] = useState<LinkedDashboard | null>(null);
-  const [rows, setRows]           = useState<LinkedRow[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [notFound, setNotFound]   = useState(false);
+  const [dashboard, setDashboard]         = useState<LinkedDashboard | null>(null);
+  const [rows, setRows]                   = useState<LinkedRow[]>([]);
+  const [sources, setSources]             = useState<LinkedSource[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [notFound, setNotFound]           = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -27,6 +28,14 @@ export default function LinkedDashboardPage() {
 
       if (!dash) { setNotFound(true); setLoading(false); return; }
       setDashboard(dash as LinkedDashboard);
+
+      // Fetch sources ordered by creation time — first = primary (timetable)
+      const { data: srcData } = await supabase
+        .from('linked_sources')
+        .select('*')
+        .eq('dashboard_id', dash.id)
+        .order('created_at', { ascending: true });
+      setSources((srcData ?? []) as LinkedSource[]);
 
       // Fetch all rows in batches (Supabase default limit is 1000)
       let allRows: LinkedRow[] = [];
@@ -79,7 +88,11 @@ export default function LinkedDashboardPage() {
           <PearsonLogo />
         </div>
       </header>
-      <LinkedDashboardView dashboard={dashboard} rawRows={rows} />
+      <LinkedDashboardView
+        dashboard={dashboard}
+        rawRows={rows}
+        primarySourceId={sources[0]?.id}
+      />
       <footer className="public-page__footer" style={{ marginTop: 'auto' }}>
         <PearsonLogo width={70} />
         <p>© {new Date().getFullYear()} Pearson plc. All rights reserved.</p>
