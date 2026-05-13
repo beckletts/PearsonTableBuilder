@@ -1,0 +1,190 @@
+.lse__loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 0;
+}
+
+.lse {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 2px solid var(--color-border);
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.lse__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.lse__row-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-soft);
+}
+
+/* ── Bulk bar ────────────────────────────────────────────────────────────── */
+.lse__bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--color-primary-lt);
+  border: 1px solid #b3d9e8;
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.lse__bulk-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-dk);
+  white-space: nowrap;
+}
+
+.lse__bulk-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.lse__bulk-col { width: auto; min-width: 160px; max-width: 220px; }
+.lse__bulk-val { flex: 1; min-width: 120px; max-width: 260px; }
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+.lse__scroll {
+  overflow: auto;
+  max-height: 480px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.lse__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: auto;
+}
+
+.lse__table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.lse__table th {
+  padding: 8px 10px;
+  background: var(--color-bg-soft);
+  border-bottom: 2px solid var(--color-border);
+  border-right: 1px solid var(--color-border-soft);
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-soft);
+  white-space: nowrap;
+}
+
+.lse__th--check,
+.lse__td--check {
+  width: 36px;
+  padding: 0 4px !important;
+  text-align: center;
+}
+
+.lse__th--check input[type="checkbox"],
+.lse__td--check input[type="checkbox"] {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.lse__th--action { width: 32px; padding: 0 4px !important; }
+
+.lse__th--join { background: #F0EAF8 !important; }
+
+.lse__join-tag {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 1px 5px;
+  font-size: 10px;
+  background: var(--color-purple-lt);
+  color: var(--color-purple);
+  border-radius: 3px;
+  font-weight: 400;
+}
+
+.lse__table tbody tr {
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.lse__table tbody tr:hover { background: var(--color-bg); }
+
+.lse__row--new      { background: #f0fff4 !important; }
+.lse__row--selected { background: var(--color-primary-lt) !important; }
+
+.lse__table td {
+  padding: 2px;
+  vertical-align: middle;
+  border-right: 1px solid var(--color-border-soft);
+}
+
+.lse__td--action {
+  width: 32px;
+  padding: 0 4px !important;
+  text-align: center;
+}
+
+.lse__cell-input {
+  width: 100%;
+  min-width: 80px;
+  padding: 5px 7px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: transparent;
+  transition: border-color 0.1s, background 0.1s;
+}
+.lse__cell-input:hover  { border-color: var(--color-border); background: #fff; }
+.lse__cell-input:focus  { outline: none; border-color: var(--color-primary); background: #fff; box-shadow: 0 0 0 2px rgba(0,127,163,0.1); }
+
+.lse__delete-btn {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s, color 0.1s;
+}
+.lse__delete-btn:hover { background: var(--color-danger-lt); color: var(--color-danger); }
+
+.lse__empty {
+  text-align: center;
+  padding: 28px 16px !important;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.lse__footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0 0;
+}

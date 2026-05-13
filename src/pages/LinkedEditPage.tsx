@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import type { LinkedDashboard, LinkedColumnConfig, LinkedSource } from '../lib/types';
 import { parseFile, getSheetNames } from '../utils/parseFile';
+import LinkedSourceEditor from '../components/linked/LinkedSourceEditor';
 import PearsonNav from '../components/layout/PearsonNav';
 import './LinkedEditPage.css';
 
@@ -62,6 +63,13 @@ export default function LinkedEditPage({ user }: Props) {
   const [actionError, setActionError]     = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const sourceFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Inline data editor
+  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+
+  // Inline rename
+  const [renamingSourceId, setRenamingSourceId] = useState<string | null>(null);
+  const [renameValue, setRenameValue]           = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -293,6 +301,14 @@ export default function LinkedEditPage({ user }: Props) {
     } finally {
       setActionSaving(false);
     }
+  };
+
+  const saveRename = async (sourceId: string) => {
+    const name = renameValue.trim();
+    setRenamingSourceId(null);
+    if (!name) return;
+    setSources((prev) => prev.map((s) => s.id === sourceId ? { ...s, name } : s));
+    await supabase.from('linked_sources').update({ name }).eq('id', sourceId);
   };
 
   const cancelSourceAction = () => {
@@ -574,7 +590,28 @@ export default function LinkedEditPage({ user }: Props) {
                     <div className="le-source__header">
                       <div className="le-source__icon">📄</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p className="font-600">{src.name}</p>
+                        {/* Inline rename */}
+                        {renamingSourceId === src.id ? (
+                          <input
+                            className="input le-source__rename-input"
+                            value={renameValue}
+                            autoFocus
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onBlur={() => void saveRename(src.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') void saveRename(src.id);
+                              if (e.key === 'Escape') setRenamingSourceId(null);
+                            }}
+                          />
+                        ) : (
+                          <button
+                            className="le-source__name-btn"
+                            onClick={() => { setRenamingSourceId(src.id); setRenameValue(src.name); }}
+                            title="Click to rename"
+                          >
+                            {src.name} <span className="le-source__rename-hint">✎</span>
+                          </button>
+                        )}
                         <p className="text-xs text-muted mt-4">
                           {src.row_count.toLocaleString()} rows · join column: <code>{src.join_key_column}</code> · added {new Date(src.created_at).toLocaleDateString('en-GB')}
                         </p>
@@ -588,6 +625,12 @@ export default function LinkedEditPage({ user }: Props) {
                           </>
                         ) : (
                           <>
+                            <button
+                              className={`btn btn-secondary btn-sm ${editingSourceId === src.id ? 'btn-active' : ''}`}
+                              onClick={() => setEditingSourceId(editingSourceId === src.id ? null : src.id)}
+                            >
+                              {editingSourceId === src.id ? 'Close editor' : 'Edit data'}
+                            </button>
                             <input
                               type="file"
                               accept=".csv,.xlsx,.xls"
@@ -613,6 +656,16 @@ export default function LinkedEditPage({ user }: Props) {
                         )}
                       </div>
                     </div>
+
+                    {/* Inline data editor */}
+                    {editingSourceId === src.id && (
+                      <LinkedSourceEditor
+                        source={src}
+                        dashboardId={dashboard.id}
+                        onClose={() => setEditingSourceId(null)}
+                        onSaved={(count) => setSources((prev) => prev.map((s) => s.id === src.id ? { ...s, row_count: count } : s))}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
