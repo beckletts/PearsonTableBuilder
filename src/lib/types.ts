@@ -108,6 +108,12 @@ export interface LinkedColumnConfig {
   filterPlaceholder?: string; // custom text for the filter dropdown's default option
 }
 
+export interface ActionButton {
+  label: string;
+  url: string;
+  emoji: string;
+}
+
 export interface LinkedDashboardConfig {
   columns: LinkedColumnConfig[];
   sources: { id: string; name: string; join_key_column: string }[];
@@ -118,6 +124,7 @@ export interface LinkedDashboardConfig {
     customText: string;
     lastUpdated?: string;
   };
+  actionButtons?: ActionButton[];
 }
 
 export interface LinkedDashboard {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import type { LinkedDashboard, LinkedColumnConfig, LinkedSource } from '../lib/types';
+import type { LinkedDashboard, LinkedColumnConfig, LinkedSource, ActionButton } from '../lib/types';
 import { parseFile, getSheetNames } from '../utils/parseFile';
 import LinkedSourceEditor from '../components/linked/LinkedSourceEditor';
 import PearsonNav from '../components/layout/PearsonNav';
@@ -38,6 +38,7 @@ export default function LinkedEditPage({ user }: Props) {
   const [columns, setColumns]     = useState<LinkedColumnConfig[]>([]);
   const [filterOrder, setFilterOrder] = useState<string[]>([]);
   const [dataRefresh, setDataRefresh] = useState<{ enabled: boolean; customText: string; lastUpdated?: string }>({ enabled: false, customText: '' });
+  const [actionButtons, setActionButtons] = useState<ActionButton[]>([]);
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState('');
 
@@ -90,6 +91,7 @@ export default function LinkedEditPage({ user }: Props) {
       setColumns(dash.config.columns);
       setFilterOrder(dash.config.filterOrder ?? []);
       setDataRefresh(dash.config.dataRefresh ?? { enabled: false, customText: '' });
+      setActionButtons(dash.config.actionButtons ?? []);
 
       const { data: srcData } = await supabase
         .from('linked_sources')
@@ -183,6 +185,7 @@ export default function LinkedEditPage({ user }: Props) {
         columns,
         filterOrder: syncedFilterOrder,
         dataRefresh: dataRefresh.enabled ? dataRefresh : undefined,
+        actionButtons: actionButtons.length > 0 ? actionButtons : undefined,
       };
       const patch: Record<string, unknown> = {
         title: title.trim() || dashboard.title,
@@ -567,6 +570,55 @@ export default function LinkedEditPage({ user }: Props) {
                   </div>
                 </div>
               )}
+
+              {/* Action buttons */}
+              <div className="card le-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <p className="text-sm font-600">Action buttons <span className="text-muted" style={{ fontWeight: 400 }}>(e.g. Results release dates, Conduct guidelines)</span></p>
+                  {actionButtons.length < 4 && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setActionButtons((prev) => [...prev, { emoji: '📋', label: '', url: '' }])}
+                    >
+                      + Add button
+                    </button>
+                  )}
+                </div>
+                {actionButtons.length === 0 && (
+                  <p className="text-xs text-muted">No action buttons configured. Add up to 4 links shown above the table.</p>
+                )}
+                {actionButtons.map((btn, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                    <input
+                      className="input"
+                      style={{ width: 44, textAlign: 'center', flexShrink: 0 }}
+                      value={btn.emoji}
+                      onChange={(e) => setActionButtons((prev) => prev.map((b, j) => j === i ? { ...b, emoji: e.target.value } : b))}
+                      placeholder="📋"
+                    />
+                    <input
+                      className="input"
+                      style={{ flex: '1 1 140px', minWidth: 120 }}
+                      value={btn.label}
+                      onChange={(e) => setActionButtons((prev) => prev.map((b, j) => j === i ? { ...b, label: e.target.value } : b))}
+                      placeholder="Button label"
+                    />
+                    <input
+                      className="input"
+                      style={{ flex: '2 1 200px', minWidth: 160 }}
+                      value={btn.url}
+                      onChange={(e) => setActionButtons((prev) => prev.map((b, j) => j === i ? { ...b, url: e.target.value } : b))}
+                      placeholder="https://..."
+                    />
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setActionButtons((prev) => prev.filter((_, j) => j !== i))}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
 
               {/* Data refresh */}
               <div className="card le-card">

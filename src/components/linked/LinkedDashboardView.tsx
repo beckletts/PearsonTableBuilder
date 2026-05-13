@@ -358,6 +358,18 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
         </div>
       )}
 
+      {/* ── Action buttons ── */}
+      {config.actionButtons && config.actionButtons.length > 0 && (
+        <div className="ld-action-btns">
+          {config.actionButtons.map((btn) => (
+            <a key={btn.label} href={btn.url} target="_blank" rel="noreferrer" className="ld-action-btn">
+              {btn.emoji && <span>{btn.emoji}</span>}
+              {btn.label}
+            </a>
+          ))}
+        </div>
+      )}
+
       {/* ── Results toolbar ── */}
       <div className="ld-toolbar">
         <div className="ld-toolbar__left">
@@ -519,14 +531,10 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
         <div className="ld-modal-overlay" onClick={() => setDetailRow(null)}>
           <div className="ld-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ld-modal__header">
-              <h2 className="ld-modal__title">
-                {getCellVal(detailRow, 'Component Name') ||
-                 getCellVal(detailRow, 'Title') ||
-                 getCellVal(detailRow, '__join_value') ||
-                 'Details'}
-              </h2>
+              <h2 className="ld-modal__title">Assessment Details</h2>
               <button className="ld-modal__close" onClick={() => setDetailRow(null)}>✕</button>
             </div>
+            <hr className="ld-modal__divider" />
             <div className="ld-modal__body">
               <table className="ld-modal__table">
                 <tbody>
@@ -537,7 +545,9 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
                       if (!val) return null;
                       return (
                         <tr key={col.key}>
-                          <td className="ld-modal__label">{col.label}</td>
+                          <td className="ld-modal__label">
+                            <span className="ld-modal__label-inner">{col.label}</span>
+                          </td>
                           <td className="ld-modal__value">
                             {col.type === 'url'
                               ? <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">{val} ↗</a>
