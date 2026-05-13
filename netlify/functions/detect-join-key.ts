@@ -98,7 +98,11 @@ const handler: Handler = async (event) => {
     });
 
     const raw = (message.content[0] as { text: string }).text.trim();
-    const json = JSON.parse(raw);
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'Claude did not return a valid JSON response. Please try again.' }) };
+    }
+    const json = JSON.parse(jsonMatch[0]);
 
     return { statusCode: 200, headers, body: JSON.stringify(json) };
   } catch (e) {
