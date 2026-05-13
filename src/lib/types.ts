@@ -48,6 +48,7 @@ export interface TableConfig {
     customText: string;
     lastUpdated?: string;
   };
+  filterOrder?: string[];
 }
 
 export interface TableRecord {

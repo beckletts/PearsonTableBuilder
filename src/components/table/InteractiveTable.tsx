@@ -39,10 +39,15 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
     [config.columns],
   );
 
-  const filterableCols = useMemo(
-    () => config.columns.filter((c) => c.filterable),
-    [config.columns],
-  );
+  const filterableCols = useMemo(() => {
+    const cols = config.columns.filter((c) => c.filterable);
+    if (!config.filterOrder?.length) return cols;
+    return [...cols].sort((a, b) => {
+      const ai = config.filterOrder!.indexOf(a.key);
+      const bi = config.filterOrder!.indexOf(b.key);
+      return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
+    });
+  }, [config.columns, config.filterOrder]);
 
   // Build distinct values for each filterable column
   const filterOptions = useMemo(() => {

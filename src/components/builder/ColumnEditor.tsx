@@ -7,6 +7,7 @@ interface Props {
   onDragStart?: () => void;
   onDragOver?: (e: React.DragEvent) => void;
   onDrop?: () => void;
+  onDragEnd?: () => void;
   isDragging?: boolean;
 }
 
@@ -18,7 +19,7 @@ const TYPE_OPTIONS: { value: ColumnType; label: string }[] = [
   { value: 'badge',  label: 'Badge' },
 ];
 
-export default function ColumnEditor({ column, onChange, onDragStart, onDragOver, onDrop, isDragging }: Props) {
+export default function ColumnEditor({ column, onChange, onDragStart, onDragOver, onDrop, onDragEnd, isDragging }: Props) {
   const set = <K extends keyof ColumnConfig>(key: K, val: ColumnConfig[K]) =>
     onChange({ ...column, [key]: val });
 
@@ -29,7 +30,7 @@ export default function ColumnEditor({ column, onChange, onDragStart, onDragOver
       onDragStart={onDragStart}
       onDragOver={(e) => { e.preventDefault(); onDragOver?.(e); }}
       onDrop={onDrop}
-      onDragEnd={() => {}}
+      onDragEnd={onDragEnd}
     >
       {/* Row 1: drag handle · visibility toggle · display name */}
       <div className="col-editor__top">

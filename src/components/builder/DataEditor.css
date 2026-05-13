@@ -147,3 +147,62 @@
   gap: 12px;
   padding: 12px 0 0;
 }
+
+/* ── Checkboxes ──────────────────────────────────────────────────────────── */
+.data-editor__th--check,
+.data-editor__td--check {
+  width: 36px;
+  padding: 0 4px !important;
+  text-align: center;
+}
+
+.data-editor__th--check input[type="checkbox"],
+.data-editor__td--check input[type="checkbox"] {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.data-editor__row--selected { background: var(--color-primary-lt) !important; }
+
+/* ── Bulk action bar ─────────────────────────────────────────────────────── */
+.data-editor__bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--color-primary-lt);
+  border: 1px solid #b3d9e8;
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.data-editor__bulk-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-dk);
+  white-space: nowrap;
+}
+
+.data-editor__bulk-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.data-editor__bulk-col { width: auto; min-width: 160px; max-width: 220px; }
+.data-editor__bulk-val { flex: 1; min-width: 120px; max-width: 260px; }
+
+/* ── Sheet picker ────────────────────────────────────────────────────────── */
+.data-editor__sheet-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--color-yellow-lt);
+  border: 1px solid var(--color-yellow);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}

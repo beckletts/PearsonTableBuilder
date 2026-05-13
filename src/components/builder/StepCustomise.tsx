@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { generateUniqueSlug } from '../../utils/generateSlug';
@@ -23,6 +23,8 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [filterDragKey, setFilterDragKey] = useState<string | null>(null);
+  const filterDragOverKey = useRef<string | null>(null);
 
   const previewRows = parsed.rows.map((r, i) => ({
     id: String(i),
@@ -35,8 +37,37 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
   const updateColumn = (i: number, updated: ColumnConfig) => {
     setConfig((c) => {
       const cols = [...c.columns];
+      const prev = cols[i];
       cols[i] = updated;
-      return { ...c, columns: cols };
+      const fCols = cols.filter((col) => col.filterable);
+      const raw = c.filterOrder ?? c.columns.filter((col) => col.filterable).map((col) => col.key);
+      let nextOrder = raw;
+      if (!prev.filterable && updated.filterable) {
+        nextOrder = [...raw.filter((k) => k !== updated.key), updated.key];
+      } else if (prev.filterable && !updated.filterable) {
+        nextOrder = raw.filter((k) => k !== updated.key);
+      }
+      // Remove any keys no longer present in filterable cols
+      nextOrder = nextOrder.filter((k) => fCols.some((col) => col.key === k));
+      return { ...c, columns: cols, filterOrder: nextOrder };
+    });
+  };
+
+  const reorderFilters = (fromKey: string, toKey: string) => {
+    if (fromKey === toKey) return;
+    setConfig((c) => {
+      const fCols = c.columns.filter((col) => col.filterable);
+      const raw = c.filterOrder ?? fCols.map((col) => col.key);
+      const fo = [
+        ...raw.filter((k) => fCols.some((col) => col.key === k)),
+        ...fCols.filter((col) => !raw.includes(col.key)).map((col) => col.key),
+      ];
+      const fromIdx = fo.indexOf(fromKey);
+      const toIdx   = fo.indexOf(toKey);
+      if (fromIdx < 0 || toIdx < 0) return c;
+      fo.splice(fromIdx, 1);
+      fo.splice(toIdx, 0, fromKey);
+      return { ...c, filterOrder: fo };
     });
   };
 
@@ -136,6 +167,13 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
     }
   };
 
+  const filterableCols = config.columns.filter((c) => c.filterable);
+  const rawFilterOrder = config.filterOrder ?? filterableCols.map((c) => c.key);
+  const syncedFilterOrder = [
+    ...rawFilterOrder.filter((k) => filterableCols.some((c) => c.key === k)),
+    ...filterableCols.filter((c) => !rawFilterOrder.includes(c.key)).map((c) => c.key),
+  ];
+
   return (
     <div className="step-customise">
       <div className="step-customise__layout">
@@ -181,11 +219,44 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
                   if (dragIdx !== null) reorderColumns(dragIdx, i);
                   setDragIdx(null);
                 }}
+                onDragEnd={() => setDragIdx(null)}
               />
             ))}
           </div>
 
           <WidgetBuilder config={config} parsed={parsed} onChange={updateWidgets} />
+
+          {syncedFilterOrder.length >= 2 && (
+            <div className="card" style={{ marginTop: 16, padding: 16 }}>
+              <p className="text-sm font-600" style={{ marginBottom: 10 }}>
+                Filter order <span className="text-muted" style={{ fontSize: 11, fontWeight: 400 }}>— drag to rearrange</span>
+              </p>
+              <div className="sc-filter-order">
+                {syncedFilterOrder.map((key) => {
+                  const col = config.columns.find((c) => c.key === key);
+                  if (!col) return null;
+                  return (
+                    <div
+                      key={key}
+                      className={`sc-filter-chip ${filterDragKey === key ? 'sc-filter-chip--dragging' : ''}`}
+                      draggable
+                      onDragStart={() => setFilterDragKey(key)}
+                      onDragOver={(e) => { e.preventDefault(); filterDragOverKey.current = key; }}
+                      onDrop={() => {
+                        if (filterDragKey) reorderFilters(filterDragKey, key);
+                        setFilterDragKey(null);
+                        filterDragOverKey.current = null;
+                      }}
+                      onDragEnd={() => { setFilterDragKey(null); filterDragOverKey.current = null; }}
+                    >
+                      <span className="sc-filter-chip__drag">⠿</span>
+                      <span className="sc-filter-chip__label">{col.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="card" style={{ marginTop: 16, padding: 16 }}>
             <label className="col-editor__check" style={{ marginBottom: config.dataRefresh?.enabled ? 10 : 0 }}>
