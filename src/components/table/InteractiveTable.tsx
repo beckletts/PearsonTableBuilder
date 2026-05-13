@@ -40,7 +40,7 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
   );
 
   const filterableCols = useMemo(
-    () => config.columns.filter((c) => c.filterable && c.visible),
+    () => config.columns.filter((c) => c.filterable),
     [config.columns],
   );
 

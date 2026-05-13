@@ -19,7 +19,7 @@ export default function TableFilters({ columns, options, values, onChange }: Pro
             value={values[col.key] ?? ''}
             onChange={(e) => onChange(col.key, e.target.value)}
           >
-            <option value="">All</option>
+            <option value="">{col.filterPlaceholder ?? `All ${col.label}s`}</option>
             {(options[col.key] ?? []).map((opt) => (
               <option key={opt} value={opt}>{opt}</option>
             ))}
