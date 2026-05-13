@@ -248,6 +248,38 @@
 .ld-toolbar-btn--primary { background: var(--ld-purple); border-color: var(--ld-purple); color: #fff; }
 .ld-toolbar-btn--primary:hover { background: #4a2470; border-color: #4a2470; color: #fff; }
 
+/* ── Download menu ───────────────────────────────────────────────────────── */
+.ld-download-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #fff;
+  border: 1px solid #E0E0E0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(13,0,77,0.12);
+  min-width: 160px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.ld-download-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-family: inherit;
+  color: #333;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+.ld-download-menu__item:hover { background: #F5F5F5; }
+.ld-download-menu__item + .ld-download-menu__item { border-top: 1px solid #F0F0F0; }
+
 /* ── Column picker ───────────────────────────────────────────────────────── */
 .ld-col-picker {
   position: absolute;

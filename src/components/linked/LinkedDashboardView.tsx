@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import * as XLSX from 'xlsx';
 import type { LinkedDashboard, LinkedRow, LinkedColumnConfig } from '../../lib/types';
 import PearsonLogo from '../layout/PearsonLogo';
 import pearsonWave from '../../assets/pearson-wave.jpg';
@@ -229,11 +230,15 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
     return [...opts].sort();
   };
 
+  const [showDownload, setShowDownload] = useState(false);
+
+  const exportRows = () => selected.size > 0 ? sorted.filter((r) => selected.has(rowKey(r))) : sorted;
+  const exportCols = () => visibleCols.filter((c) => !hiddenCols.has(c.key));
+  const fileName   = () => dashboard.title.toLowerCase().replace(/\s+/g, '-');
+
   const downloadCSV = () => {
-    const rows = selected.size > 0
-      ? sorted.filter((r) => selected.has(rowKey(r)))
-      : sorted;
-    const cols = visibleCols.filter((c) => !hiddenCols.has(c.key));
+    const rows = exportRows();
+    const cols = exportCols();
     const header = cols.map((c) => `"${c.label.replace(/"/g, '""')}"`).join(',');
     const csvRows = rows.map((row) =>
       cols.map((c) => `"${getCellVal(row, c.key).replace(/"/g, '""')}"`).join(',')
@@ -243,11 +248,26 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${dashboard.title.toLowerCase().replace(/\s+/g, '-')}.csv`;
+    a.download = `${fileName()}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    setShowDownload(false);
+  };
+
+  const downloadXLSX = () => {
+    const rows = exportRows();
+    const cols = exportCols();
+    const data = [
+      cols.map((c) => c.label),
+      ...rows.map((row) => cols.map((c) => getCellVal(row, c.key))),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Data');
+    XLSX.writeFile(wb, `${fileName()}.xlsx`);
+    setShowDownload(false);
   };
 
   // Filter bar drag-to-reorder
@@ -373,10 +393,28 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
               </div>
             )}
           </div>
-          <button className="ld-toolbar-btn ld-toolbar-btn--primary" onClick={downloadCSV}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            {selected.size > 0 ? `Download ${selected.size} rows` : 'Download CSV'}
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              className="ld-toolbar-btn ld-toolbar-btn--primary"
+              onClick={() => setShowDownload((v) => !v)}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              {selected.size > 0 ? `Download ${selected.size} rows` : 'Download'}
+              <span style={{ fontSize: 10, marginLeft: 2 }}>{showDownload ? '▲' : '▼'}</span>
+            </button>
+            {showDownload && (
+              <div className="ld-download-menu">
+                <button className="ld-download-menu__item" onClick={downloadXLSX}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22A051" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  Excel (.xlsx)
+                </button>
+                <button className="ld-download-menu__item" onClick={downloadCSV}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A6FBF" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  CSV (.csv)
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -418,7 +456,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
                   </span>
                 </th>
               ))}
-              <th className="ld-table__th ld-table__th-detail" />
+              <th className="ld-table__th ld-table__th-detail">Details</th>
             </tr>
           </thead>
           <tbody>
