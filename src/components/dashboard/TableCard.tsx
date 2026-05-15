@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { TableRecord } from '../../lib/types';
+import { generateUniqueSlug } from '../../utils/generateSlug';
+import { fetchAllRows } from '../../utils/fetchAllRows';
 import ShareModal from './ShareModal';
 import EmbedModal from './EmbedModal';
 import AuditModal from './AuditModal';
@@ -42,6 +44,46 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
     await supabase.from('tables').delete().eq('id', table.id);
     onUpdate();
     setBusy(false);
+  };
+
+  const duplicateTable = async () => {
+    setBusy(true);
+    try {
+      const newTitle = `Copy of ${table.title}`;
+      const newSlug = await generateUniqueSlug(newTitle);
+
+      const { data: newTable, error } = await supabase
+        .from('tables')
+        .insert({
+          owner_id: table.owner_id,
+          title: newTitle,
+          description: table.description,
+          slug: newSlug,
+          config: table.config,
+          is_published: false,
+          tab_group_id: null,
+          tab_order: 0,
+        })
+        .select('id')
+        .single();
+
+      if (error || !newTable) throw error;
+
+      const rows = await fetchAllRows(table.id);
+      const CHUNK = 500;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const chunk = rows.slice(i, i + CHUNK).map((r) => ({
+          table_id: (newTable as { id: string }).id,
+          data: r.data,
+          row_index: r.row_index,
+        }));
+        await supabase.from('table_rows').insert(chunk);
+      }
+
+      onUpdate();
+    } finally {
+      setBusy(false);
+    }
   };
 
   const copyLink = () => {
@@ -91,6 +133,9 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
               </button>
               <button className="btn btn-ghost btn-sm" onClick={() => setAuditing(true)}>
                 History
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => void duplicateTable()} disabled={busy}>
+                Duplicate
               </button>
               <button className="btn btn-danger btn-sm" onClick={() => void deleteTable()} disabled={busy}>
                 Delete
