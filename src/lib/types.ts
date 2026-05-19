@@ -49,6 +49,7 @@ export interface TableConfig {
     lastUpdated?: string;
   };
   filterOrder?: string[];
+  searchPlaceholder?: string;
 }
 
 export interface TableRecord {

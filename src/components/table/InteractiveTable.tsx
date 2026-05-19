@@ -135,7 +135,7 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
           <TableSearch
             value={search}
             onChange={handleSearch}
-            placeholder={`Search ${config.columns.find((c) => c.key === config.primarySearchColumn)?.label ?? ''}…`}
+            placeholder={config.searchPlaceholder || `Search ${config.columns.find((c) => c.key === config.primarySearchColumn)?.label ?? ''}…`}
           />
         )}
         {filterableCols.length > 0 && (

@@ -204,7 +204,7 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
                 placeholder="e.g. Pearson BTEC Qualifications"
               />
             </div>
-            <div className="input-group">
+            <div className="input-group" style={{ marginBottom: 14 }}>
               <label className="input-label" data-tooltip="A short summary shown beneath the title to help users understand the data">Description <span className="text-muted">(optional)</span></label>
               <textarea
                 className="input"
@@ -212,6 +212,15 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
                 onChange={(e) => setConfig((c) => ({ ...c, description: e.target.value }))}
                 placeholder="Brief description shown above the table"
                 rows={2}
+              />
+            </div>
+            <div className="input-group">
+              <label className="input-label" data-tooltip="The placeholder text shown inside the search box">Search bar placeholder <span className="text-muted">(optional)</span></label>
+              <input
+                className="input"
+                value={config.searchPlaceholder ?? ''}
+                onChange={(e) => setConfig((c) => ({ ...c, searchPlaceholder: e.target.value || undefined }))}
+                placeholder={`e.g. Search ${config.columns.find((c) => c.key === config.primarySearchColumn)?.label ?? ''}…`}
               />
             </div>
           </div>
