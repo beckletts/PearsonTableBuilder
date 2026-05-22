@@ -259,7 +259,7 @@ export default function PublicTableView({ config, rows }: Props) {
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); }}
-              placeholder={`Search ${config.columns.find((c) => c.key === config.primarySearchColumn)?.label ?? ''}…`}
+              placeholder={config.searchPlaceholder || `Search ${config.columns.find((c) => c.key === config.primarySearchColumn)?.label ?? ''}…`}
             />
             {search && (
               <button className="pub-view__search-clear" onClick={() => setSearch('')} aria-label="Clear">✕</button>
