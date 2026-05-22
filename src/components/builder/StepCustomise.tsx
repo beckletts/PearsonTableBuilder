@@ -282,6 +282,14 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
           )}
 
           <div className="card" style={{ marginTop: 16, padding: 16 }}>
+            <label className="col-editor__check" style={{ marginBottom: 10 }} data-tooltip="Pin the column headers to the top of the table so they stay visible as users scroll down">
+              <input
+                type="checkbox"
+                checked={config.stickyHeader ?? false}
+                onChange={(e) => setConfig((c) => ({ ...c, stickyHeader: e.target.checked }))}
+              />
+              <span className="text-sm font-600">Sticky column headers</span>
+            </label>
             <label className="col-editor__check" style={{ marginBottom: config.dataRefresh?.enabled ? 10 : 0 }}>
               <input
                 type="checkbox"

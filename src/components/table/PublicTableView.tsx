@@ -375,7 +375,7 @@ export default function PublicTableView({ config, rows }: Props) {
 
         {viewMode === 'card' && cardWidget ? renderCardGrid() : (
           <>
-            <div className="pub-view__table-scroll">
+            <div className={`pub-view__table-scroll${config.stickyHeader ? ' pub-view__table-scroll--sticky' : ''}`}>
               <table className="pub-view__table">
                 <thead>
                   <tr>
