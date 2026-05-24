@@ -290,6 +290,14 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
               />
               <span className="text-sm font-600">Sticky column headers</span>
             </label>
+            <label className="col-editor__check" style={{ marginBottom: 10 }} data-tooltip="Hide the Pearson logo header and footer — useful when embedding on a page that already has Pearson branding">
+              <input
+                type="checkbox"
+                checked={config.hideLogo ?? false}
+                onChange={(e) => setConfig((c) => ({ ...c, hideLogo: e.target.checked }))}
+              />
+              <span className="text-sm font-600">Hide Pearson logo</span>
+            </label>
             <label className="col-editor__check" style={{ marginBottom: config.dataRefresh?.enabled ? 10 : 0 }}>
               <input
                 type="checkbox"

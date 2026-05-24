@@ -72,6 +72,7 @@ export default function PublicTablePage() {
 
   const activeTab = tabs.find((t) => t.table.slug === activeSlug) ?? tabs[0];
   const isMultiTab = tabs.length > 1;
+  const hideLogo = tabs[0]?.table.config.hideLogo ?? false;
 
   if (loading) return (
     <div className="public-page">
@@ -94,11 +95,13 @@ export default function PublicTablePage() {
 
   return (
     <div className="public-page">
-      <header className="public-page__header">
-        <div className="public-page__header-inner">
-          <PearsonLogo />
-        </div>
-      </header>
+      {!hideLogo && (
+        <header className="public-page__header">
+          <div className="public-page__header-inner">
+            <PearsonLogo />
+          </div>
+        </header>
+      )}
 
       {isMultiTab && (
         <div className="public-page__tab-bar">
@@ -123,10 +126,12 @@ export default function PublicTablePage() {
         <PublicTableView config={activeTab.table.config} rows={activeTab.rows} />
       </main>
 
-      <footer className="public-page__footer">
-        <PearsonLogo width={70} />
-        <p>© {new Date().getFullYear()} Pearson plc. All rights reserved.</p>
-      </footer>
+      {!hideLogo && (
+        <footer className="public-page__footer">
+          <PearsonLogo width={70} />
+          <p>© {new Date().getFullYear()} Pearson plc. All rights reserved.</p>
+        </footer>
+      )}
     </div>
   );
 }

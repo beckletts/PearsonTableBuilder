@@ -51,6 +51,7 @@ export interface TableConfig {
   filterOrder?: string[];
   searchPlaceholder?: string;
   stickyHeader?: boolean;
+  hideLogo?: boolean;
 }
 
 export interface TableRecord {
