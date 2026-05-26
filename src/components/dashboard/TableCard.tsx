@@ -7,6 +7,7 @@ import { fetchAllRows } from '../../utils/fetchAllRows';
 import ShareModal from './ShareModal';
 import EmbedModal from './EmbedModal';
 import AuditModal from './AuditModal';
+import AnalyticsModal from './AnalyticsModal';
 import './TableCard.css';
 
 interface Props {
@@ -20,6 +21,7 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
   const [sharing, setSharing] = useState(false);
   const [embedding, setEmbedding] = useState(false);
   const [auditing, setAuditing] = useState(false);
+  const [analytics, setAnalytics] = useState(false);
 
   const togglePublish = async () => {
     setBusy(true);
@@ -134,6 +136,9 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
               <button className="btn btn-ghost btn-sm" onClick={() => setAuditing(true)}>
                 History
               </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setAnalytics(true)}>
+                Analytics
+              </button>
               <button className="btn btn-ghost btn-sm" onClick={() => void duplicateTable()} disabled={busy}>
                 Duplicate
               </button>
@@ -168,6 +173,13 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
           tableId={table.id}
           tableTitle={table.title}
           onClose={() => setAuditing(false)}
+        />
+      )}
+      {analytics && (
+        <AnalyticsModal
+          tableId={table.id}
+          title={table.title}
+          onClose={() => setAnalytics(false)}
         />
       )}
     </>

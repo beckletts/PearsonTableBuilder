@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { LinkedDashboard, LinkedRow, LinkedSource } from '../lib/types';
 import LinkedDashboardView from '../components/linked/LinkedDashboardView';
 import CookieConsentBanner from '../components/table/CookieConsentBanner';
+import { trackEvent } from '../lib/analytics';
 import PearsonLogo from '../components/layout/PearsonLogo';
 import './PublicTablePage.css';
 
@@ -57,6 +58,7 @@ export default function LinkedDashboardPage() {
       }
 
       setRows(allRows);
+      trackEvent({ dashboardId: dash.id, eventType: 'page_view' });
       setLoading(false);
     };
     void load();

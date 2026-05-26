@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TableConfig, TableRow, ColumnConfig, CardViewConfig, StatCardsConfig, IntroBannerConfig, CalloutBoxConfig, FooterNoteConfig } from '../../lib/types';
+import { trackEvent } from '../../lib/analytics';
 import './PublicTableView.css';
 
 const BATCH = 50;
@@ -22,15 +23,17 @@ function getBadgeStyle(colKey: string, badgeColKeys: string[]) {
 interface Props {
   config: TableConfig;
   rows: TableRow[];
+  tableId?: string;
 }
 
 const track = (event: string, params?: Record<string, unknown>) => {
   if (typeof window.gtag === 'function') window.gtag('event', event, params);
 };
 
-export default function PublicTableView({ config, rows }: Props) {
+export default function PublicTableView({ config, rows, tableId }: Props) {
   const [search, setSearch]         = useState('');
   const [filters, setFilters]       = useState<Record<string, string[]>>({});
+  const searchTracked = useRef(false);
   const [sortCol, setSortCol]       = useState(config.defaultSort.column);
   const [sortDir, setSortDir]       = useState<'asc' | 'desc'>(config.defaultSort.direction);
   const [visibleCount, setVisibleCount] = useState(BATCH);
@@ -72,7 +75,11 @@ export default function PublicTableView({ config, rows }: Props) {
     return opts;
   }, [filterCols, rows, activeFilters]);
 
-  const addFilter    = (key: string, val: string) => { setFilters((f) => ({ ...f, [key]: [...(f[key] ?? []), val] })); track('table_filter', { table_title: config.title, column: key, value: val }); };
+  const addFilter    = (key: string, val: string) => {
+    setFilters((f) => ({ ...f, [key]: [...(f[key] ?? []), val] }));
+    track('table_filter', { table_title: config.title, column: key, value: val });
+    trackEvent({ tableId, eventType: 'filter', eventData: { column: key } });
+  };
   const removeFilter = (key: string, val: string) => { setFilters((f) => ({ ...f, [key]: (f[key] ?? []).filter((v) => v !== val) })); };
   const resetAll     = () => { setFilters({}); setSearch(''); };
 
@@ -264,7 +271,18 @@ export default function PublicTableView({ config, rows }: Props) {
               className="pub-view__search-input"
               type="text"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); if (e.target.value) track('table_search', { table_title: config.title }); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                if (e.target.value) {
+                  track('table_search', { table_title: config.title });
+                  if (!searchTracked.current) {
+                    searchTracked.current = true;
+                    trackEvent({ tableId, eventType: 'search' });
+                  }
+                } else {
+                  searchTracked.current = false;
+                }
+              }}
               placeholder={config.searchPlaceholder || `Search ${config.columns.find((c) => c.key === config.primarySearchColumn)?.label ?? ''}…`}
             />
             {search && (

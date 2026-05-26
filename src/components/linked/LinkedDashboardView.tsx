@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import type { LinkedDashboard, LinkedRow, LinkedColumnConfig } from '../../lib/types';
+import { trackEvent } from '../../lib/analytics';
 import PearsonLogo from '../layout/PearsonLogo';
 import pearsonWave from '../../assets/pearson-wave.jpg';
 import './LinkedDashboardView.css';
@@ -113,6 +114,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
 
   const [search, setSearch]           = useState('');
   const [filters, setFilters]         = useState<Record<string, string>>({});
+  const searchTracked = useRef(false);
   const [sortCol, setSortCol]         = useState(config.defaultSort.column);
   const [sortDir, setSortDir]         = useState<'asc' | 'desc'>(config.defaultSort.direction);
   const [visibleCount, setVisibleCount] = useState(BATCH);
@@ -322,7 +324,18 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
             className="ld-search-bar__input"
             placeholder={`Search all ${merged.length.toLocaleString()} records…`}
             value={search}
-            onChange={(e) => { setSearch(e.target.value); if (e.target.value) track('table_search', { dashboard_title: dashboard.title }); }}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              if (e.target.value) {
+                track('table_search', { dashboard_title: dashboard.title });
+                if (!searchTracked.current) {
+                  searchTracked.current = true;
+                  trackEvent({ dashboardId: dashboard.id, eventType: 'search' });
+                }
+              } else {
+                searchTracked.current = false;
+              }
+            }}
           />
           {search && (
             <button className="ld-search-bar__clear" onClick={() => setSearch('')}>✕</button>
@@ -348,7 +361,13 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
                 <select
                   className="ld-filter-select"
                   value={filters[col.key] ?? ''}
-                  onChange={(e) => { setFilters((f) => ({ ...f, [col.key]: e.target.value })); if (e.target.value) track('table_filter', { dashboard_title: dashboard.title, column: col.key, value: e.target.value }); }}
+                  onChange={(e) => {
+                    setFilters((f) => ({ ...f, [col.key]: e.target.value }));
+                    if (e.target.value) {
+                      track('table_filter', { dashboard_title: dashboard.title, column: col.key, value: e.target.value });
+                      trackEvent({ dashboardId: dashboard.id, eventType: 'filter', eventData: { column: col.label } });
+                    }
+                  }}
                 >
                   <option value="">{col.filterPlaceholder ?? `All ${col.label}s`}</option>
                   {filterOptions(col).map((v) => <option key={v} value={v}>{v}</option>)}
@@ -368,7 +387,14 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
       {config.actionButtons && config.actionButtons.length > 0 && (
         <div className="ld-action-btns">
           {config.actionButtons.map((btn) => (
-            <a key={btn.label} href={btn.url} target="_blank" rel="noreferrer" className="ld-action-btn">
+            <a
+              key={btn.label}
+              href={btn.url}
+              target="_blank"
+              rel="noreferrer"
+              className="ld-action-btn"
+              onClick={() => trackEvent({ dashboardId: dashboard.id, eventType: 'button_click', eventData: { label: btn.label } })}
+            >
               {btn.emoji && <span>{btn.emoji}</span>}
               {btn.label}
             </a>

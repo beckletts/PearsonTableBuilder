@@ -5,6 +5,7 @@ import type { TableRecord, TableRow } from '../lib/types';
 import { fetchAllRows } from '../utils/fetchAllRows';
 import PublicTableView from '../components/table/PublicTableView';
 import CookieConsentBanner from '../components/table/CookieConsentBanner';
+import { trackEvent } from '../lib/analytics';
 import PearsonLogo from '../components/layout/PearsonLogo';
 import './PublicTablePage.css';
 
@@ -67,6 +68,7 @@ export default function PublicTablePage() {
       );
 
       setTabs(tabsWithRows);
+      trackEvent({ tableId: table.id, eventType: 'page_view' });
       setLoading(false);
     };
     void load();
@@ -163,7 +165,7 @@ export default function PublicTablePage() {
       )}
 
       <main className="public-page__main">
-        <PublicTableView config={activeTab.table.config} rows={activeTab.rows} />
+        <PublicTableView config={activeTab.table.config} rows={activeTab.rows} tableId={activeTab.table.id} />
       </main>
 
       {!hideLogo && (

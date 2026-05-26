@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { LinkedDashboard } from '../../lib/types';
 import LinkedShareModal from './LinkedShareModal';
+import AnalyticsModal from './AnalyticsModal';
 import './LinkedDashboardCard.css';
 
 interface Props {
@@ -11,8 +12,9 @@ interface Props {
 }
 
 export default function LinkedDashboardCard({ dashboard, onUpdate }: Props) {
-  const [busy, setBusy]         = useState(false);
+  const [busy, setBusy]           = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [analytics, setAnalytics] = useState(false);
 
   const togglePublish = async () => {
     setBusy(true);
@@ -80,6 +82,9 @@ export default function LinkedDashboardCard({ dashboard, onUpdate }: Props) {
         >
           {dashboard.is_published ? 'Unpublish' : 'Publish'}
         </button>
+        <button className="btn btn-ghost btn-sm" onClick={() => setAnalytics(true)}>
+          Analytics
+        </button>
         <button className="btn btn-danger btn-sm" onClick={() => void deleteDashboard()} disabled={busy}>
           Delete
         </button>
@@ -90,6 +95,14 @@ export default function LinkedDashboardCard({ dashboard, onUpdate }: Props) {
           dashboardId={dashboard.id}
           dashboardTitle={dashboard.title}
           onClose={() => setShowShare(false)}
+        />
+      )}
+
+      {analytics && (
+        <AnalyticsModal
+          dashboardId={dashboard.id}
+          title={dashboard.title}
+          onClose={() => setAnalytics(false)}
         />
       )}
 
