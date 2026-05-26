@@ -339,6 +339,78 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
             )}
           </div>
 
+          {/* ── Analytics & cookie consent ── */}
+          <div className="card" style={{ marginTop: 16, padding: 16 }}>
+            <label className="col-editor__check" style={{ marginBottom: config.tracking !== undefined ? 10 : 0 }}>
+              <input
+                type="checkbox"
+                checked={config.tracking !== undefined}
+                onChange={(e) => setConfig((c) => ({
+                  ...c,
+                  tracking: e.target.checked ? { gaTrackingId: c.tracking?.gaTrackingId ?? '' } : undefined,
+                }))}
+              />
+              <span className="text-sm font-600">Enable Google Analytics tracking</span>
+            </label>
+            {config.tracking !== undefined && (
+              <>
+                <input
+                  className="input"
+                  value={config.tracking.gaTrackingId ?? ''}
+                  onChange={(e) => setConfig((c) => ({
+                    ...c,
+                    tracking: { ...c.tracking, gaTrackingId: e.target.value },
+                  }))}
+                  placeholder="G-XXXXXXXXXX"
+                  style={{ marginBottom: 8 }}
+                />
+                <details style={{ marginBottom: 12 }}>
+                  <summary className="text-xs" style={{ cursor: 'pointer', color: '#5B2D86', userSelect: 'none' }}>
+                    How do I find my Google Analytics ID?
+                  </summary>
+                  <ol className="text-xs text-soft" style={{ margin: '8px 0 0 16px', lineHeight: 1.7 }}>
+                    <li>Go to <strong>analytics.google.com</strong> and sign in with a Google account.</li>
+                    <li>Click <strong>Admin</strong> (gear icon, bottom left) → <strong>Create property</strong>.</li>
+                    <li>Name it after your table (e.g. "BTEC Results 2026"), select your country and timezone.</li>
+                    <li>Choose <strong>Web</strong> as the platform and enter your table's published URL.</li>
+                    <li>Your Measurement ID (starting with <strong>G-</strong>) appears on the next screen — copy and paste it into the field above.</li>
+                  </ol>
+                </details>
+                <label className="col-editor__check" style={{ marginBottom: config.tracking.cookieConsent?.enabled ? 10 : 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={config.tracking.cookieConsent?.enabled ?? false}
+                    onChange={(e) => setConfig((c) => ({
+                      ...c,
+                      tracking: {
+                        ...c.tracking,
+                        cookieConsent: {
+                          enabled: e.target.checked,
+                          message: c.tracking?.cookieConsent?.message ?? '',
+                        },
+                      },
+                    }))}
+                  />
+                  <span className="text-sm font-600">Show cookie consent banner</span>
+                </label>
+                {config.tracking.cookieConsent?.enabled && (
+                  <input
+                    className="input"
+                    value={config.tracking.cookieConsent.message ?? ''}
+                    onChange={(e) => setConfig((c) => ({
+                      ...c,
+                      tracking: {
+                        ...c.tracking,
+                        cookieConsent: { ...c.tracking!.cookieConsent!, message: e.target.value },
+                      },
+                    }))}
+                    placeholder="This page uses cookies to understand how it is used. Do you accept?"
+                  />
+                )}
+              </>
+            )}
+          </div>
+
           {error && <p className="error-msg mt-16">{error}</p>}
 
           <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>

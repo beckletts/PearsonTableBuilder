@@ -52,6 +52,13 @@ export interface TableConfig {
   searchPlaceholder?: string;
   stickyHeader?: boolean;
   hideLogo?: boolean;
+  tracking?: {
+    gaTrackingId?: string;
+    cookieConsent?: {
+      enabled: boolean;
+      message?: string;
+    };
+  };
 }
 
 export interface TableRecord {
@@ -128,6 +135,13 @@ export interface LinkedDashboardConfig {
     lastUpdated?: string;
   };
   actionButtons?: ActionButton[];
+  tracking?: {
+    gaTrackingId?: string;
+    cookieConsent?: {
+      enabled: boolean;
+      message?: string;
+    };
+  };
 }
 
 export interface LinkedDashboard {

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { LinkedDashboard, LinkedRow, LinkedSource } from '../lib/types';
 import LinkedDashboardView from '../components/linked/LinkedDashboardView';
+import CookieConsentBanner from '../components/table/CookieConsentBanner';
 import PearsonLogo from '../components/layout/PearsonLogo';
 import './PublicTablePage.css';
 
@@ -13,6 +14,7 @@ export default function LinkedDashboardPage() {
   const [sources, setSources]             = useState<LinkedSource[]>([]);
   const [loading, setLoading]             = useState(true);
   const [notFound, setNotFound]           = useState(false);
+  const [consentGiven, setConsentGiven]   = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -60,6 +62,43 @@ export default function LinkedDashboardPage() {
     void load();
   }, [slug]);
 
+  // Read stored consent from localStorage once the slug is known
+  useEffect(() => {
+    if (!slug) return;
+    const stored = localStorage.getItem(`cookie_consent_linked_${slug}`);
+    if (stored === 'accepted') setConsentGiven(true);
+    else if (stored === 'declined') setConsentGiven(false);
+    else setConsentGiven(null);
+  }, [slug]);
+
+  // Inject GA script when consent is resolved
+  useEffect(() => {
+    const gaId = dashboard?.config?.tracking?.gaTrackingId;
+    if (!gaId) return;
+    const consentRequired = !!dashboard?.config?.tracking?.cookieConsent?.enabled;
+    if (consentRequired && consentGiven !== true) return;
+    if (document.getElementById('ga-script')) return;
+    window.dataLayer = window.dataLayer ?? [];
+    window.gtag = function (...args) { window.dataLayer.push(args); };
+    window.gtag('js', new Date());
+    window.gtag('config', gaId);
+    const script = document.createElement('script');
+    script.id = 'ga-script';
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+    document.head.appendChild(script);
+  }, [dashboard, consentGiven]);
+
+  const handleAccept = () => {
+    if (slug) localStorage.setItem(`cookie_consent_linked_${slug}`, 'accepted');
+    setConsentGiven(true);
+  };
+
+  const handleDecline = () => {
+    if (slug) localStorage.setItem(`cookie_consent_linked_${slug}`, 'declined');
+    setConsentGiven(false);
+  };
+
   const Spinner = () => (
     <div className="public-page">
       <div className="public-page__header"><div className="public-page__header-inner"><PearsonLogo /></div></div>
@@ -81,6 +120,9 @@ export default function LinkedDashboardPage() {
     </div>
   );
 
+  const tracking = dashboard.config?.tracking;
+  const needsBanner = !!tracking?.gaTrackingId && !!tracking?.cookieConsent?.enabled;
+
   return (
     <>
       <LinkedDashboardView
@@ -92,6 +134,13 @@ export default function LinkedDashboardPage() {
         <PearsonLogo width={70} />
         <p>© {new Date().getFullYear()} Pearson plc. All rights reserved.</p>
       </footer>
+      {needsBanner && consentGiven === null && (
+        <CookieConsentBanner
+          message={tracking!.cookieConsent!.message}
+          onAccept={handleAccept}
+          onDecline={handleDecline}
+        />
+      )}
     </>
   );
 }

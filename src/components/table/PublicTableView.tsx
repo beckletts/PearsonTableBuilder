@@ -24,6 +24,10 @@ interface Props {
   rows: TableRow[];
 }
 
+const track = (event: string, params?: Record<string, unknown>) => {
+  if (typeof window.gtag === 'function') window.gtag('event', event, params);
+};
+
 export default function PublicTableView({ config, rows }: Props) {
   const [search, setSearch]         = useState('');
   const [filters, setFilters]       = useState<Record<string, string[]>>({});
@@ -68,7 +72,7 @@ export default function PublicTableView({ config, rows }: Props) {
     return opts;
   }, [filterCols, rows, activeFilters]);
 
-  const addFilter    = (key: string, val: string) => { setFilters((f) => ({ ...f, [key]: [...(f[key] ?? []), val] })); };
+  const addFilter    = (key: string, val: string) => { setFilters((f) => ({ ...f, [key]: [...(f[key] ?? []), val] })); track('table_filter', { table_title: config.title, column: key, value: val }); };
   const removeFilter = (key: string, val: string) => { setFilters((f) => ({ ...f, [key]: (f[key] ?? []).filter((v) => v !== val) })); };
   const resetAll     = () => { setFilters({}); setSearch(''); };
 
@@ -111,8 +115,10 @@ export default function PublicTableView({ config, rows }: Props) {
   }, [sorted.length, visibleCount]);
 
   const handleSort = (key: string) => {
-    if (sortCol === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    const nextDir = sortCol === key ? (sortDir === 'asc' ? 'desc' : 'asc') : 'asc';
+    if (sortCol === key) setSortDir(nextDir as 'asc' | 'desc');
     else { setSortCol(key); setSortDir('asc'); }
+    track('table_sort', { table_title: config.title, column: key, direction: nextDir });
   };
 
   const exportCSV = () => {
@@ -258,7 +264,7 @@ export default function PublicTableView({ config, rows }: Props) {
               className="pub-view__search-input"
               type="text"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); }}
+              onChange={(e) => { setSearch(e.target.value); if (e.target.value) track('table_search', { table_title: config.title }); }}
               placeholder={config.searchPlaceholder || `Search ${config.columns.find((c) => c.key === config.primarySearchColumn)?.label ?? ''}…`}
             />
             {search && (
@@ -345,11 +351,11 @@ export default function PublicTableView({ config, rows }: Props) {
             </button>
             {cardWidget && (
               <div className="pub-view-toggle">
-                <button className={`pub-view-toggle__btn ${viewMode === 'table' ? 'pub-view-toggle__btn--active' : ''}`} onClick={() => setViewMode('table')}>
+                <button className={`pub-view-toggle__btn ${viewMode === 'table' ? 'pub-view-toggle__btn--active' : ''}`} onClick={() => { setViewMode('table'); track('view_mode_change', { table_title: config.title, mode: 'table' }); }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
                   Table
                 </button>
-                <button className={`pub-view-toggle__btn ${viewMode === 'card' ? 'pub-view-toggle__btn--active' : ''}`} onClick={() => setViewMode('card')}>
+                <button className={`pub-view-toggle__btn ${viewMode === 'card' ? 'pub-view-toggle__btn--active' : ''}`} onClick={() => { setViewMode('card'); track('view_mode_change', { table_title: config.title, mode: 'card' }); }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="9" height="9" rx="1"/><rect x="13" y="3" width="9" height="9" rx="1"/><rect x="2" y="12" width="9" height="9" rx="1"/><rect x="13" y="12" width="9" height="9" rx="1"/></svg>
                   Cards
                 </button>

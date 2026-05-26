@@ -39,6 +39,7 @@ export default function LinkedEditPage({ user }: Props) {
   const [filterOrder, setFilterOrder] = useState<string[]>([]);
   const [dataRefresh, setDataRefresh] = useState<{ enabled: boolean; customText: string; lastUpdated?: string }>({ enabled: false, customText: '' });
   const [actionButtons, setActionButtons] = useState<ActionButton[]>([]);
+  const [tracking, setTracking] = useState<{ gaTrackingId?: string; cookieConsent?: { enabled: boolean; message?: string } } | undefined>(undefined);
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState('');
 
@@ -92,6 +93,7 @@ export default function LinkedEditPage({ user }: Props) {
       setFilterOrder(dash.config.filterOrder ?? []);
       setDataRefresh(dash.config.dataRefresh ?? { enabled: false, customText: '' });
       setActionButtons(dash.config.actionButtons ?? []);
+      setTracking(dash.config.tracking);
 
       const { data: srcData } = await supabase
         .from('linked_sources')
@@ -171,7 +173,7 @@ export default function LinkedEditPage({ user }: Props) {
     const now = new Date().toISOString();
     const updated = { ...dataRefresh, lastUpdated: now };
     setDataRefresh(updated);
-    const updatedConfig = { ...dashboard.config, columns, filterOrder: syncedFilterOrder, dataRefresh: updated };
+    const updatedConfig = { ...dashboard.config, columns, filterOrder: syncedFilterOrder, dataRefresh: updated, tracking: tracking?.gaTrackingId ? tracking : undefined };
     await supabase.from('linked_dashboards').update({ config: updatedConfig }).eq('id', dashboard.id);
   };
 
@@ -186,6 +188,7 @@ export default function LinkedEditPage({ user }: Props) {
         filterOrder: syncedFilterOrder,
         dataRefresh: dataRefresh.enabled ? dataRefresh : undefined,
         actionButtons: actionButtons.length > 0 ? actionButtons : undefined,
+        tracking: tracking?.gaTrackingId ? tracking : undefined,
       };
       const patch: Record<string, unknown> = {
         title: title.trim() || dashboard.title,
@@ -650,6 +653,66 @@ export default function LinkedEditPage({ user }: Props) {
                       <p className="text-xs text-muted" style={{ marginTop: 4 }}>
                         Last marked: {new Date(dataRefresh.lastUpdated).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
                       </p>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Analytics & cookie consent */}
+              <div className="card le-card">
+                <label className="col-editor__check" style={{ marginBottom: tracking !== undefined ? 10 : 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={tracking !== undefined}
+                    onChange={(e) => setTracking(e.target.checked ? { gaTrackingId: tracking?.gaTrackingId ?? '' } : undefined)}
+                  />
+                  <span className="text-sm font-600">Enable Google Analytics tracking</span>
+                </label>
+                {tracking !== undefined && (
+                  <>
+                    <input
+                      className="input"
+                      value={tracking.gaTrackingId ?? ''}
+                      onChange={(e) => setTracking((t) => ({ ...t, gaTrackingId: e.target.value }))}
+                      placeholder="G-XXXXXXXXXX"
+                      style={{ marginBottom: 8 }}
+                    />
+                    <details style={{ marginBottom: 12 }}>
+                      <summary className="text-xs" style={{ cursor: 'pointer', color: '#5B2D86', userSelect: 'none' }}>
+                        How do I find my Google Analytics ID?
+                      </summary>
+                      <ol className="text-xs text-soft" style={{ margin: '8px 0 0 16px', lineHeight: 1.7 }}>
+                        <li>Go to <strong>analytics.google.com</strong> and sign in with a Google account.</li>
+                        <li>Click <strong>Admin</strong> (gear icon, bottom left) → <strong>Create property</strong>.</li>
+                        <li>Name it after your table (e.g. "BTEC Results 2026"), select your country and timezone.</li>
+                        <li>Choose <strong>Web</strong> as the platform and enter your table's published URL.</li>
+                        <li>Your Measurement ID (starting with <strong>G-</strong>) appears on the next screen — copy and paste it into the field above.</li>
+                      </ol>
+                    </details>
+                    <label className="col-editor__check" style={{ marginBottom: tracking.cookieConsent?.enabled ? 10 : 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={tracking.cookieConsent?.enabled ?? false}
+                        onChange={(e) => setTracking((t) => ({
+                          ...t,
+                          cookieConsent: {
+                            enabled: e.target.checked,
+                            message: t?.cookieConsent?.message ?? '',
+                          },
+                        }))}
+                      />
+                      <span className="text-sm font-600">Show cookie consent banner</span>
+                    </label>
+                    {tracking.cookieConsent?.enabled && (
+                      <input
+                        className="input"
+                        value={tracking.cookieConsent.message ?? ''}
+                        onChange={(e) => setTracking((t) => ({
+                          ...t,
+                          cookieConsent: { ...t!.cookieConsent!, message: e.target.value },
+                        }))}
+                        placeholder="This page uses cookies to understand how it is used. Do you accept?"
+                      />
                     )}
                   </>
                 )}

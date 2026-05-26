@@ -99,6 +99,10 @@ function getCellVal(row: Record<string, unknown>, key: string): string {
 
 const BATCH = 50;
 
+const track = (event: string, params?: Record<string, unknown>) => {
+  if (typeof window.gtag === 'function') window.gtag('event', event, params);
+};
+
 export default function LinkedDashboardView({ dashboard, rawRows, primarySourceId }: Props) {
   const { config } = dashboard;
   const visibleCols = useMemo(() => config.columns.filter((c) => c.visible), [config.columns]);
@@ -205,8 +209,10 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
   const paginated = sorted.slice(0, visibleCount);
 
   const toggleSort = (key: string) => {
-    if (sortCol === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    const nextDir = sortCol === key ? (sortDir === 'asc' ? 'desc' : 'asc') : 'asc';
+    if (sortCol === key) setSortDir(nextDir as 'asc' | 'desc');
     else { setSortCol(key); setSortDir('asc'); }
+    track('table_sort', { dashboard_title: dashboard.title, column: key, direction: nextDir });
   };
 
   const rowKey = (row: Record<string, unknown>) =>
@@ -316,7 +322,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
             className="ld-search-bar__input"
             placeholder={`Search all ${merged.length.toLocaleString()} records…`}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); if (e.target.value) track('table_search', { dashboard_title: dashboard.title }); }}
           />
           {search && (
             <button className="ld-search-bar__clear" onClick={() => setSearch('')}>✕</button>
@@ -342,7 +348,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
                 <select
                   className="ld-filter-select"
                   value={filters[col.key] ?? ''}
-                  onChange={(e) => { setFilters((f) => ({ ...f, [col.key]: e.target.value })); }}
+                  onChange={(e) => { setFilters((f) => ({ ...f, [col.key]: e.target.value })); if (e.target.value) track('table_filter', { dashboard_title: dashboard.title, column: col.key, value: e.target.value }); }}
                 >
                   <option value="">{col.filterPlaceholder ?? `All ${col.label}s`}</option>
                   {filterOptions(col).map((v) => <option key={v} value={v}>{v}</option>)}

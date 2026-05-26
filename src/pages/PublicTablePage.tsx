@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { TableRecord, TableRow } from '../lib/types';
 import { fetchAllRows } from '../utils/fetchAllRows';
 import PublicTableView from '../components/table/PublicTableView';
+import CookieConsentBanner from '../components/table/CookieConsentBanner';
 import PearsonLogo from '../components/layout/PearsonLogo';
 import './PublicTablePage.css';
 
@@ -19,6 +20,7 @@ export default function PublicTablePage() {
   const [activeSlug, setActiveSlug] = useState(slug ?? '');
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [consentGiven, setConsentGiven] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -69,6 +71,44 @@ export default function PublicTablePage() {
     };
     void load();
   }, [slug]);
+
+  // Read stored consent from localStorage once the primary table is known
+  useEffect(() => {
+    if (!slug) return;
+    const stored = localStorage.getItem(`cookie_consent_${slug}`);
+    if (stored === 'accepted') setConsentGiven(true);
+    else if (stored === 'declined') setConsentGiven(false);
+    else setConsentGiven(null);
+  }, [slug]);
+
+  // Inject GA script when consent is resolved
+  useEffect(() => {
+    const primaryConfig = tabs[0]?.table.config;
+    const gaId = primaryConfig?.tracking?.gaTrackingId;
+    if (!gaId) return;
+    const consentRequired = !!primaryConfig?.tracking?.cookieConsent?.enabled;
+    if (consentRequired && consentGiven !== true) return;
+    if (document.getElementById('ga-script')) return;
+    window.dataLayer = window.dataLayer ?? [];
+    window.gtag = function (...args) { window.dataLayer.push(args); };
+    window.gtag('js', new Date());
+    window.gtag('config', gaId);
+    const script = document.createElement('script');
+    script.id = 'ga-script';
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+    document.head.appendChild(script);
+  }, [tabs, consentGiven]);
+
+  const handleAccept = () => {
+    if (slug) localStorage.setItem(`cookie_consent_${slug}`, 'accepted');
+    setConsentGiven(true);
+  };
+
+  const handleDecline = () => {
+    if (slug) localStorage.setItem(`cookie_consent_${slug}`, 'declined');
+    setConsentGiven(false);
+  };
 
   const activeTab = tabs.find((t) => t.table.slug === activeSlug) ?? tabs[0];
   const isMultiTab = tabs.length > 1;
@@ -132,6 +172,19 @@ export default function PublicTablePage() {
           <p>© {new Date().getFullYear()} Pearson plc. All rights reserved.</p>
         </footer>
       )}
+
+      {(() => {
+        const tracking = tabs[0]?.table.config?.tracking;
+        const needsBanner = !!tracking?.gaTrackingId && !!tracking?.cookieConsent?.enabled;
+        if (!needsBanner || consentGiven !== null) return null;
+        return (
+          <CookieConsentBanner
+            message={tracking!.cookieConsent!.message}
+            onAccept={handleAccept}
+            onDecline={handleDecline}
+          />
+        );
+      })()}
     </div>
   );
 }
