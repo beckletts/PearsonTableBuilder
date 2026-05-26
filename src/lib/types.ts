@@ -53,6 +53,7 @@ export interface TableConfig {
   searchPlaceholder?: string;
   stickyHeader?: boolean;
   hideLogo?: boolean;
+  requireFilter?: boolean;
   pagination?: {
     pageSize: number;
   };

@@ -618,6 +618,25 @@
 }
 .pub-embed-modal__copy:hover { background: #4a2470; }
 
+/* ── Await filter prompt ────────────────────────────────────────────────── */
+.pub-view__await-filter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(13, 0, 77, 0.08);
+  text-align: center;
+}
+
+.pub-view__await-filter__text {
+  font-size: 1rem;
+  color: #888;
+  margin: 0;
+}
+
 /* ── Cell truncation ────────────────────────────────────────────────────── */
 .pub-view__td--truncate {
   max-width: 220px;

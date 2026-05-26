@@ -363,6 +363,12 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
       )}
 
       {/* ── Results ── */}
+      {config.requireFilter && !hasActiveFilters ? (
+        <div className="pub-view__await-filter">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#9B6EC0', marginBottom: 12 }}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <p className="pub-view__await-filter__text">Use the search or filters above to see results.</p>
+        </div>
+      ) : (
       <div className="pub-view__results" ref={resultsRef}>
         <div className="pub-view__results-header">
           <h3 className="pub-view__results-title">
@@ -499,6 +505,8 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
           </>
         )}
       </div>
+
+      )}
 
       {/* ── Footer note ── */}
       {footerWidget && (() => {

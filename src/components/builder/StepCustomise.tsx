@@ -298,6 +298,14 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
               />
               <span className="text-sm font-600">Hide Pearson logo</span>
             </label>
+            <label className="col-editor__check" style={{ marginBottom: 10 }} data-tooltip="Hide results until the viewer makes a search or filter selection — useful for large tables where showing everything at once is overwhelming">
+              <input
+                type="checkbox"
+                checked={config.requireFilter ?? false}
+                onChange={(e) => setConfig((c) => ({ ...c, requireFilter: e.target.checked }))}
+              />
+              <span className="text-sm font-600">Show results only after a search or filter</span>
+            </label>
             <label className="col-editor__check" style={{ marginBottom: config.dataRefresh?.enabled ? 10 : 0 }}>
               <input
                 type="checkbox"
