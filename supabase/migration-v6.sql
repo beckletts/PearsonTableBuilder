@@ -39,3 +39,10 @@ create index if not exists analytics_events_table_created
 
 create index if not exists analytics_events_dash_created
   on analytics_events (dashboard_id, created_at desc);
+
+-- RLS policies restrict row access but do not grant table-level permissions.
+-- These GRANTs are required for the anon role to INSERT and for authenticated
+-- users to read their own analytics data.
+grant insert on analytics_events to anon;
+grant insert on analytics_events to authenticated;
+grant select on analytics_events to authenticated;

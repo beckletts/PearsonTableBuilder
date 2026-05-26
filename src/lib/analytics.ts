@@ -16,11 +16,13 @@ export function trackEvent(params: {
   eventType: 'page_view' | 'filter' | 'search' | 'button_click';
   eventData?: Record<string, string>;
 }): void {
-  void supabase.from('analytics_events').insert({
+  supabase.from('analytics_events').insert({
     table_id: params.tableId ?? null,
     dashboard_id: params.dashboardId ?? null,
     event_type: params.eventType,
     event_data: params.eventData ?? null,
     session_id: getSessionId(),
+  }).then(({ error }) => {
+    if (error) console.warn('[Analytics] Failed to record event:', error.message);
   });
 }

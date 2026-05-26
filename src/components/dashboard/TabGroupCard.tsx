@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import type { TableRecord } from '../../lib/types';
 import ShareModal from './ShareModal';
 import EmbedModal from './EmbedModal';
+import AnalyticsModal from './AnalyticsModal';
 import './TabGroupCard.css';
 
 interface Props {
@@ -16,6 +17,7 @@ export default function TabGroupCard({ primary, tabs, onUpdate }: Props) {
   const [busy, setBusy] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [embedding, setEmbedding] = useState(false);
+  const [analytics, setAnalytics] = useState(false);
 
   const allTabs = [primary, ...tabs];
   const isPublished = primary.is_published;
@@ -106,6 +108,7 @@ export default function TabGroupCard({ primary, tabs, onUpdate }: Props) {
             {isPublished ? 'Unpublish' : 'Publish'}
           </button>
           <button className="btn btn-ghost btn-sm" onClick={() => setSharing(true)}>Share</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setAnalytics(true)}>Analytics</button>
           <button className="btn btn-danger btn-sm" onClick={() => void deleteGroup()} disabled={busy}>
             Delete all
           </button>
@@ -128,6 +131,13 @@ export default function TabGroupCard({ primary, tabs, onUpdate }: Props) {
           tableTitle={primary.title}
           tableSlug={primary.slug}
           onClose={() => setEmbedding(false)}
+        />
+      )}
+      {analytics && (
+        <AnalyticsModal
+          tableId={primary.id}
+          title={primary.title}
+          onClose={() => setAnalytics(false)}
         />
       )}
     </>
