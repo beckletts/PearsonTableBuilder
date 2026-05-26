@@ -105,6 +105,17 @@ export default function ColumnEditor({ column, onChange, onDragStart, onDragOver
             />
             <span className="text-sm">Search</span>
           </label>
+
+          {(column.type === 'text' || column.type === 'number' || column.type === 'date') && (
+            <label className="col-editor__check" data-tooltip="Clip long text to a single line — viewers hover a cell to see the full value">
+              <input
+                type="checkbox"
+                checked={column.truncate ?? false}
+                onChange={(e) => set('truncate', e.target.checked)}
+              />
+              <span className="text-sm">Truncate</span>
+            </label>
+          )}
         </div>
       )}
 

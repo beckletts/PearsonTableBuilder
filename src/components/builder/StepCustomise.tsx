@@ -411,6 +411,41 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
             )}
           </div>
 
+          {/* ── Pagination ── */}
+          <div className="card" style={{ marginTop: 16, padding: 16 }}>
+            <label className="col-editor__check" style={{ marginBottom: config.pagination ? 10 : 0 }} data-tooltip="Replace infinite scroll with Previous / Next page controls — useful for large tables">
+              <input
+                type="checkbox"
+                checked={!!config.pagination}
+                onChange={(e) => setConfig((c) => ({
+                  ...c,
+                  pagination: e.target.checked ? { pageSize: 50 } : undefined,
+                }))}
+              />
+              <span className="text-sm font-600">Page-by-page navigation</span>
+            </label>
+            {config.pagination && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="text-sm text-soft">Show</span>
+                <select
+                  className="input"
+                  style={{ width: 'auto' }}
+                  value={config.pagination.pageSize}
+                  onChange={(e) => setConfig((c) => ({
+                    ...c,
+                    pagination: { pageSize: Number(e.target.value) },
+                  }))}
+                >
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                  <option value={250}>250</option>
+                </select>
+                <span className="text-sm text-soft">results per page</span>
+              </div>
+            )}
+          </div>
+
           {error && <p className="error-msg mt-16">{error}</p>}
 
           <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>

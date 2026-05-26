@@ -37,8 +37,13 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
   const [sortCol, setSortCol]       = useState(config.defaultSort.column);
   const [sortDir, setSortDir]       = useState<'asc' | 'desc'>(config.defaultSort.direction);
   const [visibleCount, setVisibleCount] = useState(BATCH);
+  const [currentPage, setCurrentPage]   = useState(1);
   const [viewMode, setViewMode]     = useState<'table' | 'card'>('table');
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const resultsRef  = useRef<HTMLDivElement>(null);
+
+  const isPaginated = !!config.pagination?.pageSize;
+  const pageSize    = config.pagination?.pageSize ?? 50;
 
   const visibleCols  = useMemo(() => config.columns.filter((c) => c.visible), [config.columns]);
   const filterCols   = useMemo(() => visibleCols.filter((c) => c.filterable), [visibleCols]);
@@ -104,10 +109,13 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
     })
   ), [filtered, sortCol, sortDir]);
 
-  const paginated = sorted.slice(0, visibleCount);
+  const paginated = isPaginated
+    ? sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    : sorted.slice(0, visibleCount);
+  const totalPages = isPaginated ? Math.ceil(sorted.length / pageSize) : 0;
 
-  // Reset visible count when results change
-  useEffect(() => { setVisibleCount(BATCH); }, [sorted]);
+  // Reset counts/page when results change
+  useEffect(() => { setVisibleCount(BATCH); setCurrentPage(1); }, [sorted]);
 
   // Infinite scroll
   useEffect(() => {
@@ -355,12 +363,19 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
       )}
 
       {/* ── Results ── */}
-      <div className="pub-view__results">
+      <div className="pub-view__results" ref={resultsRef}>
         <div className="pub-view__results-header">
           <h3 className="pub-view__results-title">
-            {filtered.length === rows.length
-              ? `${rows.length.toLocaleString()} results`
-              : `${filtered.length.toLocaleString()} of ${rows.length.toLocaleString()} results`}
+            {isPaginated
+              ? (() => {
+                  const from = ((currentPage - 1) * pageSize + 1).toLocaleString();
+                  const to   = Math.min(currentPage * pageSize, sorted.length).toLocaleString();
+                  const total = (filtered.length < rows.length ? `${filtered.length.toLocaleString()} of ${rows.length.toLocaleString()}` : rows.length.toLocaleString());
+                  return `${from}–${to} of ${total} results`;
+                })()
+              : filtered.length === rows.length
+                ? `${rows.length.toLocaleString()} results`
+                : `${filtered.length.toLocaleString()} of ${rows.length.toLocaleString()} results`}
           </h3>
           <div className="pub-view__results-actions">
             <button className="pub-view__action-btn" onClick={exportCSV} title="Export to CSV">
@@ -426,7 +441,14 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
                     paginated.map((row) => (
                       <tr key={row.id}>
                         {visibleCols.map((col) => (
-                          <td key={col.key} className={col.type === 'number' ? 'pub-view__td--num' : ''}>{renderCell(col, row)}</td>
+                          <td
+                            key={col.key}
+                            className={[
+                              col.type === 'number' ? 'pub-view__td--num' : '',
+                              col.truncate ? 'pub-view__td--truncate' : '',
+                            ].filter(Boolean).join(' ')}
+                            title={col.truncate ? String(row.data[col.key] ?? '') : undefined}
+                          >{renderCell(col, row)}</td>
                         ))}
                       </tr>
                     ))
@@ -437,18 +459,44 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
           </>
         )}
 
-        {/* Infinite scroll sentinel */}
-        <div ref={sentinelRef} style={{ height: 1 }} />
-        {visibleCount < sorted.length && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 20, color: '#999' }}>
-            <div className="spinner" style={{ borderTopColor: '#5B2D86' }} />
-            <span style={{ fontSize: 13 }}>Loading more…</span>
-          </div>
-        )}
-        {sorted.length > 0 && visibleCount >= sorted.length && sorted.length > BATCH && (
-          <p style={{ textAlign: 'center', padding: 20, fontSize: 12, color: '#AAA' }}>
-            All {sorted.length.toLocaleString()} results shown
-          </p>
+        {isPaginated ? (
+          totalPages > 1 && (
+            <div className="pub-view__pagination">
+              <button
+                className="pub-view__page-btn"
+                disabled={currentPage === 1}
+                onClick={() => { setCurrentPage((p) => p - 1); resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+              >
+                ← Previous
+              </button>
+              <span className="pub-view__page-info">
+                Page {currentPage} of {totalPages.toLocaleString()}
+                <span className="pub-view__page-total"> · {sorted.length.toLocaleString()} results</span>
+              </span>
+              <button
+                className="pub-view__page-btn"
+                disabled={currentPage === totalPages}
+                onClick={() => { setCurrentPage((p) => p + 1); resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+              >
+                Next →
+              </button>
+            </div>
+          )
+        ) : (
+          <>
+            <div ref={sentinelRef} style={{ height: 1 }} />
+            {visibleCount < sorted.length && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 20, color: '#999' }}>
+                <div className="spinner" style={{ borderTopColor: '#5B2D86' }} />
+                <span style={{ fontSize: 13 }}>Loading more…</span>
+              </div>
+            )}
+            {sorted.length > 0 && visibleCount >= sorted.length && sorted.length > BATCH && (
+              <p style={{ textAlign: 'center', padding: 20, fontSize: 12, color: '#AAA' }}>
+                All {sorted.length.toLocaleString()} results shown
+              </p>
+            )}
+          </>
         )}
       </div>
 

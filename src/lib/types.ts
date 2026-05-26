@@ -10,6 +10,7 @@ export interface ColumnConfig {
   filterLabel?: boolean;       // show label above filter dropdown (default true)
   filterPlaceholder?: string;  // default option text, e.g. "All Universities"
   fontColor?: string;          // optional hex colour applied to all cell values in this column
+  truncate?: boolean;          // clip long text to one line with ellipsis; full value shown on hover
 }
 
 // ── Widgets ──────────────────────────────────────────────────────────────────
@@ -52,6 +53,9 @@ export interface TableConfig {
   searchPlaceholder?: string;
   stickyHeader?: boolean;
   hideLogo?: boolean;
+  pagination?: {
+    pageSize: number;
+  };
   tracking?: {
     gaTrackingId?: string;
     cookieConsent?: {

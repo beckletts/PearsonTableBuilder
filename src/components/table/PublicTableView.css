@@ -618,6 +618,67 @@
 }
 .pub-embed-modal__copy:hover { background: #4a2470; }
 
+/* ── Cell truncation ────────────────────────────────────────────────────── */
+.pub-view__td--truncate {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.pub-view__td--truncate > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Pagination ─────────────────────────────────────────────────────────── */
+.pub-view__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px 0 8px;
+  flex-wrap: wrap;
+}
+
+.pub-view__page-btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1.5px solid #D0C8E8;
+  background: #fff;
+  color: #5B2D86;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pub-view__page-btn:hover:not(:disabled) {
+  background: #5B2D86;
+  border-color: #5B2D86;
+  color: #fff;
+}
+
+.pub-view__page-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pub-view__page-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0D004D;
+}
+
+.pub-view__page-total {
+  font-weight: 400;
+  color: #888;
+}
+
 /* ── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .pub-view__filters-grid { grid-template-columns: repeat(2, 1fr); }
