@@ -18,7 +18,7 @@ alter table analytics_events enable row level security;
 create policy "public insert analytics" on analytics_events
   for insert to anon, authenticated with check (true);
 
--- Only the owner of the related table/dashboard can read their own analytics
+-- Owner and collaborators can read analytics for their tables/dashboards
 create policy "owner reads analytics" on analytics_events
   for select using (
     (table_id is not null and exists (
@@ -27,10 +27,22 @@ create policy "owner reads analytics" on analytics_events
         and tables.owner_id = auth.uid()
     ))
     or
+    (table_id is not null and exists (
+      select 1 from table_shares
+      where table_shares.table_id = analytics_events.table_id
+        and table_shares.collaborator_email = auth.jwt() ->> 'email'
+    ))
+    or
     (dashboard_id is not null and exists (
       select 1 from linked_dashboards
       where linked_dashboards.id = analytics_events.dashboard_id
         and linked_dashboards.owner_id = auth.uid()
+    ))
+    or
+    (dashboard_id is not null and exists (
+      select 1 from linked_dashboard_shares
+      where linked_dashboard_shares.dashboard_id = analytics_events.dashboard_id
+        and linked_dashboard_shares.collaborator_email = auth.jwt() ->> 'email'
     ))
   );
 
