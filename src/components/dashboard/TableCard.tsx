@@ -121,6 +121,9 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
               <button className="btn btn-ghost btn-sm" onClick={() => setEmbedding(true)}>Embed</button>
             </>
           )}
+          <button className="btn btn-ghost btn-sm" onClick={() => setAnalytics(true)}>
+            Analytics
+          </button>
           {isOwner && (
             <>
               <button
@@ -135,9 +138,6 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
               </button>
               <button className="btn btn-ghost btn-sm" onClick={() => setAuditing(true)}>
                 History
-              </button>
-              <button className="btn btn-ghost btn-sm" onClick={() => setAnalytics(true)}>
-                Analytics
               </button>
               <button className="btn btn-ghost btn-sm" onClick={() => void duplicateTable()} disabled={busy}>
                 Duplicate
