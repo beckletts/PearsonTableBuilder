@@ -59,7 +59,10 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
   const cardWidget    = widgets.find((w) => w.type === 'card_view');
   const footerWidget  = widgets.find((w) => w.type === 'footer_note');
 
-  const activeFilters = Object.entries(filters).filter(([, vals]) => vals.length > 0);
+  const activeFilters = useMemo(
+    () => Object.entries(filters).filter(([, vals]) => vals.length > 0),
+    [filters],
+  );
 
   const contextualOptions = useMemo(() => {
     const opts: Record<string, string[]> = {};
