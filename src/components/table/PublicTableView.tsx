@@ -273,7 +273,7 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
 
       {/* ── Search & filter card ── */}
       <div className="pub-view__search-card">
-        <h2 className="pub-view__card-title">{config.title}</h2>
+        {!config.hideTitle && <h2 className="pub-view__card-title">{config.title}</h2>}
         {config.description && <p className="pub-view__card-sub">{config.description}</p>}
 
         {searchCols.length > 0 && (

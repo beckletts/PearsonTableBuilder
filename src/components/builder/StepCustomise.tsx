@@ -298,6 +298,14 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
               />
               <span className="text-sm font-600">Hide Pearson logo</span>
             </label>
+            <label className="col-editor__check" style={{ marginBottom: 10 }} data-tooltip="Hide the table title on the published page — useful when the title is already shown on the surrounding page">
+              <input
+                type="checkbox"
+                checked={config.hideTitle ?? false}
+                onChange={(e) => setConfig((c) => ({ ...c, hideTitle: e.target.checked }))}
+              />
+              <span className="text-sm font-600">Hide table title</span>
+            </label>
             <label className="col-editor__check" style={{ marginBottom: 10 }} data-tooltip="Hide results until the viewer makes a search or filter selection — useful for large tables where showing everything at once is overwhelming">
               <input
                 type="checkbox"
