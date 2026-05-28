@@ -26,7 +26,7 @@ export default function DashboardPage({ user }: Props) {
       supabase.from('tables').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('table_shares').select('table_id').eq('collaborator_email', userEmail),
       supabase.from('linked_dashboards').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
-      supabase.from('linked_dashboard_shares').select('dashboard_id').eq('collaborator_email', userEmail),
+      supabase.from('linked_dashboard_shares').select('dashboard_id, access_level').eq('collaborator_email', userEmail),
     ]);
 
     setLinkedDashboards((linkedData as LinkedDashboard[]) ?? []);
@@ -45,13 +45,18 @@ export default function DashboardPage({ user }: Props) {
     }
 
     if (ldShareData && ldShareData.length > 0) {
-      const ids = ldShareData.map((s: { dashboard_id: string }) => s.dashboard_id);
+      const shareMap = Object.fromEntries(
+        ldShareData.map((s: { dashboard_id: string; access_level: string }) => [s.dashboard_id, s.access_level as 'view' | 'edit'])
+      );
+      const ids = Object.keys(shareMap);
       const { data: sharedLdData } = await supabase
         .from('linked_dashboards')
         .select('*')
         .in('id', ids)
         .order('updated_at', { ascending: false });
-      setSharedLinkedDashboards((sharedLdData as LinkedDashboard[]) ?? []);
+      setSharedLinkedDashboards(
+        ((sharedLdData as LinkedDashboard[]) ?? []).map((d) => ({ ...d, _accessLevel: shareMap[d.id] ?? 'view' }))
+      );
     } else {
       setSharedLinkedDashboards([]);
     }
@@ -157,7 +162,7 @@ export default function DashboardPage({ user }: Props) {
             </div>
             <div className="dashboard__grid">
               {sharedLinkedDashboards.map((d) => (
-                <LinkedDashboardCard key={d.id} dashboard={d} onUpdate={() => void load()} />
+                <LinkedDashboardCard key={d.id} dashboard={d} accessLevel={(d as LinkedDashboard & { _accessLevel?: 'view' | 'edit' })._accessLevel ?? 'view'} onUpdate={() => void load()} />
               ))}
             </div>
           </>

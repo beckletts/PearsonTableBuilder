@@ -10,11 +10,12 @@ interface Props {
 }
 
 export default function LinkedShareModal({ dashboardId, dashboardTitle, onClose }: Props) {
-  const [email, setEmail]   = useState('');
-  const [shares, setShares] = useState<LinkedDashboardShare[]>([]);
-  const [error, setError]   = useState('');
-  const [adding, setAdding] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [email, setEmail]       = useState('');
+  const [accessLevel, setAccessLevel] = useState<'view' | 'edit'>('view');
+  const [shares, setShares]     = useState<LinkedDashboardShare[]>([]);
+  const [error, setError]       = useState('');
+  const [adding, setAdding]     = useState(false);
+  const [loading, setLoading]   = useState(true);
 
   const load = async () => {
     const { data } = await supabase
@@ -46,14 +47,21 @@ export default function LinkedShareModal({ dashboardId, dashboardTitle, onClose 
       dashboard_id: dashboardId,
       owner_id: user!.id,
       collaborator_email: trimmed,
+      access_level: accessLevel,
     });
     if (insertErr) {
       setError(insertErr.message);
     } else {
       setEmail('');
+      setAccessLevel('view');
       void load();
     }
     setAdding(false);
+  };
+
+  const updateAccessLevel = async (id: string, level: 'view' | 'edit') => {
+    await supabase.from('linked_dashboard_shares').update({ access_level: level }).eq('id', id);
+    setShares((prev) => prev.map((s) => s.id === id ? { ...s, access_level: level } : s));
   };
 
   const removeShare = async (id: string) => {
@@ -82,6 +90,15 @@ export default function LinkedShareModal({ dashboardId, dashboardTitle, onClose 
               placeholder="colleague@pearson.com"
               required
             />
+            <select
+              className="input"
+              value={accessLevel}
+              onChange={(e) => setAccessLevel(e.target.value as 'view' | 'edit')}
+              style={{ width: 'auto', flexShrink: 0 }}
+            >
+              <option value="view">Can view</option>
+              <option value="edit">Can edit</option>
+            </select>
             <button className="btn btn-primary" type="submit" disabled={adding}>
               {adding ? 'Adding…' : 'Share'}
             </button>
@@ -96,13 +113,22 @@ export default function LinkedShareModal({ dashboardId, dashboardTitle, onClose 
           {shares.map((share) => (
             <div key={share.id} className="share-modal__person">
               <div className="share-modal__avatar">{share.collaborator_email[0].toUpperCase()}</div>
-              <div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <p className="share-modal__email">{share.collaborator_email}</p>
                 <p className="text-xs text-muted">
-                  Added {new Date(share.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · Can view
+                  Added {new Date(share.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
               </div>
-              <button className="btn btn-danger btn-sm" style={{ marginLeft: 'auto' }} onClick={() => void removeShare(share.id)}>
+              <select
+                className="input"
+                value={share.access_level ?? 'view'}
+                onChange={(e) => void updateAccessLevel(share.id, e.target.value as 'view' | 'edit')}
+                style={{ width: 'auto', flexShrink: 0, fontSize: 12, padding: '4px 8px' }}
+              >
+                <option value="view">Can view</option>
+                <option value="edit">Can edit</option>
+              </select>
+              <button className="btn btn-danger btn-sm" style={{ marginLeft: 8 }} onClick={() => void removeShare(share.id)}>
                 Remove
               </button>
             </div>

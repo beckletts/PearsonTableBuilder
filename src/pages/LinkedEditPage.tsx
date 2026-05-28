@@ -77,14 +77,34 @@ export default function LinkedEditPage({ user }: Props) {
   useEffect(() => {
     if (!id) return;
     const load = async () => {
-      const { data } = await supabase
+      let { data } = await supabase
         .from('linked_dashboards')
         .select('*')
         .eq('id', id)
         .eq('owner_id', user.id)
         .single();
 
-      if (!data) { setNotFound(true); setLoading(false); return; }
+      if (!data) {
+        // Check if user has edit-level share access
+        const { data: shareData } = await supabase
+          .from('linked_dashboard_shares')
+          .select('id')
+          .eq('dashboard_id', id)
+          .eq('collaborator_email', user.email ?? '')
+          .eq('access_level', 'edit')
+          .maybeSingle();
+
+        if (!shareData) { setNotFound(true); setLoading(false); return; }
+
+        const { data: sharedDash } = await supabase
+          .from('linked_dashboards')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (!sharedDash) { setNotFound(true); setLoading(false); return; }
+        data = sharedDash;
+      }
       const dash = data as LinkedDashboard;
       setDashboard(dash);
       setTitle(dash.title);

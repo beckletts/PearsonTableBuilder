@@ -9,9 +9,12 @@ import './LinkedDashboardCard.css';
 interface Props {
   dashboard: LinkedDashboard;
   onUpdate: () => void;
+  accessLevel?: 'view' | 'edit'; // undefined means owner
 }
 
-export default function LinkedDashboardCard({ dashboard, onUpdate }: Props) {
+export default function LinkedDashboardCard({ dashboard, onUpdate, accessLevel }: Props) {
+  const isOwner = accessLevel === undefined;
+  const canEdit = isOwner || accessLevel === 'edit';
   const [busy, setBusy]           = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [analytics, setAnalytics] = useState(false);
@@ -59,9 +62,11 @@ export default function LinkedDashboardCard({ dashboard, onUpdate }: Props) {
       </div>
 
       <div className="ld-card__actions">
-        <Link to={`/linked/${dashboard.id}/edit`} className="btn btn-secondary btn-sm">
-          Edit
-        </Link>
+        {canEdit && (
+          <Link to={`/linked/${dashboard.id}/edit`} className="btn btn-secondary btn-sm">
+            Edit
+          </Link>
+        )}
         {dashboard.is_published && (
           <>
             <Link to={`/ld/${dashboard.slug}`} target="_blank" className="btn btn-secondary btn-sm">
@@ -72,22 +77,28 @@ export default function LinkedDashboardCard({ dashboard, onUpdate }: Props) {
             </button>
           </>
         )}
-        <button className="btn btn-ghost btn-sm" onClick={() => setShowShare(true)}>
-          Share
-        </button>
-        <button
-          className={`btn btn-sm ${dashboard.is_published ? 'btn-secondary' : 'btn-primary'}`}
-          onClick={() => void togglePublish()}
-          disabled={busy}
-        >
-          {dashboard.is_published ? 'Unpublish' : 'Publish'}
-        </button>
+        {isOwner && (
+          <button className="btn btn-ghost btn-sm" onClick={() => setShowShare(true)}>
+            Share
+          </button>
+        )}
+        {isOwner && (
+          <button
+            className={`btn btn-sm ${dashboard.is_published ? 'btn-secondary' : 'btn-primary'}`}
+            onClick={() => void togglePublish()}
+            disabled={busy}
+          >
+            {dashboard.is_published ? 'Unpublish' : 'Publish'}
+          </button>
+        )}
         <button className="btn btn-ghost btn-sm" onClick={() => setAnalytics(true)}>
           Analytics
         </button>
-        <button className="btn btn-danger btn-sm" onClick={() => void deleteDashboard()} disabled={busy}>
-          Delete
-        </button>
+        {isOwner && (
+          <button className="btn btn-danger btn-sm" onClick={() => void deleteDashboard()} disabled={busy}>
+            Delete
+          </button>
+        )}
       </div>
 
       {showShare && (

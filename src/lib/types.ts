@@ -94,6 +94,7 @@ export interface LinkedDashboardShare {
   dashboard_id: string;
   owner_id: string;
   collaborator_email: string;
+  access_level: 'view' | 'edit';
   created_at: string;
 }
 
