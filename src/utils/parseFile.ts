@@ -57,10 +57,14 @@ export async function parseFile(file: File, sheetName?: string): Promise<ParsedF
         header: true,
         skipEmptyLines: true,
         complete: (result) => {
+          const rawFields = result.meta.fields ?? [];
+          const cleanedFields = rawFields.map((f) => cleanHeader(f));
           resolve({
-            headers: result.meta.fields ?? [],
+            headers: cleanedFields,
             rows: result.data.map((row) =>
-              Object.fromEntries(Object.entries(row).map(([k, v]) => [k, clean(v)])),
+              Object.fromEntries(
+                rawFields.map((f, i) => [cleanedFields[i], clean(row[f])])
+              ),
             ),
           });
         },

@@ -18,6 +18,12 @@ function normalizeCode(code: string): string {
   return code.replace(/\/\d+$/, '').trim().toUpperCase();
 }
 
+// Normalize a column key for comparison: lowercase + collapse whitespace.
+// Handles CSV headers with trailing spaces or inconsistent casing across sources.
+function normalizeColKey(k: string): string {
+  return k.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
 // Merge rows from multiple sources into display rows.
 //
 // Sources are classified per-pair against the primary:
@@ -47,7 +53,7 @@ function mergeRows(rawRows: LinkedRow[], primarySourceId?: string): Record<strin
         .sort((a, b) => b.count - a.count)[0].id;
 
   const primaryRows = rawRows.filter((r) => r.source_id === resolvedPrimaryId);
-  const primaryCols = new Set(primaryRows.flatMap((r) => Object.keys(r.data)));
+  const primaryCols = new Set(primaryRows.flatMap((r) => Object.keys(r.data).map(normalizeColKey)));
 
   const parallelIds = new Set<string>();
   const lookupMap   = new Map<string, Record<string, unknown>>();
@@ -55,7 +61,7 @@ function mergeRows(rawRows: LinkedRow[], primarySourceId?: string): Record<strin
   for (const sid of sourceIds) {
     if (sid === resolvedPrimaryId) continue;
     const sRows = rawRows.filter((r) => r.source_id === sid);
-    const sCols = new Set(sRows.flatMap((r) => Object.keys(r.data)));
+    const sCols = new Set(sRows.flatMap((r) => Object.keys(r.data).map(normalizeColKey)));
     const overlap = [...sCols].filter((k) => primaryCols.has(k)).length;
     const ratio   = overlap / Math.max(primaryCols.size, sCols.size, 1);
 
@@ -94,8 +100,18 @@ function mergeRows(rawRows: LinkedRow[], primarySourceId?: string): Record<strin
 }
 
 function getCellVal(row: Record<string, unknown>, key: string): string {
-  const v = row[key];
-  return v !== null && v !== undefined ? String(v).trim() : '';
+  if (key in row) {
+    const v = row[key];
+    return v !== null && v !== undefined ? String(v).trim() : '';
+  }
+  // Normalised fallback for existing rows stored with untrimmed/differently-cased CSV header keys
+  const norm = normalizeColKey(key);
+  const match = Object.keys(row).find((k) => normalizeColKey(k) === norm);
+  if (match !== undefined) {
+    const v = row[match];
+    return v !== null && v !== undefined ? String(v).trim() : '';
+  }
+  return '';
 }
 
 const BATCH = 50;

@@ -40,8 +40,8 @@ function buildInitialColumns(
     for (const h of src.headers) {
       const key = h.trim();
       if (joinCols.has(key.toLowerCase())) continue; // skip join key columns from each source
-      if (seen.has(key)) continue;
-      seen.add(key);
+      if (seen.has(key.toLowerCase())) continue;
+      seen.add(key.toLowerCase());
 
       // Infer type from suggestion if available
       const suggestion = src.columnSuggestions?.find((c) => c.key === key);
