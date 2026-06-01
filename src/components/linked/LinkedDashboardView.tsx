@@ -12,10 +12,15 @@ interface Props {
   primarySourceId?: string;
 }
 
-// Normalize an examination code for cross-source matching.
-// Tech Award timetable codes use "/01" suffixes (BAC03/01) while overview codes don't (BAC03).
+// Normalize an examination code for cross-source matching across sources that may use
+// different formats for the same unit:
+//   BAC03/01  → BAC03   (Tech Awards: strip /01 suffix)
+//   60285T    → 60285   (Nationals AAQ: strip trailing letter from purely-numeric codes)
 function normalizeCode(code: string): string {
-  return code.replace(/\/\d+$/, '').trim().toUpperCase();
+  let norm = code.replace(/\/\d+$/, '').trim().toUpperCase();
+  // Strip trailing letter suffix from codes that are otherwise purely numeric (e.g. 60285T → 60285)
+  norm = norm.replace(/^(\d+)[A-Z]+$/, '$1');
+  return norm;
 }
 
 // Normalize a column key for comparison: lowercase + collapse whitespace.
