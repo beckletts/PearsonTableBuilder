@@ -336,6 +336,102 @@
   background: var(--color-primary-lt);
 }
 
+/* ── Field aliases ─────────────────────────────────────────────────────────── */
+.le-col__aliases {
+  padding-left: 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.le-col__no-data-warn {
+  margin: 0;
+  font-size: 11px;
+  color: #92400E;
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
+  border-radius: 6px;
+  padding: 5px 9px;
+}
+
+.le-col__alias-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.le-col__alias-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.le-col__alias-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px 2px 8px;
+  background: #EDE9FE;
+  border: 1px solid #C4B5FD;
+  border-radius: 12px;
+  font-size: 11px;
+  font-family: monospace;
+  color: #5B21B6;
+}
+
+.le-col__alias-remove {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 10px;
+  color: #7C3AED;
+  line-height: 1;
+  font-family: inherit;
+}
+.le-col__alias-remove:hover { color: var(--color-danger); }
+
+.le-col__alias-input {
+  padding: 3px 7px !important;
+  font-size: 11px !important;
+  height: auto !important;
+  flex: 1;
+  min-width: 160px;
+}
+
+.le-col__alias-suggestions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.le-col__alias-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.le-col__alias-suggest-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: none;
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--color-text-soft);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.le-col__alias-suggest-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-lt);
+}
+
 @media (max-width: 640px) {
   .le-main { padding: 24px 16px 60px; }
   .le-heading { font-size: 22px; }

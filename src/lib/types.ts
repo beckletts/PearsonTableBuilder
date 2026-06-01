@@ -123,6 +123,7 @@ export interface LinkedColumnConfig {
   type: ColumnType;
   sourceId?: string;
   filterPlaceholder?: string; // custom text for the filter dropdown's default option
+  aliases?: string[];         // alternative source header names that map to this column
 }
 
 export interface ActionButton {

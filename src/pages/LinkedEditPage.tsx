@@ -67,12 +67,39 @@ export default function LinkedEditPage({ user }: Props) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const sourceFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Field health — keys found across all source rows
+  const [allSourceKeys, setAllSourceKeys] = useState<Set<string>>(new Set());
+  const [healthLoaded, setHealthLoaded]   = useState(false);
+  const [aliasInputs, setAliasInputs]     = useState<Record<number, string>>({});
+
   // Inline data editor
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
 
   // Inline rename
   const [renamingSourceId, setRenamingSourceId] = useState<string | null>(null);
   const [renameValue, setRenameValue]           = useState('');
+
+  // Load source field keys for the data health check
+  useEffect(() => {
+    if (!dashboard) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from('linked_rows')
+        .select('data')
+        .eq('dashboard_id', dashboard.id)
+        .limit(500);
+      if (!data) return;
+      const keys = new Set<string>();
+      for (const row of data as { data: Record<string, unknown> }[]) {
+        for (const k of Object.keys(row.data ?? {})) {
+          if (!k.startsWith('__')) keys.add(k);
+        }
+      }
+      setAllSourceKeys(keys);
+      setHealthLoaded(true);
+    };
+    void load();
+  }, [dashboard?.id]);
 
   useEffect(() => {
     if (!id) return;
@@ -126,6 +153,41 @@ export default function LinkedEditPage({ user }: Props) {
     };
     void load();
   }, [id, user.id]);
+
+  // ── Field health ────────────────────────────────────────────────────────────
+
+  const mappedKeys = new Set(columns.flatMap((c) => [c.key, ...(c.aliases ?? [])]));
+
+  const unmappedSourceKeys = [...allSourceKeys]
+    .filter((k) => !mappedKeys.has(k))
+    .sort();
+
+  const colHasCoverage = (col: LinkedColumnConfig): boolean => {
+    if (!healthLoaded || allSourceKeys.size === 0) return true;
+    if (allSourceKeys.has(col.key)) return true;
+    return (col.aliases ?? []).some((a) => allSourceKeys.has(a));
+  };
+
+  const addAlias = (i: number, alias: string) => {
+    const trimmed = alias.trim();
+    if (!trimmed) return;
+    setColumns((cs) =>
+      cs.map((c, idx) => {
+        if (idx !== i) return c;
+        const existing = c.aliases ?? [];
+        if (existing.includes(trimmed)) return c;
+        return { ...c, aliases: [...existing, trimmed] };
+      })
+    );
+  };
+
+  const removeAlias = (i: number, alias: string) => {
+    setColumns((cs) =>
+      cs.map((c, idx) =>
+        idx !== i ? c : { ...c, aliases: (c.aliases ?? []).filter((a) => a !== alias) }
+      )
+    );
+  };
 
   // ── Column helpers ──────────────────────────────────────────────────────────
 
@@ -555,6 +617,58 @@ export default function LinkedEditPage({ user }: Props) {
                           onChange={(e) => setCol(i, { filterPlaceholder: e.target.value || undefined })}
                           placeholder={`All ${col.label}s`}
                         />
+                      </div>
+                    )}
+
+                    {/* Field aliases */}
+                    {healthLoaded && (
+                      <div className="le-col__aliases">
+                        {!colHasCoverage(col) && (
+                          <p className="le-col__no-data-warn">
+                            ⚠ No matching data found in sources — try adding an alias below
+                          </p>
+                        )}
+                        <div className="le-col__alias-row">
+                          <span className="le-col__alias-label">Aliases</span>
+                          {(col.aliases ?? []).map((alias) => (
+                            <span key={alias} className="le-col__alias-chip">
+                              {alias}
+                              <button
+                                className="le-col__alias-remove"
+                                onClick={() => removeAlias(i, alias)}
+                                title="Remove alias"
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ))}
+                          <input
+                            className="input le-col__alias-input"
+                            placeholder="Type a header name and press Enter…"
+                            value={aliasInputs[i] ?? ''}
+                            onChange={(e) => setAliasInputs((v) => ({ ...v, [i]: e.target.value }))}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                addAlias(i, aliasInputs[i] ?? '');
+                                setAliasInputs((v) => ({ ...v, [i]: '' }));
+                              }
+                            }}
+                          />
+                        </div>
+                        {!colHasCoverage(col) && unmappedSourceKeys.length > 0 && (
+                          <div className="le-col__alias-suggestions">
+                            <span className="le-col__alias-hint">Map from source field:</span>
+                            {unmappedSourceKeys.slice(0, 6).map((key) => (
+                              <button
+                                key={key}
+                                className="le-col__alias-suggest-btn"
+                                onClick={() => addAlias(i, key)}
+                              >
+                                + {key}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

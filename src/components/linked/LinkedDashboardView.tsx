@@ -99,17 +99,31 @@ function mergeRows(rawRows: LinkedRow[], primarySourceId?: string): Record<strin
   return result;
 }
 
-function getCellVal(row: Record<string, unknown>, key: string): string {
-  if (key in row) {
-    const v = row[key];
-    return v !== null && v !== undefined ? String(v).trim() : '';
-  }
-  // Normalised fallback for existing rows stored with untrimmed/differently-cased CSV header keys
-  const norm = normalizeColKey(key);
-  const match = Object.keys(row).find((k) => normalizeColKey(k) === norm);
-  if (match !== undefined) {
-    const v = row[match];
-    return v !== null && v !== undefined ? String(v).trim() : '';
+function getCellVal(row: Record<string, unknown>, key: string, aliases?: string[]): string {
+  const resolve = (k: string): string | null => {
+    // Exact match
+    if (k in row) {
+      const v = row[k];
+      if (v !== null && v !== undefined && String(v).trim() !== '') return String(v).trim();
+    }
+    // Normalised fallback for rows stored with untrimmed/differently-cased CSV header keys
+    const norm = normalizeColKey(k);
+    const match = Object.keys(row).find((rk) => normalizeColKey(rk) === norm);
+    if (match !== undefined) {
+      const v = row[match];
+      if (v !== null && v !== undefined && String(v).trim() !== '') return String(v).trim();
+    }
+    return null;
+  };
+
+  const primary = resolve(key);
+  if (primary !== null) return primary;
+
+  if (aliases?.length) {
+    for (const alias of aliases) {
+      const v = resolve(alias);
+      if (v !== null) return v;
+    }
   }
   return '';
 }
@@ -126,7 +140,15 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
   // All filterable columns, including hidden ones (filter-only feature)
   const allFilterCols = useMemo(() => config.columns.filter((c) => c.filterable), [config.columns]);
   // Universal search — searches across every column in the data
-  const searchCols = useMemo(() => config.columns.map((c) => c.key), [config.columns]);
+  const searchCols = useMemo(
+    () => config.columns.flatMap((c) => [c.key, ...(c.aliases ?? [])]),
+    [config.columns]
+  );
+
+  const colByKey = useMemo(
+    () => new Map(config.columns.map((c) => [c.key, c])),
+    [config.columns]
+  );
 
   const [search, setSearch]           = useState('');
   const [filters, setFilters]         = useState<Record<string, string>>({});
@@ -180,7 +202,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
     }
     for (const [col, val] of Object.entries(filters)) {
       if (!val) continue;
-      rows = rows.filter((row) => getCellVal(row, col) === val);
+      rows = rows.filter((row) => getCellVal(row, col, colByKey.get(col)?.aliases) === val);
     }
     return rows;
   }, [merged, search, filters, searchCols]);
@@ -194,8 +216,8 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
   const sorted = useMemo(() => {
     if (!sortCol) return filtered;
     return [...filtered].sort((a, b) => {
-      const av = getCellVal(a, sortCol);
-      const bv = getCellVal(b, sortCol);
+      const av = getCellVal(a, sortCol, colByKey.get(sortCol)?.aliases);
+      const bv = getCellVal(b, sortCol, colByKey.get(sortCol)?.aliases);
       const ad = parseDMY(av);
       const bd = parseDMY(bv);
       const cmp = !isNaN(ad) && !isNaN(bd)
@@ -248,7 +270,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
   const filterOptions = (col: LinkedColumnConfig) => {
     const opts = new Set<string>();
     for (const row of filtered) {
-      const v = getCellVal(row, col.key);
+      const v = getCellVal(row, col.key, col.aliases);
       if (v) opts.add(v);
     }
     return [...opts].sort();
@@ -265,7 +287,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
     const cols = exportCols();
     const header = cols.map((c) => `"${c.label.replace(/"/g, '""')}"`).join(',');
     const csvRows = rows.map((row) =>
-      cols.map((c) => `"${getCellVal(row, c.key).replace(/"/g, '""')}"`).join(',')
+      cols.map((c) => `"${getCellVal(row, c.key, c.aliases).replace(/"/g, '""')}"`).join(',')
     );
     const csv = '﻿' + [header, ...csvRows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -285,7 +307,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
     const cols = exportCols();
     const data = [
       cols.map((c) => c.label),
-      ...rows.map((row) => cols.map((c) => getCellVal(row, c.key))),
+      ...rows.map((row) => cols.map((c) => getCellVal(row, c.key, c.aliases))),
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -540,7 +562,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
                       <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(key)} />
                     </td>
                     {displayCols.map((col) => {
-                      const val = getCellVal(row, col.key);
+                      const val = getCellVal(row, col.key, col.aliases);
                       return (
                         <td key={col.key} className="ld-table__td" onClick={() => setDetailRow(row)}>
                           {col.type === 'badge' && val ? (
@@ -589,7 +611,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
                   {config.columns
                     .filter((c) => c.inDetails === true || (c.visible && c.inDetails !== false))
                     .map((col) => {
-                      const val = getCellVal(detailRow, col.key);
+                      const val = getCellVal(detailRow, col.key, col.aliases);
                       if (!val) return null;
                       return (
                         <tr key={col.key}>
