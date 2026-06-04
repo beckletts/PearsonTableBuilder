@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { useSuperAdmin } from '../../lib/SuperAdminContext';
 import type { User } from '@supabase/supabase-js';
 import './PearsonNav.css';
 
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function PearsonNav({ user }: Props) {
+  const isSuperAdmin = useSuperAdmin();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -30,6 +32,11 @@ export default function PearsonNav({ user }: Props) {
         <div className="pearson-nav__right">
           {user ? (
             <>
+              {isSuperAdmin && (
+                <Link to="/admin" className="pearson-nav__admin-link">
+                  Admin
+                </Link>
+              )}
               <div className="pearson-nav__user">
                 <div className="pearson-nav__avatar">
                   {user.email?.charAt(0).toUpperCase() ?? '?'}
