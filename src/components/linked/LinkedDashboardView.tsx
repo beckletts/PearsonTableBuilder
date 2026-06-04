@@ -134,6 +134,10 @@ function getCellVal(row: Record<string, unknown>, key: string, aliases?: string[
 }
 
 // Migrate old tab format { heading, tiles, note } to blocks array
+function getTabEmoji(tab: InfoPanelTab): string {
+  return getTabBlocks(tab).find((b) => b.type === 'heading' && b.emoji)?.emoji ?? '';
+}
+
 function getTabBlocks(tab: InfoPanelTab): ContentBlock[] {
   if (tab.blocks?.length) return tab.blocks;
   const old = tab as unknown as { heading?: string; tiles?: InfoTile[]; note?: string };
@@ -506,16 +510,21 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
         <div className="ld-info-panel">
           <div className="ld-info-panel__inner">
             <div className="ld-info-panel__tab-btns">
-              {(config.infoPanel!.tabs ?? []).map((tab: InfoPanelTab, i: number) => (
-                <button
-                  key={i}
-                  className={`ld-info-tab-btn ${activeTabIdx === i ? 'ld-info-tab-btn--active' : ''}`}
-                  onClick={() => setActiveTabIdx(activeTabIdx === i ? null : i)}
-                >
-                  {tab.label || `Info ${i + 1}`}
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: 5, transition: 'transform 0.2s', transform: activeTabIdx === i ? 'rotate(180deg)' : 'rotate(0deg)' }}><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
-              ))}
+              {(config.infoPanel!.tabs ?? []).map((tab: InfoPanelTab, i: number) => {
+                const emoji = getTabEmoji(tab);
+                const isActive = activeTabIdx === i;
+                return (
+                  <button
+                    key={i}
+                    className={`ld-info-tab-btn ${isActive ? 'ld-info-tab-btn--active' : ''}`}
+                    onClick={() => setActiveTabIdx(isActive ? null : i)}
+                  >
+                    {emoji && <span className="ld-info-tab-btn__emoji">{emoji}</span>}
+                    <span>{tab.label || `Info ${i + 1}`}</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="ld-info-tab-btn__chevron" style={{ transform: isActive ? 'rotate(180deg)' : 'rotate(0deg)' }}><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                );
+              })}
             </div>
 
             {activeTabIdx !== null && (config.infoPanel!.tabs ?? [])[activeTabIdx] && (() => {
