@@ -137,11 +137,21 @@ export interface InfoTile {
   value: string;
 }
 
+export type BlockType = 'heading' | 'text' | 'tiles' | 'callout' | 'list' | 'link';
+
+export interface ContentBlock {
+  type: BlockType;
+  emoji?: string;       // heading
+  text?: string;        // heading, text, callout, link display text
+  url?: string;         // link
+  groupLabel?: string;  // tiles — optional label above the tile row
+  tiles?: InfoTile[];   // tiles
+  items?: string[];     // list
+}
+
 export interface InfoPanelTab {
   label: string;
-  heading?: string;
-  tiles: InfoTile[];
-  note?: string;
+  blocks: ContentBlock[];
 }
 
 export interface LinkedInfoPanel {

@@ -464,6 +464,112 @@
   background: var(--color-white);
 }
 
+/* ── Block editor ───────────────────────────────────────────────────────────── */
+.le-block-card {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.le-block-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--color-bg-soft);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.le-block-card__header:hover { background: var(--color-bg); }
+
+.le-block-type-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.le-block-preview {
+  flex: 1;
+  font-size: 12px;
+  color: var(--color-text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.le-block-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.le-block-move {
+  background: none;
+  border: none;
+  font-size: 12px;
+  padding: 2px 5px;
+  cursor: pointer;
+  color: #aaa;
+  font-family: inherit;
+  line-height: 1;
+  border-radius: 3px;
+}
+.le-block-move:hover:not(:disabled) { background: var(--color-bg); color: var(--color-text); }
+.le-block-move:disabled { opacity: 0.3; cursor: default; }
+
+.le-block-remove {
+  background: none;
+  border: none;
+  font-size: 12px;
+  padding: 2px 5px;
+  cursor: pointer;
+  color: #ccc;
+  font-family: inherit;
+  line-height: 1;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+.le-block-remove:hover { color: var(--color-danger); background: #FEE2E2; }
+
+.le-block-card__body {
+  padding: 10px;
+  border-top: 1.5px solid var(--color-border);
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.le-add-block-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1.5px dashed var(--color-border);
+}
+
+.le-add-block-btn {
+  font-size: 11px !important;
+  padding: 4px 10px !important;
+  border: 1.5px dashed var(--color-border) !important;
+  color: var(--color-text-soft) !important;
+}
+.le-add-block-btn:hover {
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+  background: var(--color-primary-lt) !important;
+}
+
 /* ── Web address editor ─────────────────────────────────────────────────────── */
 .le-address-bar {
   display: flex;

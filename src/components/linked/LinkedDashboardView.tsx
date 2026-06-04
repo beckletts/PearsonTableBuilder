@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
-import type { LinkedDashboard, LinkedRow, LinkedColumnConfig, InfoTile, InfoPanelTab } from '../../lib/types';
+import type { LinkedDashboard, LinkedRow, LinkedColumnConfig, InfoTile, InfoPanelTab, ContentBlock } from '../../lib/types';
 import { trackEvent } from '../../lib/analytics';
 import PearsonLogo from '../layout/PearsonLogo';
 import pearsonWave from '../../assets/pearson-wave.jpg';
@@ -131,6 +131,61 @@ function getCellVal(row: Record<string, unknown>, key: string, aliases?: string[
     }
   }
   return '';
+}
+
+// Migrate old tab format { heading, tiles, note } to blocks array
+function getTabBlocks(tab: InfoPanelTab): ContentBlock[] {
+  if (tab.blocks?.length) return tab.blocks;
+  const old = tab as unknown as { heading?: string; tiles?: InfoTile[]; note?: string };
+  const blocks: ContentBlock[] = [];
+  if (old.heading) blocks.push({ type: 'heading', text: old.heading });
+  if (old.tiles?.length) blocks.push({ type: 'tiles', tiles: old.tiles });
+  if (old.note) blocks.push({ type: 'text', text: old.note });
+  return blocks;
+}
+
+function renderBlock(block: ContentBlock, idx: number) {
+  switch (block.type) {
+    case 'heading':
+      return (
+        <div key={idx} className="ld-block-heading">
+          {block.emoji && <span className="ld-block-heading__emoji">{block.emoji}</span>}
+          <span className="ld-block-heading__text">{block.text}</span>
+        </div>
+      );
+    case 'text':
+      return <p key={idx} className="ld-block-text">{block.text}</p>;
+    case 'tiles':
+      return (
+        <div key={idx} className="ld-block-tiles">
+          {block.groupLabel && <p className="ld-block-tiles__label">{block.groupLabel}</p>}
+          <div className="ld-info-panel__tiles">
+            {(block.tiles ?? []).filter((t) => t.label || t.value).map((tile, j) => (
+              <div key={j} className="ld-info-tile">
+                <div className="ld-info-tile__label">{tile.label}</div>
+                <div className="ld-info-tile__value">{tile.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    case 'callout':
+      return <div key={idx} className="ld-block-callout">{block.text}</div>;
+    case 'list':
+      return (
+        <ul key={idx} className="ld-block-list">
+          {(block.items ?? []).map((item, j) => <li key={j}>{item}</li>)}
+        </ul>
+      );
+    case 'link':
+      return (
+        <p key={idx} className="ld-block-link">
+          <a href={block.url} target="_blank" rel="noreferrer">{block.text || block.url}</a>
+        </p>
+      );
+    default:
+      return null;
+  }
 }
 
 const BATCH = 50;
@@ -464,22 +519,11 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
             </div>
 
             {activeTabIdx !== null && (config.infoPanel!.tabs ?? [])[activeTabIdx] && (() => {
-              const tab = config.infoPanel!.tabs[activeTabIdx];
-              const tiles = tab.tiles.filter((t: InfoTile) => t.label || t.value);
+              const tab = (config.infoPanel!.tabs ?? [])[activeTabIdx];
+              const blocks = getTabBlocks(tab);
               return (
                 <div className="ld-info-panel__content">
-                  {tab.heading && <h3 className="ld-info-panel__heading">{tab.heading}</h3>}
-                  {tiles.length > 0 && (
-                    <div className="ld-info-panel__tiles">
-                      {tiles.map((tile: InfoTile, j: number) => (
-                        <div key={j} className="ld-info-tile">
-                          <div className="ld-info-tile__label">{tile.label}</div>
-                          <div className="ld-info-tile__value">{tile.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {tab.note && <p className="ld-info-panel__note">{tab.note}</p>}
+                  {blocks.map((block, i) => renderBlock(block, i))}
                 </div>
               );
             })()}

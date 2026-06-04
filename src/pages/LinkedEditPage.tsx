@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import type { LinkedDashboard, LinkedColumnConfig, LinkedSource, ActionButton, LinkedInfoPanel, InfoPanelTab } from '../lib/types';
+import type { LinkedDashboard, LinkedColumnConfig, LinkedSource, ActionButton, LinkedInfoPanel, InfoPanelTab, ContentBlock, BlockType } from '../lib/types';
 import { parseFile, getSheetNames } from '../utils/parseFile';
 import LinkedSourceEditor from '../components/linked/LinkedSourceEditor';
 import PearsonNav from '../components/layout/PearsonNav';
@@ -50,6 +50,7 @@ export default function LinkedEditPage({ user }: Props) {
   const [actionButtons, setActionButtons] = useState<ActionButton[]>([]);
   const [infoPanel, setInfoPanel]                 = useState<LinkedInfoPanel | undefined>(undefined);
   const [expandedTabIdx, setExpandedTabIdx]       = useState<number | null>(0);
+  const [expandedBlock, setExpandedBlock]         = useState<{ ti: number; bi: number } | null>(null);
   const [allowColumnCustomise, setAllowColumnCustomise] = useState(false);
   const [addressInput, setAddressInput]       = useState('');
   const [addressChecking, setAddressChecking] = useState(false);
@@ -160,7 +161,11 @@ export default function LinkedEditPage({ user }: Props) {
       const rawPanel = dash.config.infoPanel as (LinkedInfoPanel & { tiles?: unknown }) | undefined;
       if (rawPanel && Array.isArray(rawPanel.tiles)) {
         const old = rawPanel as { heading?: string; tiles: { label: string; value: string }[]; note?: string };
-        setInfoPanel({ tabs: [{ label: old.heading || 'Info', heading: old.heading, tiles: old.tiles, note: old.note }] });
+        const blocks: import('../lib/types').ContentBlock[] = [];
+        if (old.heading) blocks.push({ type: 'heading', text: old.heading });
+        if (old.tiles?.length) blocks.push({ type: 'tiles', tiles: old.tiles });
+        if (old.note) blocks.push({ type: 'text', text: old.note });
+        setInfoPanel({ tabs: [{ label: old.heading || 'Info', blocks }] });
       } else {
         setInfoPanel(rawPanel as LinkedInfoPanel | undefined);
       }
@@ -866,129 +871,174 @@ export default function LinkedEditPage({ user }: Props) {
               </div>
 
               {/* Info tiles */}
-              <div className="card le-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: infoPanel ? 12 : 0 }}>
-                  <div>
-                    <p className="text-sm font-600">Info tiles</p>
-                    {!infoPanel && <p className="text-xs text-muted" style={{ marginTop: 3 }}>Add buttons that reveal panels of key facts above the table — session times, dates, quick stats.</p>}
-                  </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {infoPanel && (
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          setInfoPanel((p) => ({ tabs: [...(p?.tabs ?? []), { label: '', tiles: [{ label: '', value: '' }] }] }));
-                          setExpandedTabIdx((infoPanel?.tabs.length ?? 0));
-                        }}
-                      >
-                        + Add tab
-                      </button>
-                    )}
-                    {!infoPanel && (
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => { setInfoPanel({ tabs: [{ label: '', tiles: [{ label: '', value: '' }] }] }); setExpandedTabIdx(0); }}
-                      >
-                        + Add
-                      </button>
-                    )}
-                  </div>
-                </div>
+              {(() => {
+                const updateTab = (ti: number, patch: Partial<InfoPanelTab>) =>
+                  setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, ...patch } : t) }));
+                const updateBlock = (ti: number, bi: number, patch: Partial<ContentBlock>) =>
+                  setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, blocks: t.blocks.map((b, k) => k === bi ? { ...b, ...patch } : b) } : t) }));
+                const addBlock = (ti: number, type: BlockType) => {
+                  const defaults: Record<BlockType, Partial<ContentBlock>> = {
+                    heading: { emoji: '', text: '' },
+                    text:    { text: '' },
+                    tiles:   { tiles: [{ label: '', value: '' }] },
+                    callout: { text: '' },
+                    list:    { items: [''] },
+                    link:    { text: '', url: '' },
+                  };
+                  setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, blocks: [...t.blocks, { type, ...defaults[type] } as ContentBlock] } : t) }));
+                  setExpandedBlock({ ti, bi: (infoPanel?.tabs[ti]?.blocks.length ?? 0) });
+                };
+                const removeBlock = (ti: number, bi: number) => {
+                  setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, blocks: t.blocks.filter((_, k) => k !== bi) } : t) }));
+                  if (expandedBlock?.ti === ti && expandedBlock?.bi === bi) setExpandedBlock(null);
+                };
+                const moveBlock = (ti: number, bi: number, dir: -1 | 1) => {
+                  setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => {
+                    if (j !== ti) return t;
+                    const next = [...t.blocks];
+                    const to = bi + dir;
+                    if (to < 0 || to >= next.length) return t;
+                    [next[bi], next[to]] = [next[to], next[bi]];
+                    return { ...t, blocks: next };
+                  }) }));
+                };
 
-                {infoPanel && (
-                  <>
-                    {infoPanel.tabs.map((tab: InfoPanelTab, ti: number) => (
+                const BLOCK_LABELS: Record<BlockType, string> = {
+                  heading: 'Heading', text: 'Text', tiles: 'Tiles',
+                  callout: 'Callout', list: 'List', link: 'Link',
+                };
+
+                return (
+                  <div className="card le-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: infoPanel ? 12 : 0 }}>
+                      <div>
+                        <p className="text-sm font-600">Info panels</p>
+                        {!infoPanel && <p className="text-xs text-muted" style={{ marginTop: 3 }}>Add buttons that reveal rich content panels above the table.</p>}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {infoPanel && (
+                          <button className="btn btn-secondary btn-sm" onClick={() => { setInfoPanel((p) => ({ tabs: [...(p?.tabs ?? []), { label: '', blocks: [] }] })); setExpandedTabIdx(infoPanel.tabs.length); }}>
+                            + Add tab
+                          </button>
+                        )}
+                        {!infoPanel && (
+                          <button className="btn btn-secondary btn-sm" onClick={() => { setInfoPanel({ tabs: [{ label: '', blocks: [] }] }); setExpandedTabIdx(0); }}>
+                            + Add
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {infoPanel && infoPanel.tabs.map((tab: InfoPanelTab, ti: number) => (
                       <div key={ti} className="le-info-tab-editor">
-                        {/* Tab header row */}
+                        {/* Tab header */}
                         <div className="le-info-tab-editor__header" onClick={() => setExpandedTabIdx(expandedTabIdx === ti ? null : ti)}>
-                          <span className="le-info-tab-editor__name">
-                            {tab.label || <span className="text-muted">Unnamed tab</span>}
-                          </span>
+                          <span className="le-info-tab-editor__name">{tab.label || <span className="text-muted">Unnamed tab</span>}</span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <button
-                              className="btn btn-ghost btn-sm"
-                              style={{ color: 'var(--color-danger)', fontSize: 11 }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setInfoPanel((p) => ({ tabs: p!.tabs.filter((_, j) => j !== ti) }));
-                                if (expandedTabIdx === ti) setExpandedTabIdx(null);
-                              }}
-                            >Remove</button>
+                            <span className="text-xs text-muted">{tab.blocks.length} block{tab.blocks.length !== 1 ? 's' : ''}</span>
+                            <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-danger)', fontSize: 11 }} onClick={(e) => { e.stopPropagation(); setInfoPanel((p) => ({ tabs: p!.tabs.filter((_, j) => j !== ti) })); if (expandedTabIdx === ti) setExpandedTabIdx(null); }}>Remove</button>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transition: 'transform 0.2s', transform: expandedTabIdx === ti ? 'rotate(180deg)' : 'rotate(0deg)', color: '#999' }}><polyline points="6 9 12 15 18 9"/></svg>
                           </div>
                         </div>
 
                         {expandedTabIdx === ti && (
                           <div className="le-info-tab-editor__body">
-                            <div className="input-group" style={{ marginBottom: 10 }}>
+                            {/* Button label */}
+                            <div className="input-group" style={{ marginBottom: 14 }}>
                               <label className="input-label">Button label</label>
-                              <input
-                                className="input"
-                                value={tab.label}
-                                onChange={(e) => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, label: e.target.value } : t) }))}
-                                placeholder="e.g. Session times"
-                              />
-                            </div>
-                            <div className="input-group" style={{ marginBottom: 10 }}>
-                              <label className="input-label">Panel heading <span className="text-muted">(optional)</span></label>
-                              <input
-                                className="input"
-                                value={tab.heading ?? ''}
-                                onChange={(e) => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, heading: e.target.value || undefined } : t) }))}
-                                placeholder="e.g. Published starting times (UK centres)"
-                              />
+                              <input className="input" value={tab.label} onChange={(e) => updateTab(ti, { label: e.target.value })} placeholder="e.g. Conduct guidelines" />
                             </div>
 
-                            <p className="input-label" style={{ marginBottom: 6 }}>Tiles</p>
-                            {tab.tiles.map((tile, i) => (
-                              <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-                                <input
-                                  className="input"
-                                  style={{ flex: '2 1 150px', minWidth: 120 }}
-                                  value={tile.label}
-                                  onChange={(e) => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, tiles: t.tiles.map((tl, k) => k === i ? { ...tl, label: e.target.value } : tl) } : t) }))}
-                                  placeholder="Label (e.g. Morning session)"
-                                />
-                                <input
-                                  className="input"
-                                  style={{ flex: '1 1 90px', minWidth: 80 }}
-                                  value={tile.value}
-                                  onChange={(e) => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, tiles: t.tiles.map((tl, k) => k === i ? { ...tl, value: e.target.value } : tl) } : t) }))}
-                                  placeholder="Value (e.g. 9:00 AM)"
-                                />
-                                <button className="btn btn-ghost btn-sm" onClick={() => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, tiles: t.tiles.filter((_, k) => k !== i) } : t) }))}>✕</button>
-                              </div>
-                            ))}
-                            {tab.tiles.length < 8 && (
-                              <button
-                                className="btn btn-secondary btn-sm"
-                                style={{ marginBottom: 10 }}
-                                onClick={() => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, tiles: [...t.tiles, { label: '', value: '' }] } : t) }))}
-                              >
-                                + Add tile
-                              </button>
-                            )}
+                            {/* Block list */}
+                            {tab.blocks.map((block: ContentBlock, bi: number) => {
+                              const isOpen = expandedBlock?.ti === ti && expandedBlock?.bi === bi;
+                              const preview = block.type === 'heading' ? `${block.emoji ?? ''} ${block.text ?? ''}`.trim()
+                                : block.type === 'tiles' ? `${block.tiles?.length ?? 0} tile(s)`
+                                : block.type === 'list'  ? `${block.items?.length ?? 0} item(s)`
+                                : (block.text ?? '').slice(0, 55) + ((block.text?.length ?? 0) > 55 ? '…' : '');
+                              return (
+                                <div key={bi} className="le-block-card">
+                                  <div className="le-block-card__header" onClick={() => setExpandedBlock(isOpen ? null : { ti, bi })}>
+                                    <span className="le-block-type-badge">{BLOCK_LABELS[block.type]}</span>
+                                    <span className="le-block-preview">{preview || <span className="text-muted">empty</span>}</span>
+                                    <div className="le-block-actions" onClick={(e) => e.stopPropagation()}>
+                                      <button className="le-block-move" onClick={() => moveBlock(ti, bi, -1)} disabled={bi === 0}>↑</button>
+                                      <button className="le-block-move" onClick={() => moveBlock(ti, bi, 1)} disabled={bi === tab.blocks.length - 1}>↓</button>
+                                      <button className="le-block-remove" onClick={() => removeBlock(ti, bi)}>✕</button>
+                                    </div>
+                                  </div>
 
-                            <div className="input-group">
-                              <label className="input-label">Footer note <span className="text-muted">(optional)</span></label>
-                              <input
-                                className="input"
-                                value={tab.note ?? ''}
-                                onChange={(e) => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, note: e.target.value || undefined } : t) }))}
-                                placeholder="e.g. All times are local to the exam centre"
-                              />
+                                  {isOpen && (
+                                    <div className="le-block-card__body">
+                                      {block.type === 'heading' && (
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                          <input className="input" style={{ width: 52, textAlign: 'center', flexShrink: 0 }} value={block.emoji ?? ''} onChange={(e) => updateBlock(ti, bi, { emoji: e.target.value })} placeholder="🕐" />
+                                          <input className="input" style={{ flex: 1 }} value={block.text ?? ''} onChange={(e) => updateBlock(ti, bi, { text: e.target.value })} placeholder="Section heading" />
+                                        </div>
+                                      )}
+                                      {block.type === 'text' && (
+                                        <textarea className="input" rows={3} value={block.text ?? ''} onChange={(e) => updateBlock(ti, bi, { text: e.target.value })} placeholder="Paragraph text…" style={{ resize: 'vertical' }} />
+                                      )}
+                                      {block.type === 'tiles' && (
+                                        <>
+                                          <input className="input" style={{ marginBottom: 8 }} value={block.groupLabel ?? ''} onChange={(e) => updateBlock(ti, bi, { groupLabel: e.target.value || undefined })} placeholder="Group label (optional, e.g. Morning session window)" />
+                                          {(block.tiles ?? []).map((tile, k) => (
+                                            <div key={k} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                                              <input className="input" style={{ flex: 2 }} value={tile.label} onChange={(e) => updateBlock(ti, bi, { tiles: block.tiles!.map((tl, l) => l === k ? { ...tl, label: e.target.value } : tl) })} placeholder="Label (e.g. Morning session)" />
+                                              <input className="input" style={{ flex: 1 }} value={tile.value} onChange={(e) => updateBlock(ti, bi, { tiles: block.tiles!.map((tl, l) => l === k ? { ...tl, value: e.target.value } : tl) })} placeholder="Value (e.g. 9:00 AM)" />
+                                              <button className="btn btn-ghost btn-sm" onClick={() => updateBlock(ti, bi, { tiles: block.tiles!.filter((_, l) => l !== k) })}>✕</button>
+                                            </div>
+                                          ))}
+                                          <button className="btn btn-secondary btn-sm" onClick={() => updateBlock(ti, bi, { tiles: [...(block.tiles ?? []), { label: '', value: '' }] })}>+ Add tile</button>
+                                        </>
+                                      )}
+                                      {block.type === 'callout' && (
+                                        <textarea className="input" rows={2} value={block.text ?? ''} onChange={(e) => updateBlock(ti, bi, { text: e.target.value })} placeholder="⚠️ Important: warning or notice text…" style={{ resize: 'vertical' }} />
+                                      )}
+                                      {block.type === 'list' && (
+                                        <>
+                                          {(block.items ?? []).map((item, k) => (
+                                            <div key={k} style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                                              <input className="input" style={{ flex: 1 }} value={item} onChange={(e) => updateBlock(ti, bi, { items: block.items!.map((it, l) => l === k ? e.target.value : it) })} placeholder="List item" />
+                                              <button className="btn btn-ghost btn-sm" onClick={() => updateBlock(ti, bi, { items: block.items!.filter((_, l) => l !== k) })}>✕</button>
+                                            </div>
+                                          ))}
+                                          <button className="btn btn-secondary btn-sm" onClick={() => updateBlock(ti, bi, { items: [...(block.items ?? []), ''] })}>+ Add item</button>
+                                        </>
+                                      )}
+                                      {block.type === 'link' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                          <input className="input" value={block.text ?? ''} onChange={(e) => updateBlock(ti, bi, { text: e.target.value })} placeholder="Link text (e.g. JCQ Instructions for Conducting Examinations)" />
+                                          <input className="input" value={block.url ?? ''} onChange={(e) => updateBlock(ti, bi, { url: e.target.value })} placeholder="https://…" />
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+
+                            {/* Add block buttons */}
+                            <div className="le-add-block-row">
+                              {(['heading', 'text', 'tiles', 'callout', 'list', 'link'] as BlockType[]).map((type) => (
+                                <button key={type} className="btn btn-ghost btn-sm le-add-block-btn" onClick={() => addBlock(ti, type)}>
+                                  + {BLOCK_LABELS[type]}
+                                </button>
+                              ))}
                             </div>
                           </div>
                         )}
                       </div>
                     ))}
 
-                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-danger)', marginTop: 8 }} onClick={() => setInfoPanel(undefined)}>
-                      Remove all info tiles
-                    </button>
-                  </>
-                )}
-              </div>
+                    {infoPanel && (
+                      <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-danger)', marginTop: 8 }} onClick={() => setInfoPanel(undefined)}>
+                        Remove all info panels
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Column customisation */}
               <div className="card le-card">
