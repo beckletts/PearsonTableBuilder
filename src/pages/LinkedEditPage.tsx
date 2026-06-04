@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import type { LinkedDashboard, LinkedColumnConfig, LinkedSource, ActionButton, LinkedInfoPanel } from '../lib/types';
+import type { LinkedDashboard, LinkedColumnConfig, LinkedSource, ActionButton, LinkedInfoPanel, InfoPanelTab } from '../lib/types';
 import { parseFile, getSheetNames } from '../utils/parseFile';
 import LinkedSourceEditor from '../components/linked/LinkedSourceEditor';
 import PearsonNav from '../components/layout/PearsonNav';
@@ -49,6 +49,7 @@ export default function LinkedEditPage({ user }: Props) {
   const [dataRefresh, setDataRefresh] = useState<{ enabled: boolean; customText: string; lastUpdated?: string }>({ enabled: false, customText: '' });
   const [actionButtons, setActionButtons] = useState<ActionButton[]>([]);
   const [infoPanel, setInfoPanel]                 = useState<LinkedInfoPanel | undefined>(undefined);
+  const [expandedTabIdx, setExpandedTabIdx]       = useState<number | null>(0);
   const [allowColumnCustomise, setAllowColumnCustomise] = useState(false);
   const [addressInput, setAddressInput]       = useState('');
   const [addressChecking, setAddressChecking] = useState(false);
@@ -302,7 +303,7 @@ export default function LinkedEditPage({ user }: Props) {
     const now = new Date().toISOString();
     const updated = { ...dataRefresh, lastUpdated: now };
     setDataRefresh(updated);
-    const updatedConfig = { ...dashboard.config, columns, filterOrder: syncedFilterOrder, allowColumnCustomise: allowColumnCustomise || undefined, infoPanel: infoPanel?.tiles.length ? infoPanel : undefined, dataRefresh: updated, tracking: tracking?.gaTrackingId ? tracking : undefined };
+    const updatedConfig = { ...dashboard.config, columns, filterOrder: syncedFilterOrder, allowColumnCustomise: allowColumnCustomise || undefined, infoPanel: infoPanel?.tabs.length ? infoPanel : undefined, dataRefresh: updated, tracking: tracking?.gaTrackingId ? tracking : undefined };
     await supabase.from('linked_dashboards').update({ config: updatedConfig }).eq('id', dashboard.id);
   };
 
@@ -316,7 +317,7 @@ export default function LinkedEditPage({ user }: Props) {
         columns,
         filterOrder: syncedFilterOrder,
         allowColumnCustomise: allowColumnCustomise || undefined,
-        infoPanel: infoPanel?.tiles.length ? infoPanel : undefined,
+        infoPanel: infoPanel?.tabs.length ? infoPanel : undefined,
         dataRefresh: dataRefresh.enabled ? dataRefresh : undefined,
         actionButtons: actionButtons.length > 0 ? actionButtons : undefined,
         tracking: tracking?.gaTrackingId ? tracking : undefined,
@@ -862,76 +863,121 @@ export default function LinkedEditPage({ user }: Props) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: infoPanel ? 12 : 0 }}>
                   <div>
                     <p className="text-sm font-600">Info tiles</p>
-                    {!infoPanel && <p className="text-xs text-muted" style={{ marginTop: 3 }}>Display key facts above the table — session times, important dates, quick stats.</p>}
+                    {!infoPanel && <p className="text-xs text-muted" style={{ marginTop: 3 }}>Add buttons that reveal panels of key facts above the table — session times, dates, quick stats.</p>}
                   </div>
-                  {!infoPanel ? (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setInfoPanel({ tiles: [{ label: '', value: '' }] })}
-                    >
-                      + Add
-                    </button>
-                  ) : (infoPanel.tiles.length < 8) && (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setInfoPanel((p) => ({ ...p!, tiles: [...p!.tiles, { label: '', value: '' }] }))}
-                    >
-                      + Add tile
-                    </button>
-                  )}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {infoPanel && (
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          setInfoPanel((p) => ({ tabs: [...(p?.tabs ?? []), { label: '', tiles: [{ label: '', value: '' }] }] }));
+                          setExpandedTabIdx((infoPanel?.tabs.length ?? 0));
+                        }}
+                      >
+                        + Add tab
+                      </button>
+                    )}
+                    {!infoPanel && (
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => { setInfoPanel({ tabs: [{ label: '', tiles: [{ label: '', value: '' }] }] }); setExpandedTabIdx(0); }}
+                      >
+                        + Add
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {infoPanel && (
                   <>
-                    <div className="input-group" style={{ marginBottom: 12 }}>
-                      <label className="input-label">Heading <span className="text-muted">(optional)</span></label>
-                      <input
-                        className="input"
-                        value={infoPanel.heading ?? ''}
-                        onChange={(e) => setInfoPanel((p) => ({ ...p!, heading: e.target.value || undefined }))}
-                        placeholder="e.g. Published starting times (UK centres)"
-                      />
-                    </div>
+                    {infoPanel.tabs.map((tab: InfoPanelTab, ti: number) => (
+                      <div key={ti} className="le-info-tab-editor">
+                        {/* Tab header row */}
+                        <div className="le-info-tab-editor__header" onClick={() => setExpandedTabIdx(expandedTabIdx === ti ? null : ti)}>
+                          <span className="le-info-tab-editor__name">
+                            {tab.label || <span className="text-muted">Unnamed tab</span>}
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              style={{ color: 'var(--color-danger)', fontSize: 11 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setInfoPanel((p) => ({ tabs: p!.tabs.filter((_, j) => j !== ti) }));
+                                if (expandedTabIdx === ti) setExpandedTabIdx(null);
+                              }}
+                            >Remove</button>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transition: 'transform 0.2s', transform: expandedTabIdx === ti ? 'rotate(180deg)' : 'rotate(0deg)', color: '#999' }}><polyline points="6 9 12 15 18 9"/></svg>
+                          </div>
+                        </div>
 
-                    {infoPanel.tiles.map((tile, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-                        <input
-                          className="input"
-                          style={{ flex: '2 1 160px', minWidth: 130 }}
-                          value={tile.label}
-                          onChange={(e) => setInfoPanel((p) => ({ ...p!, tiles: p!.tiles.map((t, j) => j === i ? { ...t, label: e.target.value } : t) }))}
-                          placeholder="Label (e.g. Morning session)"
-                        />
-                        <input
-                          className="input"
-                          style={{ flex: '1 1 100px', minWidth: 90 }}
-                          value={tile.value}
-                          onChange={(e) => setInfoPanel((p) => ({ ...p!, tiles: p!.tiles.map((t, j) => j === i ? { ...t, value: e.target.value } : t) }))}
-                          placeholder="Value (e.g. 9:00 AM)"
-                        />
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => setInfoPanel((p) => ({ ...p!, tiles: p!.tiles.filter((_, j) => j !== i) }))}
-                        >✕</button>
+                        {expandedTabIdx === ti && (
+                          <div className="le-info-tab-editor__body">
+                            <div className="input-group" style={{ marginBottom: 10 }}>
+                              <label className="input-label">Button label</label>
+                              <input
+                                className="input"
+                                value={tab.label}
+                                onChange={(e) => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, label: e.target.value } : t) }))}
+                                placeholder="e.g. Session times"
+                              />
+                            </div>
+                            <div className="input-group" style={{ marginBottom: 10 }}>
+                              <label className="input-label">Panel heading <span className="text-muted">(optional)</span></label>
+                              <input
+                                className="input"
+                                value={tab.heading ?? ''}
+                                onChange={(e) => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, heading: e.target.value || undefined } : t) }))}
+                                placeholder="e.g. Published starting times (UK centres)"
+                              />
+                            </div>
+
+                            <p className="input-label" style={{ marginBottom: 6 }}>Tiles</p>
+                            {tab.tiles.map((tile, i) => (
+                              <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                                <input
+                                  className="input"
+                                  style={{ flex: '2 1 150px', minWidth: 120 }}
+                                  value={tile.label}
+                                  onChange={(e) => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, tiles: t.tiles.map((tl, k) => k === i ? { ...tl, label: e.target.value } : tl) } : t) }))}
+                                  placeholder="Label (e.g. Morning session)"
+                                />
+                                <input
+                                  className="input"
+                                  style={{ flex: '1 1 90px', minWidth: 80 }}
+                                  value={tile.value}
+                                  onChange={(e) => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, tiles: t.tiles.map((tl, k) => k === i ? { ...tl, value: e.target.value } : tl) } : t) }))}
+                                  placeholder="Value (e.g. 9:00 AM)"
+                                />
+                                <button className="btn btn-ghost btn-sm" onClick={() => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, tiles: t.tiles.filter((_, k) => k !== i) } : t) }))}>✕</button>
+                              </div>
+                            ))}
+                            {tab.tiles.length < 8 && (
+                              <button
+                                className="btn btn-secondary btn-sm"
+                                style={{ marginBottom: 10 }}
+                                onClick={() => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, tiles: [...t.tiles, { label: '', value: '' }] } : t) }))}
+                              >
+                                + Add tile
+                              </button>
+                            )}
+
+                            <div className="input-group">
+                              <label className="input-label">Footer note <span className="text-muted">(optional)</span></label>
+                              <input
+                                className="input"
+                                value={tab.note ?? ''}
+                                onChange={(e) => setInfoPanel((p) => ({ tabs: p!.tabs.map((t, j) => j === ti ? { ...t, note: e.target.value || undefined } : t) }))}
+                                placeholder="e.g. All times are local to the exam centre"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
 
-                    <div className="input-group" style={{ marginTop: 10, marginBottom: 10 }}>
-                      <label className="input-label">Footer note <span className="text-muted">(optional)</span></label>
-                      <input
-                        className="input"
-                        value={infoPanel.note ?? ''}
-                        onChange={(e) => setInfoPanel((p) => ({ ...p!, note: e.target.value || undefined }))}
-                        placeholder="e.g. All times are local to the exam centre"
-                      />
-                    </div>
-
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      style={{ color: 'var(--color-danger)' }}
-                      onClick={() => setInfoPanel(undefined)}
-                    >
-                      Remove info tiles
+                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--color-danger)', marginTop: 8 }} onClick={() => setInfoPanel(undefined)}>
+                      Remove all info tiles
                     </button>
                   </>
                 )}

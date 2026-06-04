@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
-import type { LinkedDashboard, LinkedRow, LinkedColumnConfig, InfoTile } from '../../lib/types';
+import type { LinkedDashboard, LinkedRow, LinkedColumnConfig, InfoTile, InfoPanelTab } from '../../lib/types';
 import { trackEvent } from '../../lib/analytics';
 import PearsonLogo from '../layout/PearsonLogo';
 import pearsonWave from '../../assets/pearson-wave.jpg';
@@ -165,6 +165,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
   const [detailRow, setDetailRow]     = useState<Record<string, unknown> | null>(null);
   const [hiddenCols, setHiddenCols]   = useState<Set<string>>(new Set());
   const [showColPicker, setShowColPicker] = useState(false);
+  const [activeTabIdx, setActiveTabIdx]   = useState<number | null>(null);
 
   // Filter bar drag-to-reorder state — seeded from saved config.filterOrder
   const [filterOrder, setFilterOrder] = useState<string[]>(() => config.filterOrder ?? []);
@@ -445,26 +446,43 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
         </div>
       )}
 
-      {/* ── Info panel ── */}
-      {config.infoPanel && (config.infoPanel.tiles.length > 0 || config.infoPanel.heading) && (
+      {/* ── Info panel tabs ── */}
+      {(config.infoPanel?.tabs?.length ?? 0) > 0 && (
         <div className="ld-info-panel">
           <div className="ld-info-panel__inner">
-            {config.infoPanel.heading && (
-              <h3 className="ld-info-panel__heading">{config.infoPanel.heading}</h3>
-            )}
-            {config.infoPanel.tiles.length > 0 && (
-              <div className="ld-info-panel__tiles">
-                {config.infoPanel.tiles.filter((t: InfoTile) => t.label || t.value).map((tile: InfoTile, i: number) => (
-                  <div key={i} className="ld-info-tile">
-                    <div className="ld-info-tile__label">{tile.label}</div>
-                    <div className="ld-info-tile__value">{tile.value}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {config.infoPanel.note && (
-              <p className="ld-info-panel__note">{config.infoPanel.note}</p>
-            )}
+            <div className="ld-info-panel__tab-btns">
+              {config.infoPanel!.tabs.map((tab: InfoPanelTab, i: number) => (
+                <button
+                  key={i}
+                  className={`ld-info-tab-btn ${activeTabIdx === i ? 'ld-info-tab-btn--active' : ''}`}
+                  onClick={() => setActiveTabIdx(activeTabIdx === i ? null : i)}
+                >
+                  {tab.label || `Info ${i + 1}`}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: 5, transition: 'transform 0.2s', transform: activeTabIdx === i ? 'rotate(180deg)' : 'rotate(0deg)' }}><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+              ))}
+            </div>
+
+            {activeTabIdx !== null && config.infoPanel!.tabs[activeTabIdx] && (() => {
+              const tab = config.infoPanel!.tabs[activeTabIdx];
+              const tiles = tab.tiles.filter((t: InfoTile) => t.label || t.value);
+              return (
+                <div className="ld-info-panel__content">
+                  {tab.heading && <h3 className="ld-info-panel__heading">{tab.heading}</h3>}
+                  {tiles.length > 0 && (
+                    <div className="ld-info-panel__tiles">
+                      {tiles.map((tile: InfoTile, j: number) => (
+                        <div key={j} className="ld-info-tile">
+                          <div className="ld-info-tile__label">{tile.label}</div>
+                          <div className="ld-info-tile__value">{tile.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {tab.note && <p className="ld-info-panel__note">{tab.note}</p>}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

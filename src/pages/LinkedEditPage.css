@@ -432,6 +432,38 @@
   background: var(--color-primary-lt);
 }
 
+/* ── Info tile tab editor ───────────────────────────────────────────────────── */
+.le-info-tab-editor {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.le-info-tab-editor__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--color-bg-soft);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.le-info-tab-editor__header:hover { background: var(--color-bg); }
+
+.le-info-tab-editor__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.le-info-tab-editor__body {
+  padding: 14px;
+  border-top: 1.5px solid var(--color-border);
+  background: var(--color-white);
+}
+
 /* ── Web address editor ─────────────────────────────────────────────────────── */
 .le-address-bar {
   display: flex;

@@ -137,10 +137,15 @@ export interface InfoTile {
   value: string;
 }
 
-export interface LinkedInfoPanel {
+export interface InfoPanelTab {
+  label: string;
   heading?: string;
   tiles: InfoTile[];
   note?: string;
+}
+
+export interface LinkedInfoPanel {
+  tabs: InfoPanelTab[];
 }
 
 export interface LinkedDashboardConfig {
