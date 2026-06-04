@@ -432,6 +432,89 @@
   background: var(--color-primary-lt);
 }
 
+/* ── Web address editor ─────────────────────────────────────────────────────── */
+.le-address-bar {
+  display: flex;
+  align-items: stretch;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-white);
+  transition: border-color 0.15s;
+  margin-bottom: 8px;
+}
+.le-address-bar:focus-within { border-color: var(--color-primary); }
+.le-address-bar--error { border-color: var(--color-danger) !important; }
+
+.le-address-base {
+  background: var(--color-bg-soft);
+  border-right: 1.5px solid var(--color-border);
+  padding: 9px 10px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  user-select: none;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.le-address-input {
+  flex: 1;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 9px 10px !important;
+  font-size: 13px;
+  font-family: monospace;
+  color: var(--color-text);
+  background: transparent;
+  outline: none;
+  min-width: 0;
+}
+
+.le-address-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+  margin-bottom: 4px;
+}
+
+.le-address-status-wrap { display: flex; align-items: center; }
+
+.le-address-status { font-size: 12px; font-weight: 600; }
+.le-address-status--ok      { color: #16A34A; }
+.le-address-status--error   { color: var(--color-danger); }
+.le-address-status--checking { color: var(--color-text-muted); font-weight: 400; }
+
+.le-address-copy {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--color-text-soft);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.le-address-copy:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+.le-address-warn {
+  margin: 6px 0 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #92400E;
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
+  border-radius: var(--radius-md);
+}
+
 @media (max-width: 640px) {
   .le-main { padding: 24px 16px 60px; }
   .le-heading { font-size: 22px; }

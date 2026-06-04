@@ -10,6 +10,15 @@ import './LinkedEditPage.css';
 
 interface Props { user: User }
 
+function formatAddress(val: string): string {
+  return val
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 60);
+}
+
 const TYPE_OPTIONS = [
   { value: 'text',   label: 'Text' },
   { value: 'number', label: 'Number' },
@@ -40,6 +49,10 @@ export default function LinkedEditPage({ user }: Props) {
   const [dataRefresh, setDataRefresh] = useState<{ enabled: boolean; customText: string; lastUpdated?: string }>({ enabled: false, customText: '' });
   const [actionButtons, setActionButtons] = useState<ActionButton[]>([]);
   const [allowColumnCustomise, setAllowColumnCustomise] = useState(false);
+  const [addressInput, setAddressInput]       = useState('');
+  const [addressChecking, setAddressChecking] = useState(false);
+  const [addressAvailable, setAddressAvailable] = useState<boolean | null>(null);
+  const [addressCopied, setAddressCopied]     = useState(false);
   const [tracking, setTracking] = useState<{ gaTrackingId?: string; cookieConsent?: { enabled: boolean; message?: string } } | undefined>(undefined);
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState('');
@@ -142,6 +155,7 @@ export default function LinkedEditPage({ user }: Props) {
       setDataRefresh(dash.config.dataRefresh ?? { enabled: false, customText: '' });
       setActionButtons(dash.config.actionButtons ?? []);
       setAllowColumnCustomise(dash.config.allowColumnCustomise ?? false);
+      setAddressInput(dash.slug);
       setTracking(dash.config.tracking);
 
       const { data: srcData } = await supabase
@@ -155,6 +169,35 @@ export default function LinkedEditPage({ user }: Props) {
     };
     void load();
   }, [id, user.id]);
+
+  // ── Address availability check ─────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!dashboard) return;
+    const formatted = formatAddress(addressInput).replace(/^-+|-+$/g, '');
+    if (formatted === dashboard.slug || !formatted) {
+      setAddressAvailable(null);
+      setAddressChecking(false);
+      return;
+    }
+    if (formatted.length < 2) {
+      setAddressAvailable(false);
+      return;
+    }
+    setAddressChecking(true);
+    setAddressAvailable(null);
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from('linked_dashboards')
+        .select('id')
+        .eq('slug', formatted)
+        .neq('id', dashboard.id)
+        .maybeSingle();
+      setAddressAvailable(!data);
+      setAddressChecking(false);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [addressInput, dashboard?.id, dashboard?.slug]);
 
   // ── Field health ────────────────────────────────────────────────────────────
 
@@ -275,12 +318,14 @@ export default function LinkedEditPage({ user }: Props) {
         actionButtons: actionButtons.length > 0 ? actionButtons : undefined,
         tracking: tracking?.gaTrackingId ? tracking : undefined,
       };
+      const newAddress = formatAddress(addressInput).replace(/^-+|-+$/g, '');
       const patch: Record<string, unknown> = {
         title: title.trim() || dashboard.title,
         description: description.trim() || null,
         config: updatedConfig,
         updated_at: new Date().toISOString(),
       };
+      if (newAddress && newAddress !== dashboard.slug && addressAvailable) patch.slug = newAddress;
       if (publish !== undefined) patch.is_published = publish;
 
       const { error: updateErr } = await supabase
@@ -511,6 +556,55 @@ export default function LinkedEditPage({ user }: Props) {
                   />
                 </div>
               </div>
+
+              {/* Web address */}
+              {(() => {
+                const formatted = formatAddress(addressInput).replace(/^-+|-+$/g, '');
+                const changed    = !!formatted && formatted !== dashboard.slug;
+                const fullUrl    = `${window.location.origin}/ld/${formatted || dashboard.slug}`;
+                return (
+                  <div className="card le-card">
+                    <p className="text-sm font-600" style={{ marginBottom: 4 }}>Web address</p>
+                    <p className="text-xs text-muted" style={{ marginBottom: 12 }}>The link people use to open this dashboard.</p>
+
+                    <div className={`le-address-bar${addressAvailable === false && changed ? ' le-address-bar--error' : ''}`}>
+                      <span className="le-address-base">{window.location.origin}/ld/</span>
+                      <input
+                        className="le-address-input"
+                        value={addressInput}
+                        spellCheck={false}
+                        onChange={(e) => setAddressInput(formatAddress(e.target.value))}
+                        onBlur={(e) => setAddressInput(formatAddress(e.target.value).replace(/^-+|-+$/g, ''))}
+                      />
+                    </div>
+
+                    <div className="le-address-footer">
+                      <div className="le-address-status-wrap">
+                        {addressChecking && <span className="le-address-status le-address-status--checking">Checking…</span>}
+                        {!addressChecking && changed && addressAvailable === true  && <span className="le-address-status le-address-status--ok">✓ Available</span>}
+                        {!addressChecking && changed && addressAvailable === false && <span className="le-address-status le-address-status--error">Already in use — try a different address</span>}
+                      </div>
+                      <button
+                        className="le-address-copy"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(fullUrl);
+                          setAddressCopied(true);
+                          setTimeout(() => setAddressCopied(false), 2000);
+                        }}
+                        title="Copy link"
+                      >
+                        {addressCopied ? '✓ Copied' : 'Copy link'}
+                      </button>
+                    </div>
+
+                    {changed && (
+                      <p className="le-address-warn">
+                        Updating this will break any links you've already shared — make sure you let people know.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Column list */}
               <div className="le-cols-header">
@@ -874,21 +968,28 @@ export default function LinkedEditPage({ user }: Props) {
 
               {error && <p className="error-msg mt-16">{error}</p>}
 
-              <div className="le-actions">
-                <button className="btn btn-secondary" onClick={() => navigate('/dashboard')} disabled={saving}>Cancel</button>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    className={`btn btn-sm ${dashboard.is_published ? 'btn-secondary' : 'btn-ghost'}`}
-                    onClick={() => void save(!dashboard.is_published)}
-                    disabled={saving}
-                  >
-                    {dashboard.is_published ? 'Save & unpublish' : 'Save as draft'}
-                  </button>
-                  <button className="btn btn-primary" onClick={() => void save(dashboard.is_published ? undefined : true)} disabled={saving}>
-                    {saving ? 'Saving…' : dashboard.is_published ? 'Save changes' : 'Save & publish →'}
-                  </button>
-                </div>
-              </div>
+              {(() => {
+                const formatted    = formatAddress(addressInput).replace(/^-+|-+$/g, '');
+                const addressChanged = !!formatted && formatted !== dashboard.slug;
+                const savingBlocked  = saving || addressChecking || (addressChanged && addressAvailable === false);
+                return (
+                  <div className="le-actions">
+                    <button className="btn btn-secondary" onClick={() => navigate('/dashboard')} disabled={saving}>Cancel</button>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        className={`btn btn-sm ${dashboard.is_published ? 'btn-secondary' : 'btn-ghost'}`}
+                        onClick={() => void save(!dashboard.is_published)}
+                        disabled={savingBlocked}
+                      >
+                        {dashboard.is_published ? 'Save & unpublish' : 'Save as draft'}
+                      </button>
+                      <button className="btn btn-primary" onClick={() => void save(dashboard.is_published ? undefined : true)} disabled={savingBlocked}>
+                        {saving ? 'Saving…' : dashboard.is_published ? 'Save changes' : 'Save & publish →'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </>
           )}
 
