@@ -458,28 +458,30 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
           )}
         </div>
         <div className="ld-toolbar__right">
-          <div style={{ position: 'relative' }}>
-            <button className="ld-toolbar-btn" onClick={() => setShowColPicker((v) => !v)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-              Columns
-            </button>
-            {showColPicker && (
-              <div className="ld-col-picker">
-                {visibleCols.map((col) => (
-                  <label key={col.key} className="ld-col-picker__item">
-                    <input
-                      type="checkbox"
-                      checked={!hiddenCols.has(col.key)}
-                      onChange={(e) => {
-                        setHiddenCols((s) => { const n = new Set(s); e.target.checked ? n.delete(col.key) : n.add(col.key); return n; });
-                      }}
-                    />
-                    <span>{col.label}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
+          {config.allowColumnCustomise && (
+            <div style={{ position: 'relative' }}>
+              <button className="ld-toolbar-btn" onClick={() => setShowColPicker((v) => !v)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Customise columns
+              </button>
+              {showColPicker && (
+                <div className="ld-col-picker">
+                  {visibleCols.map((col) => (
+                    <label key={col.key} className="ld-col-picker__item">
+                      <input
+                        type="checkbox"
+                        checked={!hiddenCols.has(col.key)}
+                        onChange={(e) => {
+                          setHiddenCols((s) => { const n = new Set(s); e.target.checked ? n.delete(col.key) : n.add(col.key); return n; });
+                        }}
+                      />
+                      <span>{col.label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <div style={{ position: 'relative' }}>
             <button
               className="ld-toolbar-btn ld-toolbar-btn--primary"

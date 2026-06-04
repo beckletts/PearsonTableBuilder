@@ -39,6 +39,7 @@ export default function LinkedEditPage({ user }: Props) {
   const [filterOrder, setFilterOrder] = useState<string[]>([]);
   const [dataRefresh, setDataRefresh] = useState<{ enabled: boolean; customText: string; lastUpdated?: string }>({ enabled: false, customText: '' });
   const [actionButtons, setActionButtons] = useState<ActionButton[]>([]);
+  const [allowColumnCustomise, setAllowColumnCustomise] = useState(false);
   const [tracking, setTracking] = useState<{ gaTrackingId?: string; cookieConsent?: { enabled: boolean; message?: string } } | undefined>(undefined);
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState('');
@@ -140,6 +141,7 @@ export default function LinkedEditPage({ user }: Props) {
       setFilterOrder(dash.config.filterOrder ?? []);
       setDataRefresh(dash.config.dataRefresh ?? { enabled: false, customText: '' });
       setActionButtons(dash.config.actionButtons ?? []);
+      setAllowColumnCustomise(dash.config.allowColumnCustomise ?? false);
       setTracking(dash.config.tracking);
 
       const { data: srcData } = await supabase
@@ -255,7 +257,7 @@ export default function LinkedEditPage({ user }: Props) {
     const now = new Date().toISOString();
     const updated = { ...dataRefresh, lastUpdated: now };
     setDataRefresh(updated);
-    const updatedConfig = { ...dashboard.config, columns, filterOrder: syncedFilterOrder, dataRefresh: updated, tracking: tracking?.gaTrackingId ? tracking : undefined };
+    const updatedConfig = { ...dashboard.config, columns, filterOrder: syncedFilterOrder, allowColumnCustomise: allowColumnCustomise || undefined, dataRefresh: updated, tracking: tracking?.gaTrackingId ? tracking : undefined };
     await supabase.from('linked_dashboards').update({ config: updatedConfig }).eq('id', dashboard.id);
   };
 
@@ -268,6 +270,7 @@ export default function LinkedEditPage({ user }: Props) {
         ...dashboard.config,
         columns,
         filterOrder: syncedFilterOrder,
+        allowColumnCustomise: allowColumnCustomise || undefined,
         dataRefresh: dataRefresh.enabled ? dataRefresh : undefined,
         actionButtons: actionButtons.length > 0 ? actionButtons : undefined,
         tracking: tracking?.gaTrackingId ? tracking : undefined,
@@ -755,6 +758,23 @@ export default function LinkedEditPage({ user }: Props) {
                     </button>
                   </div>
                 ))}
+              </div>
+
+              {/* Column customisation */}
+              <div className="card le-card">
+                <label className="col-editor__check">
+                  <input
+                    type="checkbox"
+                    checked={allowColumnCustomise}
+                    onChange={(e) => setAllowColumnCustomise(e.target.checked)}
+                  />
+                  <span className="text-sm font-600">Allow viewers to customise columns</span>
+                </label>
+                {allowColumnCustomise && (
+                  <p className="text-xs text-muted" style={{ marginTop: 6, marginLeft: 22 }}>
+                    A "Customise columns" button will appear on the published dashboard, letting viewers show or hide individual columns.
+                  </p>
+                )}
               </div>
 
               {/* Data refresh */}

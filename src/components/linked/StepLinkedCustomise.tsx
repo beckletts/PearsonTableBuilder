@@ -73,6 +73,7 @@ export default function StepLinkedCustomise({ sources, joinResult }: Props) {
   const [title, setTitle]           = useState('');
   const [description, setDescription] = useState('');
   const [columns, setColumns]       = useState<LinkedColumnConfig[]>(() => buildInitialColumns(sources, joinResult));
+  const [allowColumnCustomise, setAllowColumnCustomise] = useState(false);
   const [saving, setSaving]         = useState(false);
   const [error, setError]           = useState('');
 
@@ -98,6 +99,7 @@ export default function StepLinkedCustomise({ sources, joinResult }: Props) {
           join_key_column: joinResult.mappings[i]?.column ?? s.headers[0],
         })),
         defaultSort: { column: '__join_value', direction: 'asc' },
+        allowColumnCustomise: allowColumnCustomise || undefined,
       };
 
       const { data: dashboard, error: dashErr } = await supabase
@@ -258,6 +260,23 @@ export default function StepLinkedCustomise({ sources, joinResult }: Props) {
             )}
           </div>
         ))}
+      </div>
+
+      {/* Column customisation option */}
+      <div className="card" style={{ padding: 16, marginTop: 16 }}>
+        <label className="col-editor__check">
+          <input
+            type="checkbox"
+            checked={allowColumnCustomise}
+            onChange={(e) => setAllowColumnCustomise(e.target.checked)}
+          />
+          <span className="text-sm font-600">Allow viewers to customise columns</span>
+        </label>
+        {allowColumnCustomise && (
+          <p className="text-xs text-muted" style={{ marginTop: 6, marginLeft: 22 }}>
+            A "Customise columns" button will appear on the published dashboard, letting viewers show or hide individual columns.
+          </p>
+        )}
       </div>
 
       {error && <p className="error-msg mt-16">{error}</p>}
