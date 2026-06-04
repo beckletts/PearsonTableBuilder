@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
-import type { LinkedDashboard, LinkedRow, LinkedColumnConfig } from '../../lib/types';
+import type { LinkedDashboard, LinkedRow, LinkedColumnConfig, InfoTile } from '../../lib/types';
 import { trackEvent } from '../../lib/analytics';
 import PearsonLogo from '../layout/PearsonLogo';
 import pearsonWave from '../../assets/pearson-wave.jpg';
@@ -442,6 +442,30 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
               {btn.label}
             </a>
           ))}
+        </div>
+      )}
+
+      {/* ── Info panel ── */}
+      {config.infoPanel && (config.infoPanel.tiles.length > 0 || config.infoPanel.heading) && (
+        <div className="ld-info-panel">
+          <div className="ld-info-panel__inner">
+            {config.infoPanel.heading && (
+              <h3 className="ld-info-panel__heading">{config.infoPanel.heading}</h3>
+            )}
+            {config.infoPanel.tiles.length > 0 && (
+              <div className="ld-info-panel__tiles">
+                {config.infoPanel.tiles.filter((t: InfoTile) => t.label || t.value).map((tile: InfoTile, i: number) => (
+                  <div key={i} className="ld-info-tile">
+                    <div className="ld-info-tile__label">{tile.label}</div>
+                    <div className="ld-info-tile__value">{tile.value}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {config.infoPanel.note && (
+              <p className="ld-info-panel__note">{config.infoPanel.note}</p>
+            )}
+          </div>
         </div>
       )}
 

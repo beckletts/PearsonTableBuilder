@@ -474,6 +474,62 @@
 }
 .ld-action-btn:hover { background: #1a0a6e; }
 
+/* ── Info panel ──────────────────────────────────────────────────────────── */
+.ld-info-panel {
+  padding: 20px 24px 16px;
+  background: #fff;
+  border-bottom: 1px solid var(--ld-border);
+}
+
+.ld-info-panel__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.ld-info-panel__heading {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ld-text);
+  margin: 0 0 14px;
+}
+
+.ld-info-panel__tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ld-info-tile {
+  flex: 1 1 0%;
+  min-width: 160px;
+  padding: 12px 14px;
+  background: #fff;
+  border-radius: 6px;
+  border: 2px solid #56E2E1;
+}
+
+.ld-info-tile__label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.ld-info-tile__value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ld-text);
+  line-height: 1.2;
+}
+
+.ld-info-panel__note {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+  margin: 4px 0 0;
+}
+
 /* ── Details modal ───────────────────────────────────────────────────────── */
 .ld-modal-overlay {
   position: fixed;

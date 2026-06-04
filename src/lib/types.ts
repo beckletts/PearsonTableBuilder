@@ -132,6 +132,17 @@ export interface ActionButton {
   emoji: string;
 }
 
+export interface InfoTile {
+  label: string;
+  value: string;
+}
+
+export interface LinkedInfoPanel {
+  heading?: string;
+  tiles: InfoTile[];
+  note?: string;
+}
+
 export interface LinkedDashboardConfig {
   columns: LinkedColumnConfig[];
   sources: { id: string; name: string; join_key_column: string }[];
@@ -144,6 +155,7 @@ export interface LinkedDashboardConfig {
     lastUpdated?: string;
   };
   actionButtons?: ActionButton[];
+  infoPanel?: LinkedInfoPanel;
   tracking?: {
     gaTrackingId?: string;
     cookieConsent?: {

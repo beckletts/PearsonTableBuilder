@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import type { LinkedDashboard, LinkedColumnConfig, LinkedSource, ActionButton } from '../lib/types';
+import type { LinkedDashboard, LinkedColumnConfig, LinkedSource, ActionButton, LinkedInfoPanel } from '../lib/types';
 import { parseFile, getSheetNames } from '../utils/parseFile';
 import LinkedSourceEditor from '../components/linked/LinkedSourceEditor';
 import PearsonNav from '../components/layout/PearsonNav';
@@ -48,6 +48,7 @@ export default function LinkedEditPage({ user }: Props) {
   const [filterOrder, setFilterOrder] = useState<string[]>([]);
   const [dataRefresh, setDataRefresh] = useState<{ enabled: boolean; customText: string; lastUpdated?: string }>({ enabled: false, customText: '' });
   const [actionButtons, setActionButtons] = useState<ActionButton[]>([]);
+  const [infoPanel, setInfoPanel]                 = useState<LinkedInfoPanel | undefined>(undefined);
   const [allowColumnCustomise, setAllowColumnCustomise] = useState(false);
   const [addressInput, setAddressInput]       = useState('');
   const [addressChecking, setAddressChecking] = useState(false);
@@ -154,6 +155,7 @@ export default function LinkedEditPage({ user }: Props) {
       setFilterOrder(dash.config.filterOrder ?? []);
       setDataRefresh(dash.config.dataRefresh ?? { enabled: false, customText: '' });
       setActionButtons(dash.config.actionButtons ?? []);
+      setInfoPanel(dash.config.infoPanel);
       setAllowColumnCustomise(dash.config.allowColumnCustomise ?? false);
       setAddressInput(dash.slug);
       setTracking(dash.config.tracking);
@@ -300,7 +302,7 @@ export default function LinkedEditPage({ user }: Props) {
     const now = new Date().toISOString();
     const updated = { ...dataRefresh, lastUpdated: now };
     setDataRefresh(updated);
-    const updatedConfig = { ...dashboard.config, columns, filterOrder: syncedFilterOrder, allowColumnCustomise: allowColumnCustomise || undefined, dataRefresh: updated, tracking: tracking?.gaTrackingId ? tracking : undefined };
+    const updatedConfig = { ...dashboard.config, columns, filterOrder: syncedFilterOrder, allowColumnCustomise: allowColumnCustomise || undefined, infoPanel: infoPanel?.tiles.length ? infoPanel : undefined, dataRefresh: updated, tracking: tracking?.gaTrackingId ? tracking : undefined };
     await supabase.from('linked_dashboards').update({ config: updatedConfig }).eq('id', dashboard.id);
   };
 
@@ -314,6 +316,7 @@ export default function LinkedEditPage({ user }: Props) {
         columns,
         filterOrder: syncedFilterOrder,
         allowColumnCustomise: allowColumnCustomise || undefined,
+        infoPanel: infoPanel?.tiles.length ? infoPanel : undefined,
         dataRefresh: dataRefresh.enabled ? dataRefresh : undefined,
         actionButtons: actionButtons.length > 0 ? actionButtons : undefined,
         tracking: tracking?.gaTrackingId ? tracking : undefined,
@@ -852,6 +855,86 @@ export default function LinkedEditPage({ user }: Props) {
                     </button>
                   </div>
                 ))}
+              </div>
+
+              {/* Info tiles */}
+              <div className="card le-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: infoPanel ? 12 : 0 }}>
+                  <div>
+                    <p className="text-sm font-600">Info tiles</p>
+                    {!infoPanel && <p className="text-xs text-muted" style={{ marginTop: 3 }}>Display key facts above the table — session times, important dates, quick stats.</p>}
+                  </div>
+                  {!infoPanel ? (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setInfoPanel({ tiles: [{ label: '', value: '' }] })}
+                    >
+                      + Add
+                    </button>
+                  ) : (infoPanel.tiles.length < 8) && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setInfoPanel((p) => ({ ...p!, tiles: [...p!.tiles, { label: '', value: '' }] }))}
+                    >
+                      + Add tile
+                    </button>
+                  )}
+                </div>
+
+                {infoPanel && (
+                  <>
+                    <div className="input-group" style={{ marginBottom: 12 }}>
+                      <label className="input-label">Heading <span className="text-muted">(optional)</span></label>
+                      <input
+                        className="input"
+                        value={infoPanel.heading ?? ''}
+                        onChange={(e) => setInfoPanel((p) => ({ ...p!, heading: e.target.value || undefined }))}
+                        placeholder="e.g. Published starting times (UK centres)"
+                      />
+                    </div>
+
+                    {infoPanel.tiles.map((tile, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                        <input
+                          className="input"
+                          style={{ flex: '2 1 160px', minWidth: 130 }}
+                          value={tile.label}
+                          onChange={(e) => setInfoPanel((p) => ({ ...p!, tiles: p!.tiles.map((t, j) => j === i ? { ...t, label: e.target.value } : t) }))}
+                          placeholder="Label (e.g. Morning session)"
+                        />
+                        <input
+                          className="input"
+                          style={{ flex: '1 1 100px', minWidth: 90 }}
+                          value={tile.value}
+                          onChange={(e) => setInfoPanel((p) => ({ ...p!, tiles: p!.tiles.map((t, j) => j === i ? { ...t, value: e.target.value } : t) }))}
+                          placeholder="Value (e.g. 9:00 AM)"
+                        />
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => setInfoPanel((p) => ({ ...p!, tiles: p!.tiles.filter((_, j) => j !== i) }))}
+                        >✕</button>
+                      </div>
+                    ))}
+
+                    <div className="input-group" style={{ marginTop: 10, marginBottom: 10 }}>
+                      <label className="input-label">Footer note <span className="text-muted">(optional)</span></label>
+                      <input
+                        className="input"
+                        value={infoPanel.note ?? ''}
+                        onChange={(e) => setInfoPanel((p) => ({ ...p!, note: e.target.value || undefined }))}
+                        placeholder="e.g. All times are local to the exam centre"
+                      />
+                    </div>
+
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ color: 'var(--color-danger)' }}
+                      onClick={() => setInfoPanel(undefined)}
+                    >
+                      Remove info tiles
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Column customisation */}
