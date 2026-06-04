@@ -451,7 +451,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
         <div className="ld-info-panel">
           <div className="ld-info-panel__inner">
             <div className="ld-info-panel__tab-btns">
-              {config.infoPanel!.tabs.map((tab: InfoPanelTab, i: number) => (
+              {(config.infoPanel!.tabs ?? []).map((tab: InfoPanelTab, i: number) => (
                 <button
                   key={i}
                   className={`ld-info-tab-btn ${activeTabIdx === i ? 'ld-info-tab-btn--active' : ''}`}
@@ -463,7 +463,7 @@ export default function LinkedDashboardView({ dashboard, rawRows, primarySourceI
               ))}
             </div>
 
-            {activeTabIdx !== null && config.infoPanel!.tabs[activeTabIdx] && (() => {
+            {activeTabIdx !== null && (config.infoPanel!.tabs ?? [])[activeTabIdx] && (() => {
               const tab = config.infoPanel!.tabs[activeTabIdx];
               const tiles = tab.tiles.filter((t: InfoTile) => t.label || t.value);
               return (

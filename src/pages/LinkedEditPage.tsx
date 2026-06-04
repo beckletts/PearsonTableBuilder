@@ -156,7 +156,14 @@ export default function LinkedEditPage({ user }: Props) {
       setFilterOrder(dash.config.filterOrder ?? []);
       setDataRefresh(dash.config.dataRefresh ?? { enabled: false, customText: '' });
       setActionButtons(dash.config.actionButtons ?? []);
-      setInfoPanel(dash.config.infoPanel);
+      // Migrate old format { heading, tiles, note } → { tabs: [...] }
+      const rawPanel = dash.config.infoPanel as (LinkedInfoPanel & { tiles?: unknown }) | undefined;
+      if (rawPanel && Array.isArray(rawPanel.tiles)) {
+        const old = rawPanel as { heading?: string; tiles: { label: string; value: string }[]; note?: string };
+        setInfoPanel({ tabs: [{ label: old.heading || 'Info', heading: old.heading, tiles: old.tiles, note: old.note }] });
+      } else {
+        setInfoPanel(rawPanel as LinkedInfoPanel | undefined);
+      }
       setAllowColumnCustomise(dash.config.allowColumnCustomise ?? false);
       setAddressInput(dash.slug);
       setTracking(dash.config.tracking);
