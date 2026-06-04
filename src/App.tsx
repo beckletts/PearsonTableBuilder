@@ -48,10 +48,11 @@ export default function App() {
   }, [user?.id]);
 
   function updateLastLogin(userId: string) {
-    return supabase
+    supabase
       .from('profiles')
       .update({ last_login_at: new Date().toISOString() })
-      .eq('id', userId);
+      .eq('id', userId)
+      .then(() => {});
   }
 
   return (
