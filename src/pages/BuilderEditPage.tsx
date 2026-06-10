@@ -6,8 +6,9 @@ import PearsonNav from '../components/layout/PearsonNav';
 import StepCustomise from '../components/builder/StepCustomise';
 import StepUpload from '../components/builder/StepUpload';
 import DataEditor from '../components/builder/DataEditor';
-import type { ParsedFile, TableRecord, TableRow } from '../lib/types';
+import type { ParsedFile, TableConfig, TableRecord, TableRow } from '../lib/types';
 import { fetchAllRows } from '../utils/fetchAllRows';
+import { reconcileColumns, type ReconcileResult } from '../utils/reconcileColumns';
 import './BuilderPage.css';
 import './BuilderEditPage.css';
 
@@ -25,6 +26,8 @@ export default function BuilderEditPage({ user }: Props) {
   const [tab, setTab] = useState<Tab>('configure');
   const [reupload, setReupload] = useState(false);
   const [newParsed, setNewParsed] = useState<ParsedFile | null>(null);
+  const [reuploadConfig, setReuploadConfig] = useState<TableConfig | null>(null);
+  const [columnNotice, setColumnNotice] = useState<ReconcileResult | null>(null);
 
   const loadTable = async () => {
     if (!id) return;
@@ -64,6 +67,7 @@ export default function BuilderEditPage({ user }: Props) {
     ),
   };
   const activeParsed = newParsed ?? existingParsed;
+  const activeConfig = reuploadConfig ?? table.config;
 
   return (
     <div>
@@ -123,15 +127,49 @@ export default function BuilderEditPage({ user }: Props) {
                 <button className="btn btn-ghost btn-sm" style={{ marginBottom: 20 }} onClick={() => setReupload(false)}>
                   ← Cancel
                 </button>
-                <StepUpload onParsed={(data) => { setNewParsed(data); setReupload(false); }} />
+                <StepUpload
+                  onParsed={(data) => {
+                    const result = reconcileColumns(table.config, data);
+                    setNewParsed(data);
+                    setReuploadConfig(result.config);
+                    setColumnNotice(
+                      result.addedColumns.length || result.removedColumns.length ? result : null,
+                    );
+                    setReupload(false);
+                  }}
+                />
               </div>
             ) : (
-              <StepCustomise
-                parsed={activeParsed}
-                config={table.config}
-                onBack={() => navigate('/dashboard')}
-                editingId={table.id}
-              />
+              <>
+                {columnNotice && (
+                  <div className="builder-edit__col-notice">
+                    {columnNotice.addedColumns.length > 0 && (
+                      <p>
+                        ✓ {columnNotice.addedColumns.length} new{' '}
+                        {columnNotice.addedColumns.length === 1 ? 'column' : 'columns'} from your file{' '}
+                        {columnNotice.addedColumns.length === 1 ? 'has' : 'have'} been added:{' '}
+                        <strong>{columnNotice.addedColumns.join(', ')}</strong>. Review the settings below,
+                        then Save or Publish to apply.
+                      </p>
+                    )}
+                    {columnNotice.removedColumns.length > 0 && (
+                      <p>
+                        ⚠ {columnNotice.removedColumns.length}{' '}
+                        {columnNotice.removedColumns.length === 1 ? 'column is' : 'columns are'} not in the new
+                        file and will be left blank: <strong>{columnNotice.removedColumns.join(', ')}</strong>.
+                        Hide {columnNotice.removedColumns.length === 1 ? 'it' : 'them'} below if no longer
+                        needed.
+                      </p>
+                    )}
+                  </div>
+                )}
+                <StepCustomise
+                  parsed={activeParsed}
+                  config={activeConfig}
+                  onBack={() => navigate('/dashboard')}
+                  editingId={table.id}
+                />
+              </>
             )
           )}
 
