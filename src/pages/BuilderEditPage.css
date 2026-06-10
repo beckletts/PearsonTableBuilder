@@ -54,3 +54,22 @@
   background: var(--color-bg-soft);
   color: var(--color-text-muted);
 }
+
+.builder-edit__col-notice {
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.builder-edit__col-notice p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-soft);
+}
+
+.builder-edit__col-notice p + p {
+  margin-top: 8px;
+}
