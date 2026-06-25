@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { parseFile } from '../../utils/parseFile';
+import { parseFile, getSheetNames } from '../../utils/parseFile';
 import type { ParsedFile, TableConfig } from '../../lib/types';
 import './StepUpload.css';
 
@@ -18,13 +18,33 @@ export default function StepUpload({ onParsed }: Props) {
   const [pdfFile, setPdfFile]       = useState<File | null>(null);
   const [analysing, setAnalysing]   = useState(false);
   const [preview, setPreview]       = useState<ParsedFile | null>(null);
+  const [pendingSheets, setPendingSheets] = useState<{ file: File; sheetNames: string[] } | null>(null);
+  const [selectedSheet, setSelectedSheet] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Parse a single sheet (or CSV, when sheetName is undefined) into a preview
+  const parseSheet = async (file: File, sheetName?: string) => {
+    setParsing(true);
+    setError('');
+    try {
+      const parsed = await parseFile(file, sheetName);
+      if (parsed.headers.length === 0) throw new Error('No columns found in this sheet.');
+      if (parsed.rows.length === 0) throw new Error('No data rows found in this sheet.');
+      setPendingSheets(null);
+      setPreview(parsed);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to parse file.');
+    } finally {
+      setParsing(false);
+    }
+  };
 
   const handleFile = async (file: File) => {
     setError('');
     setWarning('');
     setPreview(null);
     setPdfFile(null);
+    setPendingSheets(null);
 
     if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
       if (file.size > PDF_MAX_BYTES) {
@@ -35,17 +55,24 @@ export default function StepUpload({ onParsed }: Props) {
       return;
     }
 
+    // Multi-tab workbook? Ask the user which sheet holds their data before parsing.
     setParsing(true);
     try {
-      const parsed = await parseFile(file);
-      if (parsed.headers.length === 0) throw new Error('No columns found in file.');
-      if (parsed.rows.length === 0) throw new Error('No data rows found in file.');
-      setPreview(parsed);
+      const sheetNames = await getSheetNames(file);
+      if (sheetNames.length > 1) {
+        setPendingSheets({ file, sheetNames });
+        setSelectedSheet(sheetNames[0]);
+        setParsing(false);
+        return;
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to parse file.');
-    } finally {
+      setError(e instanceof Error ? e.message : 'Failed to read file.');
       setParsing(false);
+      return;
     }
+
+    // Single sheet or CSV — parse straight away
+    await parseSheet(file);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -175,7 +202,50 @@ export default function StepUpload({ onParsed }: Props) {
       )}
 
       {/* ── Spreadsheet drop zone ── */}
-      {!pdfFile && !preview && !analysing && dropZone}
+      {!pdfFile && !preview && !analysing && !pendingSheets && dropZone}
+
+      {/* ── Multi-tab sheet picker ── */}
+      {pendingSheets && !parsing && (
+        <div className="step-upload__sheet-picker card">
+          <div className="step-upload__sheet-picker-header">
+            <span className="step-upload__sheet-picker-icon">📊</span>
+            <div>
+              <p className="font-600" style={{ fontSize: 14 }}>{pendingSheets.file.name}</p>
+              <p className="text-xs text-muted mt-2">
+                This workbook has {pendingSheets.sheetNames.length} tabs. Which one holds the data for this table?
+              </p>
+            </div>
+          </div>
+          <div className="step-upload__sheet-list">
+            {pendingSheets.sheetNames.map((name) => (
+              <label key={name} className="step-upload__sheet-item">
+                <input
+                  type="radio"
+                  name="sheet-pick"
+                  checked={selectedSheet === name}
+                  onChange={() => setSelectedSheet(name)}
+                />
+                <span className="step-upload__sheet-name">{name}</span>
+              </label>
+            ))}
+          </div>
+          <div className="step-upload__sheet-actions">
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => { setPendingSheets(null); setError(''); }}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              disabled={!selectedSheet}
+              onClick={() => void parseSheet(pendingSheets.file, selectedSheet)}
+            >
+              Use “{selectedSheet}” →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Spreadsheet parsing ── */}
       {parsing && (

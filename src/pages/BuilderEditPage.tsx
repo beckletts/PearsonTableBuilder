@@ -6,6 +6,7 @@ import PearsonNav from '../components/layout/PearsonNav';
 import StepCustomise from '../components/builder/StepCustomise';
 import StepUpload from '../components/builder/StepUpload';
 import DataEditor from '../components/builder/DataEditor';
+import VersionHistoryModal from '../components/builder/VersionHistoryModal';
 import type { ParsedFile, TableConfig, TableRecord, TableRow } from '../lib/types';
 import { fetchAllRows } from '../utils/fetchAllRows';
 import { reconcileColumns, type ReconcileResult } from '../utils/reconcileColumns';
@@ -28,6 +29,7 @@ export default function BuilderEditPage({ user }: Props) {
   const [newParsed, setNewParsed] = useState<ParsedFile | null>(null);
   const [reuploadConfig, setReuploadConfig] = useState<TableConfig | null>(null);
   const [columnNotice, setColumnNotice] = useState<ReconcileResult | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const loadTable = async () => {
     if (!id) return;
@@ -98,6 +100,13 @@ export default function BuilderEditPage({ user }: Props) {
                 Replace data file
               </button>
             )}
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setShowHistory(true)}
+              title="View previous published versions and roll back if needed"
+            >
+              Version history
+            </button>
             {!table.tab_group_id && (
               <button
                 className="btn btn-secondary btn-sm"
@@ -183,6 +192,15 @@ export default function BuilderEditPage({ user }: Props) {
           )}
         </div>
       </main>
+
+      {showHistory && (
+        <VersionHistoryModal
+          tableId={table.id}
+          tableTitle={table.title}
+          onClose={() => setShowHistory(false)}
+          onRestored={() => { setShowHistory(false); setNewParsed(null); setReuploadConfig(null); setColumnNotice(null); void loadTable(); }}
+        />
+      )}
     </div>
   );
 }

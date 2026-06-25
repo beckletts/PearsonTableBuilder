@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { generateUniqueSlug } from '../../utils/generateSlug';
+import { createSnapshot } from '../../utils/snapshots';
 import type { ColumnConfig, ParsedFile, TableConfig, Widget } from '../../lib/types';
 import ColumnEditor from './ColumnEditor';
 import WidgetBuilder from './WidgetBuilder';
@@ -129,6 +130,14 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
           .update({ title: finalConfig.title, description: finalConfig.description, config: finalConfig, is_published: publish })
           .eq('id', editingId);
         if (upErr) throw upErr;
+
+        // Capture the live state before we overwrite it, so it can be rolled back.
+        // Best-effort: a snapshot failure must not block the save itself.
+        try {
+          await createSnapshot(editingId, publish ? 'Before republish' : 'Before save');
+        } catch (snapErr) {
+          console.warn('Snapshot before overwrite failed:', snapErr);
+        }
 
         await supabase.from('table_rows').delete().eq('table_id', editingId);
 
