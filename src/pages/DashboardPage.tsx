@@ -87,10 +87,6 @@ export default function DashboardPage({ user }: Props) {
             <p className="text-soft mt-4">Create and manage your Pearson interactive tables</p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Link to="/course-picker" className="btn btn-secondary" style={{ background: 'var(--color-primary-lt)', borderColor: 'transparent', color: 'var(--color-primary-dk)' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-              Course Picker
-            </Link>
             <Link to="/linked/new" className="btn btn-secondary">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
               Linked dashboard

@@ -30,9 +30,6 @@ export default function PearsonNav({ user }: Props) {
         </Link>
 
         <div className="pearson-nav__right">
-          <Link to="/course-picker" className="pearson-nav__course-picker-link">
-            Course Picker
-          </Link>
           {user ? (
             <>
               {isSuperAdmin && (

@@ -60,23 +60,6 @@
   color: var(--color-text-soft);
 }
 
-.pearson-nav__course-picker-link {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-primary);
-  text-decoration: none;
-  padding: 4px 12px;
-  background: var(--color-primary-lt);
-  border-radius: 6px;
-  transition: background 0.15s, color 0.15s;
-}
-
-.pearson-nav__course-picker-link:hover {
-  background: var(--color-primary);
-  color: #fff;
-  text-decoration: none;
-}
-
 .pearson-nav__admin-link {
   font-size: 13px;
   font-weight: 600;
