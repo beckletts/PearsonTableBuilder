@@ -17,6 +17,7 @@ import LinkedBuilderPage    from './pages/LinkedBuilderPage';
 import LinkedDashboardPage  from './pages/LinkedDashboardPage';
 import LinkedEditPage       from './pages/LinkedEditPage';
 import AdminPage            from './pages/AdminPage';
+import CoursePickerPage     from './pages/CoursePickerPage';
 
 export default function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -65,6 +66,7 @@ export default function App() {
         <Route path="/signup"        element={user ? <Navigate to="/dashboard" replace /> : <SignupPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/t/:slug"       element={<PublicTablePage />} />
+        <Route path="/course-picker" element={<CoursePickerPage />} />
         <Route path="/ld/:slug"      element={<LinkedDashboardPage />} />
 
         {/* Protected */}
