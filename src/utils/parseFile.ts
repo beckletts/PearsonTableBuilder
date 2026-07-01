@@ -2,11 +2,14 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import type { ParsedFile } from '../lib/types';
 
-// Format a JS Date as DD/MM/YYYY (UTC-based to avoid timezone shifts on date-only values)
+// Format a JS Date as DD/MM/YYYY.
+// SheetJS (cellDates: true) builds date cells in LOCAL time, so a date-only cell
+// like 07/05/2027 becomes local midnight. Read it back with local getters — reading
+// with UTC getters subtracts the timezone offset and rolls BST dates back a day.
 function formatDate(d: Date): string {
-  const day = d.getUTCDate().toString().padStart(2, '0');
-  const mon = (d.getUTCMonth() + 1).toString().padStart(2, '0');
-  return `${day}/${mon}/${d.getUTCFullYear()}`;
+  const day = d.getDate().toString().padStart(2, '0');
+  const mon = (d.getMonth() + 1).toString().padStart(2, '0');
+  return `${day}/${mon}/${d.getFullYear()}`;
 }
 
 // Coerce any cell value to a clean string
