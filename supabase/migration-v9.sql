@@ -87,7 +87,7 @@ begin
 end;
 $$;
 
-revoke execute on function public.transfer_table_ownership(uuid, text, boolean) from public;
+revoke execute on function public.transfer_table_ownership(uuid, text, boolean) from public, anon;
 grant  execute on function public.transfer_table_ownership(uuid, text, boolean) to authenticated;
 
 
@@ -152,7 +152,7 @@ begin
 end;
 $$;
 
-revoke execute on function public.transfer_dashboard_ownership(uuid, text, boolean) from public;
+revoke execute on function public.transfer_dashboard_ownership(uuid, text, boolean) from public, anon;
 grant  execute on function public.transfer_dashboard_ownership(uuid, text, boolean) to authenticated;
 
 
@@ -215,5 +215,5 @@ begin
 end;
 $$;
 
-revoke execute on function public.admin_transfer_all_ownership(uuid, text) from public;
+revoke execute on function public.admin_transfer_all_ownership(uuid, text) from public, anon;
 grant  execute on function public.admin_transfer_all_ownership(uuid, text) to authenticated;

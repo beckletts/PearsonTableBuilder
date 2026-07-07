@@ -142,10 +142,10 @@ $$;
 -- ── Lock privileged functions to signed-in users only ────────────────────────
 -- Revoking from PUBLIC drops the implicit anon grant; re-grant to authenticated.
 
-revoke execute on function public.transfer_table_ownership(uuid, text, boolean)     from public;
-revoke execute on function public.transfer_dashboard_ownership(uuid, text, boolean) from public;
-revoke execute on function public.admin_transfer_all_ownership(uuid, text)          from public;
-revoke execute on function public.admin_user_stats()                                from public;
+revoke execute on function public.transfer_table_ownership(uuid, text, boolean)     from public, anon;
+revoke execute on function public.transfer_dashboard_ownership(uuid, text, boolean) from public, anon;
+revoke execute on function public.admin_transfer_all_ownership(uuid, text)          from public, anon;
+revoke execute on function public.admin_user_stats()                                from public, anon;
 
 grant execute on function public.transfer_table_ownership(uuid, text, boolean)     to authenticated;
 grant execute on function public.transfer_dashboard_ownership(uuid, text, boolean) to authenticated;
@@ -154,9 +154,9 @@ grant execute on function public.admin_user_stats()                             
 
 -- Trigger functions are invoked by the trigger as the table owner and never need
 -- to be callable over the API — remove their PUBLIC execute entirely.
-revoke execute on function public.handle_new_user()      from public;
-revoke execute on function public.enforce_pearson_email() from public;
-revoke execute on function public.set_updated_at()       from public;
+revoke execute on function public.handle_new_user()      from public, anon;
+revoke execute on function public.enforce_pearson_email() from public, anon;
+revoke execute on function public.set_updated_at()       from public, anon;
 
 -- ── 3: Pin search_path on the flagged functions ──────────────────────────────
 
