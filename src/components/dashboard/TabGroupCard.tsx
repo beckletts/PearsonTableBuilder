@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { TableRecord } from '../../lib/types';
 import ShareModal from './ShareModal';
+import TransferOwnershipModal from './TransferOwnershipModal';
 import EmbedModal from './EmbedModal';
 import AnalyticsModal from './AnalyticsModal';
 import './TabGroupCard.css';
@@ -16,6 +17,7 @@ interface Props {
 export default function TabGroupCard({ primary, tabs, onUpdate }: Props) {
   const [busy, setBusy] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [transferring, setTransferring] = useState(false);
   const [embedding, setEmbedding] = useState(false);
   const [analytics, setAnalytics] = useState(false);
 
@@ -108,6 +110,7 @@ export default function TabGroupCard({ primary, tabs, onUpdate }: Props) {
             {isPublished ? 'Unpublish' : 'Publish'}
           </button>
           <button className="btn btn-ghost btn-sm" onClick={() => setSharing(true)}>Share</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setTransferring(true)}>Transfer</button>
           <button className="btn btn-ghost btn-sm" onClick={() => setAnalytics(true)}>Analytics</button>
           <button className="btn btn-danger btn-sm" onClick={() => void deleteGroup()} disabled={busy}>
             Delete all
@@ -124,6 +127,15 @@ export default function TabGroupCard({ primary, tabs, onUpdate }: Props) {
           tableId={primary.id}
           tableTitle={primary.title}
           onClose={() => setSharing(false)}
+        />
+      )}
+      {transferring && (
+        <TransferOwnershipModal
+          kind="table"
+          id={primary.id}
+          title={`${primary.title} (${allTabs.length} tabs)`}
+          onClose={() => setTransferring(false)}
+          onDone={onUpdate}
         />
       )}
       {embedding && (

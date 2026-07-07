@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import PearsonNav from '../components/layout/PearsonNav';
+import AdminReassignModal from './AdminReassignModal';
 import './AdminPage.css';
 
 interface UserStat {
@@ -40,6 +41,7 @@ export default function AdminPage({ user }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [reassign, setReassign] = useState<UserStat | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -136,12 +138,13 @@ export default function AdminPage({ user }: Props) {
                   <th className="admin-table__num">Tables</th>
                   <th className="admin-table__num">Dashboards</th>
                   <th className="admin-table__num">Views</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="admin-table__empty">No users found</td>
+                    <td colSpan={7} className="admin-table__empty">No users found</td>
                   </tr>
                 ) : (
                   filtered.map((u) => (
@@ -172,6 +175,13 @@ export default function AdminPage({ user }: Props) {
                       <td className="admin-table__num">{u.table_count}</td>
                       <td className="admin-table__num">{u.dashboard_count}</td>
                       <td className="admin-table__num">{Number(u.total_views).toLocaleString()}</td>
+                      <td className="admin-table__num">
+                        {(Number(u.table_count) + Number(u.dashboard_count)) > 0 && (
+                          <button className="btn btn-ghost btn-sm" onClick={() => setReassign(u)}>
+                            Reassign
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))
                 )}
@@ -180,6 +190,17 @@ export default function AdminPage({ user }: Props) {
           )}
         </div>
       </main>
+
+      {reassign && (
+        <AdminReassignModal
+          fromUserId={reassign.user_id}
+          fromLabel={reassign.full_name || reassign.email || reassign.user_id}
+          tableCount={Number(reassign.table_count)}
+          dashboardCount={Number(reassign.dashboard_count)}
+          onClose={() => setReassign(null)}
+          onDone={() => void load()}
+        />
+      )}
     </div>
   );
 }

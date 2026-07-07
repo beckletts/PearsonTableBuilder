@@ -18,6 +18,7 @@ create table if not exists public.table_snapshots (
 alter table public.table_snapshots enable row level security;
 
 -- Table owners can view, restore from, insert and prune their own snapshots
+drop policy if exists "snapshots_owner_select" on public.table_snapshots;
 create policy "snapshots_owner_select" on public.table_snapshots
   for select using (
     exists (
@@ -26,6 +27,7 @@ create policy "snapshots_owner_select" on public.table_snapshots
     )
   );
 
+drop policy if exists "snapshots_owner_insert" on public.table_snapshots;
 create policy "snapshots_owner_insert" on public.table_snapshots
   for insert with check (
     exists (
@@ -34,6 +36,7 @@ create policy "snapshots_owner_insert" on public.table_snapshots
     )
   );
 
+drop policy if exists "snapshots_owner_delete" on public.table_snapshots;
 create policy "snapshots_owner_delete" on public.table_snapshots
   for delete using (
     exists (
@@ -43,6 +46,7 @@ create policy "snapshots_owner_delete" on public.table_snapshots
   );
 
 -- Collaborators with edit access can also snapshot / restore
+drop policy if exists "snapshots_collaborator_select" on public.table_snapshots;
 create policy "snapshots_collaborator_select" on public.table_snapshots
   for select using (
     exists (
@@ -52,6 +56,7 @@ create policy "snapshots_collaborator_select" on public.table_snapshots
     )
   );
 
+drop policy if exists "snapshots_collaborator_insert" on public.table_snapshots;
 create policy "snapshots_collaborator_insert" on public.table_snapshots
   for insert with check (
     exists (

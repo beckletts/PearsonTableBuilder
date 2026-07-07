@@ -5,6 +5,7 @@ import type { TableRecord } from '../../lib/types';
 import { generateUniqueSlug } from '../../utils/generateSlug';
 import { fetchAllRows } from '../../utils/fetchAllRows';
 import ShareModal from './ShareModal';
+import TransferOwnershipModal from './TransferOwnershipModal';
 import EmbedModal from './EmbedModal';
 import AuditModal from './AuditModal';
 import AnalyticsModal from './AnalyticsModal';
@@ -19,6 +20,7 @@ interface Props {
 export default function TableCard({ table, isOwner, onUpdate }: Props) {
   const [busy, setBusy] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [transferring, setTransferring] = useState(false);
   const [embedding, setEmbedding] = useState(false);
   const [auditing, setAuditing] = useState(false);
   const [analytics, setAnalytics] = useState(false);
@@ -136,6 +138,9 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
               <button className="btn btn-ghost btn-sm" onClick={() => setSharing(true)}>
                 Share
               </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setTransferring(true)}>
+                Transfer
+              </button>
               <button className="btn btn-ghost btn-sm" onClick={() => setAuditing(true)}>
                 History
               </button>
@@ -159,6 +164,15 @@ export default function TableCard({ table, isOwner, onUpdate }: Props) {
           tableId={table.id}
           tableTitle={table.title}
           onClose={() => setSharing(false)}
+        />
+      )}
+      {transferring && (
+        <TransferOwnershipModal
+          kind="table"
+          id={table.id}
+          title={table.title}
+          onClose={() => setTransferring(false)}
+          onDone={onUpdate}
         />
       )}
       {embedding && (

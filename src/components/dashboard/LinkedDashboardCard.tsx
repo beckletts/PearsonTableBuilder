@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { LinkedDashboard } from '../../lib/types';
 import LinkedShareModal from './LinkedShareModal';
+import TransferOwnershipModal from './TransferOwnershipModal';
 import AnalyticsModal from './AnalyticsModal';
 import './LinkedDashboardCard.css';
 
@@ -17,6 +18,7 @@ export default function LinkedDashboardCard({ dashboard, onUpdate, accessLevel }
   const canEdit = isOwner || accessLevel === 'edit';
   const [busy, setBusy]           = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [transferring, setTransferring] = useState(false);
   const [analytics, setAnalytics] = useState(false);
 
   const togglePublish = async () => {
@@ -83,6 +85,11 @@ export default function LinkedDashboardCard({ dashboard, onUpdate, accessLevel }
           </button>
         )}
         {isOwner && (
+          <button className="btn btn-ghost btn-sm" onClick={() => setTransferring(true)}>
+            Transfer
+          </button>
+        )}
+        {isOwner && (
           <button
             className={`btn btn-sm ${dashboard.is_published ? 'btn-secondary' : 'btn-primary'}`}
             onClick={() => void togglePublish()}
@@ -106,6 +113,16 @@ export default function LinkedDashboardCard({ dashboard, onUpdate, accessLevel }
           dashboardId={dashboard.id}
           dashboardTitle={dashboard.title}
           onClose={() => setShowShare(false)}
+        />
+      )}
+
+      {transferring && (
+        <TransferOwnershipModal
+          kind="dashboard"
+          id={dashboard.id}
+          title={dashboard.title}
+          onClose={() => setTransferring(false)}
+          onDone={onUpdate}
         />
       )}
 
