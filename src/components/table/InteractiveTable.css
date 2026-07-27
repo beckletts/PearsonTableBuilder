@@ -72,6 +72,10 @@
   vertical-align: middle;
 }
 
+.itable__td--merged {
+  background: var(--color-primary-lt);
+}
+
 .itable__empty {
   text-align: center;
   color: var(--color-text-muted);

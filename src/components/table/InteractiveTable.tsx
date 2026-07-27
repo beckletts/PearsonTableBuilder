@@ -3,6 +3,7 @@ import type { TableConfig, TableRow } from '../../lib/types';
 import TableSearch from './TableSearch';
 import TableFilters from './TableFilters';
 import TablePagination from './TablePagination';
+import { computeMergedSpans } from '../../utils/mergedCells';
 import './InteractiveTable.css';
 
 const PAGE_SIZE = 25;
@@ -100,6 +101,9 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const mergeColKeys = useMemo(() => visibleCols.filter((c) => c.merge).map((c) => c.key), [visibleCols]);
+  const mergedSpans = useMemo(() => computeMergedSpans(paginated, mergeColKeys), [paginated, mergeColKeys]);
+
   const handleSort = (key: string) => {
     if (sortCol === key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -189,13 +193,22 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
                 </td>
               </tr>
             ) : (
-              paginated.map((row) => (
+              paginated.map((row, i) => (
                 <tr key={row.id}>
                   {visibleCols.map((col) => {
+                    const span = mergedSpans[i][col.key];
+                    if (span === 0) return null;
                     const raw = row.data[col.key];
                     const val = raw !== null && raw !== undefined ? String(raw).replace(/​/g, '').trim() : '—';
                     return (
-                      <td key={col.key} className={col.type === 'number' ? 'itable__td--num' : ''}>
+                      <td
+                        key={col.key}
+                        rowSpan={span && span > 1 ? span : undefined}
+                        className={[
+                          col.type === 'number' ? 'itable__td--num' : '',
+                          span && span > 1 ? 'itable__td--merged' : '',
+                        ].filter(Boolean).join(' ')}
+                      >
                         {col.type === 'url' && val !== '—' ? (
                           <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">
                             View ↗

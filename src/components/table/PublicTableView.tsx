@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TableConfig, TableRow, ColumnConfig, CardViewConfig, StatCardsConfig, IntroBannerConfig, CalloutBoxConfig, FooterNoteConfig } from '../../lib/types';
 import { trackEvent } from '../../lib/analytics';
+import { computeMergedSpans } from '../../utils/mergedCells';
 import './PublicTableView.css';
 
 const BATCH = 50;
@@ -116,6 +117,9 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
     ? sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize)
     : sorted.slice(0, visibleCount);
   const totalPages = isPaginated ? Math.ceil(sorted.length / pageSize) : 0;
+
+  const mergeColKeys = useMemo(() => visibleCols.filter((c) => c.merge).map((c) => c.key), [visibleCols]);
+  const mergedSpans = useMemo(() => computeMergedSpans(paginated, mergeColKeys), [paginated, mergeColKeys]);
 
   // Reset counts/page when results change
   useEffect(() => { setVisibleCount(BATCH); setCurrentPage(1); }, [sorted]);
@@ -447,18 +451,24 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
                       </td>
                     </tr>
                   ) : (
-                    paginated.map((row) => (
+                    paginated.map((row, i) => (
                       <tr key={row.id}>
-                        {visibleCols.map((col) => (
-                          <td
-                            key={col.key}
-                            className={[
-                              col.type === 'number' ? 'pub-view__td--num' : '',
-                              col.truncate ? 'pub-view__td--truncate' : '',
-                            ].filter(Boolean).join(' ')}
-                            title={col.truncate ? String(row.data[col.key] ?? '') : undefined}
-                          >{renderCell(col, row)}</td>
-                        ))}
+                        {visibleCols.map((col) => {
+                          const span = mergedSpans[i][col.key];
+                          if (span === 0) return null;
+                          return (
+                            <td
+                              key={col.key}
+                              rowSpan={span && span > 1 ? span : undefined}
+                              className={[
+                                col.type === 'number' ? 'pub-view__td--num' : '',
+                                col.truncate ? 'pub-view__td--truncate' : '',
+                                span && span > 1 ? 'pub-view__td--merged' : '',
+                              ].filter(Boolean).join(' ')}
+                              title={col.truncate ? String(row.data[col.key] ?? '') : undefined}
+                            >{renderCell(col, row)}</td>
+                          );
+                        })}
                       </tr>
                     ))
                   )}
