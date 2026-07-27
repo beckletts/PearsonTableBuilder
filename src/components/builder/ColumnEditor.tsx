@@ -116,6 +116,15 @@ export default function ColumnEditor({ column, onChange, onDragStart, onDragOver
               <span className="text-sm">Truncate</span>
             </label>
           )}
+
+          <label className="col-editor__check" data-tooltip="For grouped rows (e.g. a Raw/UMS pair), leave this column blank on the second row in Edit data — it will visually merge with the value above on the published table">
+            <input
+              type="checkbox"
+              checked={column.merge ?? false}
+              onChange={(e) => set('merge', e.target.checked)}
+            />
+            <span className="text-sm">Merge blanks</span>
+          </label>
         </div>
       )}
 

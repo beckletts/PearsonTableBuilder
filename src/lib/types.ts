@@ -11,6 +11,7 @@ export interface ColumnConfig {
   filterPlaceholder?: string;  // default option text, e.g. "All Universities"
   fontColor?: string;          // optional hex colour applied to all cell values in this column
   truncate?: boolean;          // clip long text to one line with ellipsis; full value shown on hover
+  merge?: boolean;             // visually merge a blank cell with the filled cell above it (rowSpan), for grouped rows e.g. Raw/UMS pairs
 }
 
 // ── Widgets ──────────────────────────────────────────────────────────────────
