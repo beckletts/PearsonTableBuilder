@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { TableConfig, TableRow } from '../../lib/types';
+import { ORIGINAL_ORDER } from '../../lib/types';
 import TableSearch from './TableSearch';
 import TableFilters from './TableFilters';
 import TablePagination from './TablePagination';
@@ -91,9 +92,14 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
-      const av = a.data[sortCol] ?? '';
-      const bv = b.data[sortCol] ?? '';
-      const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
+      let cmp: number;
+      if (sortCol === ORIGINAL_ORDER) {
+        cmp = a.row_index - b.row_index;
+      } else {
+        const av = a.data[sortCol] ?? '';
+        const bv = b.data[sortCol] ?? '';
+        cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
+      }
       return sortDir === 'asc' ? cmp : -cmp;
     });
   }, [filtered, sortCol, sortDir]);
