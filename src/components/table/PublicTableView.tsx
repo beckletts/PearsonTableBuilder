@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TableConfig, TableRow, ColumnConfig, CardViewConfig, StatCardsConfig, IntroBannerConfig, CalloutBoxConfig, FooterNoteConfig } from '../../lib/types';
+import { ORIGINAL_ORDER } from '../../lib/types';
 import { trackEvent } from '../../lib/analytics';
 import { computeMergedSpans } from '../../utils/mergedCells';
 import './PublicTableView.css';
@@ -108,7 +109,9 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
 
   const sorted = useMemo(() => (
     [...filtered].sort((a, b) => {
-      const cmp = String(a.data[sortCol] ?? '').localeCompare(String(b.data[sortCol] ?? ''), undefined, { numeric: true });
+      const cmp = sortCol === ORIGINAL_ORDER
+        ? a.row_index - b.row_index
+        : String(a.data[sortCol] ?? '').localeCompare(String(b.data[sortCol] ?? ''), undefined, { numeric: true });
       return sortDir === 'asc' ? cmp : -cmp;
     })
   ), [filtered, sortCol, sortDir]);

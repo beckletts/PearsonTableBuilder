@@ -35,6 +35,10 @@ export interface Widget {
 
 // ── Table config ─────────────────────────────────────────────────────────────
 
+// Sentinel defaultSort.column value meaning "keep the row order rows were uploaded in"
+// (compares TableRow.row_index) rather than sorting by a column's data.
+export const ORIGINAL_ORDER = '__original_order__';
+
 export interface TableConfig {
   title: string;
   description: string;

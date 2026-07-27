@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { generateUniqueSlug } from '../../utils/generateSlug';
 import { createSnapshot } from '../../utils/snapshots';
 import type { ColumnConfig, ParsedFile, TableConfig, Widget } from '../../lib/types';
+import { ORIGINAL_ORDER } from '../../lib/types';
 import ColumnEditor from './ColumnEditor';
 import WidgetBuilder from './WidgetBuilder';
 import InteractiveTable from '../table/InteractiveTable';
@@ -289,6 +290,39 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
               </div>
             </div>
           )}
+
+          <div className="card" style={{ marginTop: 16, padding: 16 }}>
+            <p className="text-sm font-600" style={{ marginBottom: 10 }}>Default sort</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select
+                className="input"
+                value={config.defaultSort.column}
+                onChange={(e) => setConfig((c) => ({ ...c, defaultSort: { ...c.defaultSort, column: e.target.value } }))}
+                data-tooltip="Which order rows appear in by default, before a viewer sorts or filters"
+              >
+                <option value={ORIGINAL_ORDER}>Original order (as uploaded)</option>
+                {config.columns.map((c) => (
+                  <option key={c.key} value={c.key}>{c.label}</option>
+                ))}
+              </select>
+              {config.defaultSort.column !== ORIGINAL_ORDER && (
+                <select
+                  className="input"
+                  style={{ width: 'auto' }}
+                  value={config.defaultSort.direction}
+                  onChange={(e) => setConfig((c) => ({ ...c, defaultSort: { ...c.defaultSort, direction: e.target.value as 'asc' | 'desc' } }))}
+                >
+                  <option value="asc">Ascending</option>
+                  <option value="desc">Descending</option>
+                </select>
+              )}
+            </div>
+            {config.columns.some((c) => c.key === config.defaultSort.column && c.merge) && (
+              <p className="text-xs" style={{ color: '#C25100', marginTop: 8 }}>
+                ⚠ This column has merged blank cells — sorting by it will split merged row pairs apart. "Original order" keeps them together.
+              </p>
+            )}
+          </div>
 
           <div className="card" style={{ marginTop: 16, padding: 16 }}>
             <label className="col-editor__check" style={{ marginBottom: 10 }} data-tooltip="Pin the column headers to the top of the table so they stay visible as users scroll down">
