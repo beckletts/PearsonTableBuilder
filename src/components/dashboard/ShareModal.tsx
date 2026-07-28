@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { isAllowedEmailDomain, ALLOWED_DOMAINS_LABEL } from '../../lib/allowedDomains';
 import type { TableShare } from '../../lib/types';
 import './ShareModal.css';
 
@@ -28,8 +29,8 @@ export default function ShareModal({ tableId, tableTitle, onClose }: Props) {
     e.preventDefault();
     setError('');
     const trimmed = email.trim().toLowerCase();
-    if (!trimmed.endsWith('@pearson.com')) {
-      setError('Only @pearson.com email addresses can be added.');
+    if (!isAllowedEmailDomain(trimmed)) {
+      setError(`Only ${ALLOWED_DOMAINS_LABEL} email addresses can be added.`);
       return;
     }
     if (shares.find((s) => s.collaborator_email === trimmed)) {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { isAllowedEmailDomain, ALLOWED_DOMAINS_LABEL } from '../lib/allowedDomains';
 import PearsonNav from '../components/layout/PearsonNav';
 import './AuthPage.css';
 
@@ -15,8 +16,8 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!email.toLowerCase().endsWith('@pearson.com')) {
-      setError('Only @pearson.com email addresses can sign up.');
+    if (!isAllowedEmailDomain(email)) {
+      setError(`Only ${ALLOWED_DOMAINS_LABEL} email addresses can sign up.`);
       return;
     }
     if (password.length < 8) {
@@ -43,7 +44,7 @@ export default function SignupPage() {
       <div className="auth-page">
         <div className="auth-card card">
           <h1 className="auth-card__title">Create account</h1>
-          <p className="auth-card__sub">Pearson colleagues only · @pearson.com required</p>
+          <p className="auth-card__sub">Pearson colleagues only · {ALLOWED_DOMAINS_LABEL}</p>
           <form onSubmit={(e) => void handleSubmit(e)} className="auth-form">
             <div className="input-group">
               <label className="input-label">Full name</label>

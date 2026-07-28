@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { isAllowedEmailDomain, ALLOWED_DOMAINS_LABEL } from '../../lib/allowedDomains';
 import './TransferOwnershipModal.css';
 
 interface Props {
@@ -24,8 +25,8 @@ export default function TransferOwnershipModal({ kind, id, title, asAdmin, onClo
     e.preventDefault();
     setError('');
     const trimmed = email.trim().toLowerCase();
-    if (!trimmed.endsWith('@pearson.com')) {
-      setError('Enter a valid @pearson.com email address.');
+    if (!isAllowedEmailDomain(trimmed)) {
+      setError(`Enter a valid email address (${ALLOWED_DOMAINS_LABEL}).`);
       return;
     }
     setBusy(true);
