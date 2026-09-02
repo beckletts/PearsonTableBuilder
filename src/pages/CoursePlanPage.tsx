@@ -10,12 +10,15 @@ import { supabase } from '../lib/supabase';
 import { LEVELS, REFORM_YEARS, SUBJECTS, type Level, type Qualification } from '../data/optionsGuide';
 import {
   analysePlan, emptyFilters, normaliseConfig, planExportRows,
-  type CoursePlan, type CoursePlanConfig, type GuideFilters,
+  type CoursePlan, type CoursePlanAccess, type CoursePlanConfig, type GuideFilters,
 } from '../lib/courseBuilder';
 import PearsonNav from '../components/layout/PearsonNav';
 import QualificationBrowser from '../components/course/QualificationBrowser';
 import QualificationDetail from '../components/course/QualificationDetail';
 import PlanPanel from '../components/course/PlanPanel';
+import CoursePlanReadView from '../components/course/CoursePlanReadView';
+import CoursePlanShareModal from '../components/course/CoursePlanShareModal';
+import EmbedModal from '../components/dashboard/EmbedModal';
 import './CoursePage.css';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
@@ -29,10 +32,17 @@ export default function CoursePlanPage({ user }: Props) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [config, setConfig] = useState<CoursePlanConfig | null>(null);
+  const [published, setPublished] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [filters, setFilters] = useState<GuideFilters>(emptyFilters);
   const [open, setOpen] = useState<Qualification | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [embedding, setEmbedding] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [publishBusy, setPublishBusy] = useState(false);
+  /** Undefined until the plan loads; 'owner' when the signed-in user owns it. */
+  const [access, setAccess] = useState<'owner' | CoursePlanAccess | undefined>(undefined);
 
   // Which plan the state below actually belongs to, so a debounced save can
   // never land on a different plan than the one it was typed into.
@@ -49,16 +59,34 @@ export default function CoursePlanPage({ user }: Props) {
       if (error || !data) { setLoadError(error?.message ?? 'Course plan not found'); return; }
       const record = data as CoursePlan;
       const normalised = normaliseConfig(record.config);
+
+      // RLS already decided we may read this; work out whether we may write it.
+      let level: 'owner' | CoursePlanAccess = 'view';
+      if (record.owner_id === user.id) {
+        level = 'owner';
+      } else {
+        const { data: share } = await supabase
+          .from('course_plan_shares')
+          .select('access_level')
+          .eq('plan_id', record.id)
+          .eq('collaborator_email', (user.email ?? '').toLowerCase())
+          .maybeSingle();
+        level = (share as { access_level?: CoursePlanAccess } | null)?.access_level === 'edit' ? 'edit' : 'view';
+      }
+      if (cancelled) return;
+
       loadedId.current = id;
       dirty.current = false;
+      setAccess(level);
       setPlan(record);
+      setPublished(record.is_published);
       setTitle(record.title);
       setDescription(record.description ?? '');
       setConfig(normalised);
       setFilters({ ...emptyFilters, subject: normalised.subject ?? '', level: normalised.level ?? '' });
     })();
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, user.id, user.email]);
 
   // Debounced autosave: planning is fiddly, and losing a half-built programme
   // to a stray navigation would be worse than a save button.
@@ -78,13 +106,15 @@ export default function CoursePlanPage({ user }: Props) {
     setSaveState(error ? 'error' : 'saved');
   }, [id]);
 
+  const canEdit = access === 'owner' || access === 'edit';
+
   useEffect(() => {
-    if (!config || !plan || loadedId.current !== id) return;
+    if (!config || !plan || loadedId.current !== id || !canEdit) return;
     if (!dirty.current) { dirty.current = true; return; }   // skip the initial load
     window.clearTimeout(pending.current);
     pending.current = window.setTimeout(() => void save({ title, description, config }), 800);
     return () => window.clearTimeout(pending.current);
-  }, [title, description, config, plan, id, save]);
+  }, [title, description, config, plan, id, canEdit, save]);
 
   const analysis = useMemo(() => (config ? analysePlan(config) : null), [config]);
 
@@ -113,6 +143,26 @@ export default function CoursePlanPage({ user }: Props) {
     XLSX.writeFile(wb, `${safe}.xlsx`);
   };
 
+  // Publishing is written straight through rather than debounced — it is a
+  // deliberate act, and the link it hands out should work immediately.
+  const togglePublish = async () => {
+    if (!plan) return;
+    setPublishBusy(true);
+    const next = !published;
+    const { error } = await supabase.from('course_plans').update({ is_published: next }).eq('id', plan.id);
+    setPublishBusy(false);
+    if (error) alert(`Could not ${next ? 'publish' : 'unpublish'} the plan: ${error.message}`);
+    else setPublished(next);
+  };
+
+  const copyLink = () => {
+    if (!plan) return;
+    void navigator.clipboard.writeText(`${window.location.origin}/cp/${plan.slug}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   if (loadError) {
     return (
       <div>
@@ -136,7 +186,30 @@ export default function CoursePlanPage({ user }: Props) {
     );
   }
 
+  // A colleague with view-only access gets the same read view as the public
+  // page, inside the app shell, rather than a disabled copy of the workspace.
+  if (!canEdit) {
+    return (
+      <div>
+        <PearsonNav user={user} />
+        <main className="cb-page">
+          <nav className="cb-breadcrumb">
+            <Link to="/course">Course builder</Link> <span aria-hidden="true">/</span> {plan.title}
+          </nav>
+          <CoursePlanReadView
+            title={plan.title}
+            description={plan.description}
+            config={config}
+            analysis={analysis}
+            contextLabel="Shared with you — view only"
+          />
+        </main>
+      </div>
+    );
+  }
+
   const inPlanIds = config.items.map((i) => i.id);
+  const isOwner = access === 'owner';
 
   return (
     <div>
@@ -145,6 +218,50 @@ export default function CoursePlanPage({ user }: Props) {
         <nav className="cb-breadcrumb">
           <Link to="/course">Course builder</Link> <span aria-hidden="true">/</span> {plan.title}
         </nav>
+
+        <div className="cb-plan-bar card">
+          <div className="cb-plan-bar__status">
+            <span className={`cb-tag ${published ? 'cb-tag--ok' : ''}`}>
+              {published ? 'Published' : 'Draft'}
+            </span>
+            {!isOwner && <span className="cb-tag cb-tag--watch">Shared with you — can edit</span>}
+            <p className="cb-plan-bar__hint">
+              {published
+                ? 'Anyone with the link can read this plan, and it can be embedded on a website.'
+                : 'Only you and the people you share it with can see this plan.'}
+            </p>
+          </div>
+          <div className="cb-plan-bar__actions">
+            {published && (
+              <>
+                <a href={`/cp/${plan.slug}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+                  View ↗
+                </a>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={copyLink}>
+                  {copied ? '✓ Copied' : 'Copy link'}
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEmbedding(true)}>
+                  Embed
+                </button>
+              </>
+            )}
+            {isOwner && (
+              <>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${published ? 'btn-secondary' : 'btn-primary cb-btn-primary'}`}
+                  onClick={() => void togglePublish()}
+                  disabled={publishBusy}
+                >
+                  {published ? 'Unpublish' : 'Publish'}
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSharing(true)}>
+                  Share
+                </button>
+              </>
+            )}
+          </div>
+        </div>
 
         <header className="cb-plan-head card">
           <div className="cb-plan-head__main">
@@ -234,6 +351,8 @@ export default function CoursePlanPage({ user }: Props) {
               onNotesChange={(notes) => patch({ notes })}
               onSearchFor={(searchTitle) => setFilters({ ...emptyFilters, search: searchTitle })}
               onExport={exportPlan}
+              shareNotes={config.shareNotes === true}
+              onShareNotesChange={(shareNotes) => patch({ shareNotes })}
             />
           </section>
         </div>
@@ -246,6 +365,19 @@ export default function CoursePlanPage({ user }: Props) {
             onAdd={() => addQual(open)}
             onRemove={() => removeQual(open.id)}
             onSearchFor={(searchTitle) => setFilters({ ...emptyFilters, search: searchTitle })}
+          />
+        )}
+
+        {sharing && (
+          <CoursePlanShareModal planId={plan.id} planTitle={title} onClose={() => setSharing(false)} />
+        )}
+        {embedding && (
+          <EmbedModal
+            tableTitle={title}
+            tableSlug={plan.slug}
+            basePath="cp"
+            kind="course plan"
+            onClose={() => setEmbedding(false)}
           />
         )}
       </main>

@@ -4,12 +4,18 @@ import './EmbedModal.css';
 interface Props {
   tableTitle: string;
   tableSlug: string;
+  /** URL segment the public view lives under. Course plans use 'cp'. */
+  basePath?: string;
+  /** What is being embedded, for the heading and blurb. */
+  kind?: string;
   onClose: () => void;
 }
 
-export default function EmbedModal({ tableTitle, tableSlug, onClose }: Props) {
+export default function EmbedModal({
+  tableTitle, tableSlug, basePath = 't', kind = 'table', onClose,
+}: Props) {
   const [copied, setCopied] = useState(false);
-  const url = `${window.location.origin}/t/${tableSlug}`;
+  const url = `${window.location.origin}/${basePath}/${tableSlug}`;
   const code = `<iframe\n  src="${url}"\n  width="100%"\n  height="700"\n  frameborder="0"\n  title="${tableTitle}"\n></iframe>`;
 
   const copy = () => {
@@ -24,13 +30,13 @@ export default function EmbedModal({ tableTitle, tableSlug, onClose }: Props) {
       <div className="embed-modal">
         <div className="embed-modal__header">
           <div>
-            <h2 className="embed-modal__title">Embed table</h2>
+            <h2 className="embed-modal__title">Embed {kind}</h2>
             <p className="embed-modal__sub">{tableTitle}</p>
           </div>
           <button className="embed-modal__close" onClick={onClose} aria-label="Close">✕</button>
         </div>
         <p className="embed-modal__desc">
-          Paste this code into any webpage to embed a live, interactive version of this table.
+          Paste this code into any webpage to embed a live, interactive version of this {kind}.
         </p>
         <pre className="embed-modal__code">{code}</pre>
         <button className="btn btn-primary w-full" onClick={copy}>

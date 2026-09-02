@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import type { TableRecord, LinkedDashboard } from '../lib/types';
-import type { CoursePlan } from '../lib/courseBuilder';
+import type { CoursePlan, CoursePlanAccess } from '../lib/courseBuilder';
 import PearsonNav from '../components/layout/PearsonNav';
 import TableCard from '../components/dashboard/TableCard';
 import TabGroupCard from '../components/dashboard/TabGroupCard';
@@ -20,25 +20,47 @@ export default function DashboardPage({ user }: Props) {
   const [linkedDashboards, setLinkedDashboards] = useState<LinkedDashboard[]>([]);
   const [sharedLinkedDashboards, setSharedLinkedDashboards] = useState<LinkedDashboard[]>([]);
   const [coursePlans, setCoursePlans] = useState<CoursePlan[]>([]);
+  const [sharedCoursePlans, setSharedCoursePlans] = useState<CoursePlan[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
     const userEmail = user.email ?? '';
 
-    const [{ data: ownData }, { data: shareData }, { data: linkedData }, { data: ldShareData }, { data: planData }] = await Promise.all([
+    const [
+      { data: ownData }, { data: shareData }, { data: linkedData }, { data: ldShareData },
+      { data: planData }, { data: planShareData },
+    ] = await Promise.all([
       supabase.from('tables').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('table_shares').select('table_id').eq('collaborator_email', userEmail),
       supabase.from('linked_dashboards').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('linked_dashboard_shares').select('dashboard_id, access_level').eq('collaborator_email', userEmail),
-      // Course plans need migration-v11; until it is applied this comes back
-      // empty rather than breaking the rest of the dashboard.
+      // Course plans need migration-v11 and -v12; until those are applied these
+      // come back empty rather than breaking the rest of the dashboard.
       supabase.from('course_plans').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
+      supabase.from('course_plan_shares').select('plan_id, access_level').eq('collaborator_email', userEmail),
     ]);
 
     setLinkedDashboards((linkedData as LinkedDashboard[]) ?? []);
     setTables((ownData as TableRecord[]) ?? []);
     setCoursePlans((planData as CoursePlan[]) ?? []);
+
+    if (planShareData && planShareData.length > 0) {
+      const levels = Object.fromEntries(
+        (planShareData as { plan_id: string; access_level: CoursePlanAccess }[])
+          .map((s) => [s.plan_id, s.access_level]),
+      );
+      const { data: sharedPlanData } = await supabase
+        .from('course_plans')
+        .select('*')
+        .in('id', Object.keys(levels))
+        .order('updated_at', { ascending: false });
+      setSharedCoursePlans(
+        ((sharedPlanData as CoursePlan[]) ?? []).map((p) => ({ ...p, _accessLevel: levels[p.id] ?? 'view' })),
+      );
+    } else {
+      setSharedCoursePlans([]);
+    }
 
     if (shareData && shareData.length > 0) {
       const ids = shareData.map((s: { table_id: string }) => s.table_id);
@@ -189,6 +211,25 @@ export default function DashboardPage({ user }: Props) {
             <div className="cb-card-grid">
               {coursePlans.map((plan) => (
                 <CoursePlanCard key={plan.id} plan={plan} onUpdate={() => void load()} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {!loading && sharedCoursePlans.length > 0 && (
+          <>
+            <div className="dashboard__section-heading">
+              <h2>Shared course plans</h2>
+              <p className="text-soft text-sm">Course plans colleagues have shared with your account</p>
+            </div>
+            <div className="cb-card-grid">
+              {sharedCoursePlans.map((plan) => (
+                <CoursePlanCard
+                  key={plan.id}
+                  plan={plan}
+                  accessLevel={plan._accessLevel ?? 'view'}
+                  onUpdate={() => void load()}
+                />
               ))}
             </div>
           </>

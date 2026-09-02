@@ -19,6 +19,7 @@ import LinkedEditPage       from './pages/LinkedEditPage';
 import CourseBuilderPage    from './pages/CourseBuilderPage';
 import CourseGuidePage      from './pages/CourseGuidePage';
 import CoursePlanPage       from './pages/CoursePlanPage';
+import PublicCoursePlanPage from './pages/PublicCoursePlanPage';
 import AdminPage            from './pages/AdminPage';
 
 export default function App() {
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/t/:slug"       element={<PublicTablePage />} />
         <Route path="/ld/:slug"      element={<LinkedDashboardPage />} />
+        <Route path="/cp/:slug"      element={<PublicCoursePlanPage />} />
 
         {/* Protected */}
         <Route path="/dashboard" element={

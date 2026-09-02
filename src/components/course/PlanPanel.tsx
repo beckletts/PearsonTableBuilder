@@ -17,10 +17,14 @@ interface Props {
   /** Search the guide for a suggested replacement. */
   onSearchFor: (title: string) => void;
   onExport: () => void;
+  /** Whether the author's notes appear on the shared page. */
+  shareNotes: boolean;
+  onShareNotesChange: (shareNotes: boolean) => void;
 }
 
 export default function PlanPanel({
   config, analysis, onOpen, onRemove, onNoteChange, onNotesChange, onSearchFor, onExport,
+  shareNotes, onShareNotesChange,
 }: Props) {
   const { quals, missing, totalGlh, unknownGlhCount, checks, suggestions } = analysis;
 
@@ -146,6 +150,16 @@ export default function PlanPanel({
           onChange={(e) => onNotesChange(e.target.value)}
           aria-label="Planning notes"
         />
+        {/* Notes are usually internal, so they stay off the shared page unless
+            the author says otherwise. */}
+        <label className="cb-check cb-plan__share-notes">
+          <input
+            type="checkbox"
+            checked={shareNotes}
+            onChange={(e) => onShareNotesChange(e.target.checked)}
+          />
+          <span>Show my notes on the shared and embedded page</span>
+        </label>
       </section>
 
       <button

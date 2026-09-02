@@ -8,7 +8,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { SUBJECTS, LEVELS, type Level } from '../data/optionsGuide';
-import { DEFAULT_FIRST_TEACH_YEAR, emptyConfig, type CoursePlan } from '../lib/courseBuilder';
+import {
+  DEFAULT_FIRST_TEACH_YEAR, emptyConfig,
+  type CoursePlan, type CoursePlanAccess,
+} from '../lib/courseBuilder';
+import { generateUniqueCoursePlanSlug } from '../utils/generateSlug';
 import PearsonNav from '../components/layout/PearsonNav';
 import CoursePlanCard from '../components/course/CoursePlanCard';
 import './CoursePage.css';
@@ -18,6 +22,7 @@ interface Props { user: User }
 export default function CourseBuilderPage({ user }: Props) {
   const navigate = useNavigate();
   const [plans, setPlans] = useState<CoursePlan[]>([]);
+  const [sharedPlans, setSharedPlans] = useState<CoursePlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,13 +33,27 @@ export default function CourseBuilderPage({ user }: Props) {
 
   const load = async () => {
     setLoading(true);
-    const { data, error: loadError } = await supabase
-      .from('course_plans')
-      .select('*')
-      .eq('owner_id', user.id)
-      .order('updated_at', { ascending: false });
+    const email = (user.email ?? '').toLowerCase();
+    const [{ data, error: loadError }, { data: shareRows }] = await Promise.all([
+      supabase.from('course_plans').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
+      supabase.from('course_plan_shares').select('plan_id, access_level').eq('collaborator_email', email),
+    ]);
     if (loadError) setError(loadError.message);
     setPlans((data as CoursePlan[]) ?? []);
+
+    if (shareRows && shareRows.length > 0) {
+      const levels = Object.fromEntries(
+        (shareRows as { plan_id: string; access_level: CoursePlanAccess }[]).map((s) => [s.plan_id, s.access_level]),
+      );
+      const { data: shared } = await supabase
+        .from('course_plans')
+        .select('*')
+        .in('id', Object.keys(levels))
+        .order('updated_at', { ascending: false });
+      setSharedPlans(((shared as CoursePlan[]) ?? []).map((p) => ({ ...p, _accessLevel: levels[p.id] ?? 'view' })));
+    } else {
+      setSharedPlans([]);
+    }
     setLoading(false);
   };
 
@@ -44,11 +63,15 @@ export default function CourseBuilderPage({ user }: Props) {
     e.preventDefault();
     setCreating(true);
     setError(null);
+    const planTitle = title.trim() || 'Untitled course plan';
     const { data, error: createError } = await supabase
       .from('course_plans')
       .insert({
         owner_id: user.id,
-        title: title.trim() || 'Untitled course plan',
+        title: planTitle,
+        // Every plan gets its public link segment up front, so publishing later
+        // is a single flag rather than a migration of existing rows.
+        slug: await generateUniqueCoursePlanSlug(planTitle),
         config: emptyConfig(subject || undefined, (level || undefined) as Level | undefined),
       })
       .select()
@@ -128,6 +151,23 @@ export default function CourseBuilderPage({ user }: Props) {
             </div>
           )}
         </section>
+
+        {!loading && sharedPlans.length > 0 && (
+          <section style={{ marginTop: 36 }}>
+            <h2 className="cb-section-title">Shared with me</h2>
+            <p className="cb-section-sub">Course plans colleagues have shared with your account</p>
+            <div className="cb-card-grid">
+              {sharedPlans.map((plan) => (
+                <CoursePlanCard
+                  key={plan.id}
+                  plan={plan}
+                  accessLevel={plan._accessLevel ?? 'view'}
+                  onUpdate={() => void load()}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );

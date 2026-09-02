@@ -36,6 +36,11 @@ export interface CoursePlanConfig {
   items: CoursePlanItem[];
   /** Free notes for the whole plan. */
   notes?: string;
+  /**
+   * Whether the author's notes appear on the shared page. Off by default —
+   * planning notes are usually internal, so publishing must be deliberate.
+   */
+  shareNotes?: boolean;
 }
 
 export interface CoursePlan {
@@ -43,9 +48,25 @@ export interface CoursePlan {
   owner_id: string;
   title: string;
   description: string | null;
+  /** Public link segment: /cp/<slug> once published. */
+  slug: string;
   config: CoursePlanConfig;
+  is_published: boolean;
   created_at: string;
   updated_at: string;
+  /** Set when the plan reached us through a share rather than ownership. */
+  _accessLevel?: CoursePlanAccess;
+}
+
+export type CoursePlanAccess = 'view' | 'edit';
+
+export interface CoursePlanShare {
+  id: string;
+  plan_id: string;
+  owner_id: string;
+  collaborator_email: string;
+  access_level: CoursePlanAccess;
+  created_at: string;
 }
 
 export function emptyConfig(subject?: string, level?: Level): CoursePlanConfig {
@@ -61,6 +82,7 @@ export function normaliseConfig(config: unknown): CoursePlanConfig {
     firstTeachYear: typeof c.firstTeachYear === 'number' ? c.firstTeachYear : DEFAULT_FIRST_TEACH_YEAR,
     items: Array.isArray(c.items) ? c.items : [],
     notes: c.notes,
+    shareNotes: c.shareNotes ?? false,
   };
 }
 
@@ -211,7 +233,8 @@ export function analysePlan(config: CoursePlanConfig): PlanAnalysis {
     checks.push({
       tone: 'risk',
       title: `Not funded for first teach ${config.firstTeachYear}`,
-      detail: `${list(notFunded)} ${notFunded.length === 1 ? 'has' : 'have'} no funding for ${config.firstTeachYear}. Open the qualification to read the guide's transition route.`,
+      // Worded to read the same on the workspace and on the shared page.
+      detail: `${list(notFunded)} ${notFunded.length === 1 ? 'has' : 'have'} no funding for ${config.firstTeachYear}. Check the transition route the guide gives for ${notFunded.length === 1 ? 'it' : 'them'}.`,
       quals: notFunded,
     });
   }
