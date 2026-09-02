@@ -16,6 +16,9 @@ import PublicTablePage      from './pages/PublicTablePage';
 import LinkedBuilderPage    from './pages/LinkedBuilderPage';
 import LinkedDashboardPage  from './pages/LinkedDashboardPage';
 import LinkedEditPage       from './pages/LinkedEditPage';
+import CourseBuilderPage    from './pages/CourseBuilderPage';
+import CourseGuidePage      from './pages/CourseGuidePage';
+import CoursePlanPage       from './pages/CoursePlanPage';
 import AdminPage            from './pages/AdminPage';
 
 export default function App() {
@@ -96,6 +99,23 @@ export default function App() {
         <Route path="/linked/:id/edit" element={
           <ProtectedRoute user={user}>
             <LinkedEditPage user={user!} />
+          </ProtectedRoute>
+        } />
+
+        {/* Course builder — separate from the table builder */}
+        <Route path="/course" element={
+          <ProtectedRoute user={user}>
+            <CourseBuilderPage user={user!} />
+          </ProtectedRoute>
+        } />
+        <Route path="/course/guide" element={
+          <ProtectedRoute user={user}>
+            <CourseGuidePage user={user!} />
+          </ProtectedRoute>
+        } />
+        <Route path="/course/:id" element={
+          <ProtectedRoute user={user}>
+            <CoursePlanPage user={user!} />
           </ProtectedRoute>
         } />
 

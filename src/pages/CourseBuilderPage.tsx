@@ -1,0 +1,134 @@
+/**
+ * Course builder hub: start a plan, pick up a saved one, or read the guide.
+ *
+ * Separate from the table builder — nothing here touches tables or dashboards.
+ */
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import type { User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
+import { SUBJECTS, LEVELS, type Level } from '../data/optionsGuide';
+import { DEFAULT_FIRST_TEACH_YEAR, emptyConfig, type CoursePlan } from '../lib/courseBuilder';
+import PearsonNav from '../components/layout/PearsonNav';
+import CoursePlanCard from '../components/course/CoursePlanCard';
+import './CoursePage.css';
+
+interface Props { user: User }
+
+export default function CourseBuilderPage({ user }: Props) {
+  const navigate = useNavigate();
+  const [plans, setPlans] = useState<CoursePlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [title, setTitle] = useState('');
+  const [subject, setSubject] = useState('');
+  const [level, setLevel] = useState('');
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error: loadError } = await supabase
+      .from('course_plans')
+      .select('*')
+      .eq('owner_id', user.id)
+      .order('updated_at', { ascending: false });
+    if (loadError) setError(loadError.message);
+    setPlans((data as CoursePlan[]) ?? []);
+    setLoading(false);
+  };
+
+  useEffect(() => { void load(); }, [user.id]);
+
+  const create = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    setError(null);
+    const { data, error: createError } = await supabase
+      .from('course_plans')
+      .insert({
+        owner_id: user.id,
+        title: title.trim() || 'Untitled course plan',
+        config: emptyConfig(subject || undefined, (level || undefined) as Level | undefined),
+      })
+      .select()
+      .single();
+    setCreating(false);
+    if (createError) { setError(createError.message); return; }
+    navigate(`/course/${(data as CoursePlan).id}`);
+  };
+
+  return (
+    <div>
+      <PearsonNav user={user} />
+      <main className="cb-page">
+        <header className="cb-hero">
+          <span className="badge badge-purple">Course builder</span>
+          <h1 className="cb-hero__title">Plan a post-16 programme with confidence</h1>
+          <p className="cb-hero__sub">
+            The Options Guide lists 287 qualifications, which of them you can still teach from{' '}
+            {DEFAULT_FIRST_TEACH_YEAR}, and where each one is heading. Build a programme here and the
+            guide's own advice comes with it — what is funded, when reform lands, and what to move to.
+          </p>
+          <Link to="/course/guide" className="btn btn-secondary">Browse the guide</Link>
+        </header>
+
+        <section className="cb-start card">
+          <h2 className="cb-section-title">Start a course plan</h2>
+          <p className="cb-section-sub">
+            Name it and choose a focus if you have one. You can change all of this later.
+          </p>
+          <form className="cb-start__form" onSubmit={(e) => void create(e)}>
+            <div className="cb-start__field cb-start__field--wide">
+              <label className="input-label" htmlFor="cb-title">Plan name</label>
+              <input
+                id="cb-title"
+                className="input"
+                placeholder="e.g. Level 3 Business, September 2027"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+            <div className="cb-start__field">
+              <label className="input-label" htmlFor="cb-start-subject">Subject</label>
+              <select id="cb-start-subject" className="input" value={subject} onChange={(e) => setSubject(e.target.value)}>
+                <option value="">Not sure yet</option>
+                {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="cb-start__field">
+              <label className="input-label" htmlFor="cb-start-level">Level</label>
+              <select id="cb-start-level" className="input" value={level} onChange={(e) => setLevel(e.target.value)}>
+                <option value="">Not sure yet</option>
+                {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
+            </div>
+            <button type="submit" className="btn btn-primary cb-btn-primary" disabled={creating}>
+              {creating ? 'Creating…' : 'Create plan'}
+            </button>
+          </form>
+          {error && <p className="cb-error">{error}</p>}
+        </section>
+
+        <section>
+          <h2 className="cb-section-title">Your course plans</h2>
+          {loading && (
+            <div className="cb-loading"><div className="spinner spinner-lg" /></div>
+          )}
+          {!loading && plans.length === 0 && (
+            <p className="cb-empty">
+              No course plans yet. Create one above to start working through your options.
+            </p>
+          )}
+          {!loading && plans.length > 0 && (
+            <div className="cb-card-grid">
+              {plans.map((plan) => (
+                <CoursePlanCard key={plan.id} plan={plan} onUpdate={() => void load()} />
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
