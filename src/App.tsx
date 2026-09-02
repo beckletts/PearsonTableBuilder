@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { SuperAdminContext } from './lib/SuperAdminContext';
 import type { User } from '@supabase/supabase-js';
@@ -16,7 +16,18 @@ import PublicTablePage      from './pages/PublicTablePage';
 import LinkedBuilderPage    from './pages/LinkedBuilderPage';
 import LinkedDashboardPage  from './pages/LinkedDashboardPage';
 import LinkedEditPage       from './pages/LinkedEditPage';
+import CourseBuilderPage    from './pages/CourseBuilderPage';
+import CourseGuidePage      from './pages/CourseGuidePage';
+import CoursePlanPage       from './pages/CoursePlanPage';
+import PublicCourseBuilderPage from './pages/PublicCourseBuilderPage';
 import AdminPage            from './pages/AdminPage';
+
+/** Course builder links used to be /cp/<slug> before the public page became a
+ *  working builder. Redirect rather than break links already shared. */
+function CoursePlanLinkRedirect() {
+  const { slug } = useParams<{ slug: string }>();
+  return <Navigate to={`/cb/${slug}`} replace />;
+}
 
 export default function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -66,6 +77,9 @@ export default function App() {
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/t/:slug"       element={<PublicTablePage />} />
         <Route path="/ld/:slug"      element={<LinkedDashboardPage />} />
+        <Route path="/cb/:slug"      element={<PublicCourseBuilderPage />} />
+        {/* Earlier links pointed at /cp/<slug>; keep them working. */}
+        <Route path="/cp/:slug"      element={<CoursePlanLinkRedirect />} />
 
         {/* Protected */}
         <Route path="/dashboard" element={
@@ -96,6 +110,23 @@ export default function App() {
         <Route path="/linked/:id/edit" element={
           <ProtectedRoute user={user}>
             <LinkedEditPage user={user!} />
+          </ProtectedRoute>
+        } />
+
+        {/* Course builder — separate from the table builder */}
+        <Route path="/course" element={
+          <ProtectedRoute user={user}>
+            <CourseBuilderPage user={user!} />
+          </ProtectedRoute>
+        } />
+        <Route path="/course/guide" element={
+          <ProtectedRoute user={user}>
+            <CourseGuidePage user={user!} />
+          </ProtectedRoute>
+        } />
+        <Route path="/course/:id" element={
+          <ProtectedRoute user={user}>
+            <CoursePlanPage user={user!} />
           </ProtectedRoute>
         } />
 

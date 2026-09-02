@@ -13,6 +13,7 @@ interface AnalyticsEvent {
 interface Props {
   tableId?: string;
   dashboardId?: string;
+  coursePlanId?: string;
   title: string;
   onClose: () => void;
 }
@@ -24,7 +25,7 @@ function interactionLabel(e: AnalyticsEvent): string {
   return e.event_type;
 }
 
-export default function AnalyticsModal({ tableId, dashboardId, title, onClose }: Props) {
+export default function AnalyticsModal({ tableId, dashboardId, coursePlanId, title, onClose }: Props) {
   const [period, setPeriod]           = useState<Period>(30);
   const [events, setEvents]           = useState<AnalyticsEvent[]>([]);
   const [loading, setLoading]         = useState(true);
@@ -39,15 +40,16 @@ export default function AnalyticsModal({ tableId, dashboardId, title, onClose }:
       .select('event_type, event_data, session_id')
       .gte('created_at', cutoff);
 
-    if (tableId)     query = query.eq('table_id', tableId);
-    if (dashboardId) query = query.eq('dashboard_id', dashboardId);
+    if (tableId)      query = query.eq('table_id', tableId);
+    if (dashboardId)  query = query.eq('dashboard_id', dashboardId);
+    if (coursePlanId) query = query.eq('course_plan_id', coursePlanId);
 
     query.then(({ data, error }) => {
       if (error) { setUnavailable(true); setLoading(false); return; }
       setEvents((data as AnalyticsEvent[]) ?? []);
       setLoading(false);
     });
-  }, [tableId, dashboardId, period]);
+  }, [tableId, dashboardId, coursePlanId, period]);
 
   const pageViews     = events.filter((e) => e.event_type === 'page_view');
   const totalViews    = pageViews.length;

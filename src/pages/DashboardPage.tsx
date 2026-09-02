@@ -3,10 +3,13 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import type { TableRecord, LinkedDashboard } from '../lib/types';
+import type { CoursePlan, CoursePlanAccess } from '../lib/courseBuilder';
 import PearsonNav from '../components/layout/PearsonNav';
 import TableCard from '../components/dashboard/TableCard';
 import TabGroupCard from '../components/dashboard/TabGroupCard';
 import LinkedDashboardCard from '../components/dashboard/LinkedDashboardCard';
+import CoursePlanCard from '../components/course/CoursePlanCard';
+import './CoursePage.css';
 import './DashboardPage.css';
 
 interface Props { user: User }
@@ -16,21 +19,48 @@ export default function DashboardPage({ user }: Props) {
   const [sharedTables, setSharedTables] = useState<TableRecord[]>([]);
   const [linkedDashboards, setLinkedDashboards] = useState<LinkedDashboard[]>([]);
   const [sharedLinkedDashboards, setSharedLinkedDashboards] = useState<LinkedDashboard[]>([]);
+  const [coursePlans, setCoursePlans] = useState<CoursePlan[]>([]);
+  const [sharedCoursePlans, setSharedCoursePlans] = useState<CoursePlan[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     setLoading(true);
     const userEmail = user.email ?? '';
 
-    const [{ data: ownData }, { data: shareData }, { data: linkedData }, { data: ldShareData }] = await Promise.all([
+    const [
+      { data: ownData }, { data: shareData }, { data: linkedData }, { data: ldShareData },
+      { data: planData }, { data: planShareData },
+    ] = await Promise.all([
       supabase.from('tables').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('table_shares').select('table_id').eq('collaborator_email', userEmail),
       supabase.from('linked_dashboards').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
       supabase.from('linked_dashboard_shares').select('dashboard_id, access_level').eq('collaborator_email', userEmail),
+      // Course plans need migration-v11 and -v12; until those are applied these
+      // come back empty rather than breaking the rest of the dashboard.
+      supabase.from('course_plans').select('*').eq('owner_id', user.id).order('updated_at', { ascending: false }),
+      supabase.from('course_plan_shares').select('plan_id, access_level').eq('collaborator_email', userEmail),
     ]);
 
     setLinkedDashboards((linkedData as LinkedDashboard[]) ?? []);
     setTables((ownData as TableRecord[]) ?? []);
+    setCoursePlans((planData as CoursePlan[]) ?? []);
+
+    if (planShareData && planShareData.length > 0) {
+      const levels = Object.fromEntries(
+        (planShareData as { plan_id: string; access_level: CoursePlanAccess }[])
+          .map((s) => [s.plan_id, s.access_level]),
+      );
+      const { data: sharedPlanData } = await supabase
+        .from('course_plans')
+        .select('*')
+        .in('id', Object.keys(levels))
+        .order('updated_at', { ascending: false });
+      setSharedCoursePlans(
+        ((sharedPlanData as CoursePlan[]) ?? []).map((p) => ({ ...p, _accessLevel: levels[p.id] ?? 'view' })),
+      );
+    } else {
+      setSharedCoursePlans([]);
+    }
 
     if (shareData && shareData.length > 0) {
       const ids = shareData.map((s: { table_id: string }) => s.table_id);
@@ -87,6 +117,10 @@ export default function DashboardPage({ user }: Props) {
             <p className="text-soft mt-4">Create and manage your Pearson interactive tables</p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Link to="/course" className="btn btn-secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 19.5V6a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2.5z"/><path d="M9 8h7M9 12h7"/></svg>
+              Course builder
+            </Link>
             <Link to="/linked/new" className="btn btn-secondary">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
               Linked dashboard
@@ -163,6 +197,39 @@ export default function DashboardPage({ user }: Props) {
             <div className="dashboard__grid">
               {sharedLinkedDashboards.map((d) => (
                 <LinkedDashboardCard key={d.id} dashboard={d} accessLevel={(d as LinkedDashboard & { _accessLevel?: 'view' | 'edit' })._accessLevel ?? 'view'} onUpdate={() => void load()} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {!loading && coursePlans.length > 0 && (
+          <>
+            <div className="dashboard__section-heading">
+              <h2>Course builders</h2>
+              <p className="text-soft text-sm">Post-16 programme builders you can publish, share and embed</p>
+            </div>
+            <div className="cb-card-grid">
+              {coursePlans.map((plan) => (
+                <CoursePlanCard key={plan.id} plan={plan} onUpdate={() => void load()} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {!loading && sharedCoursePlans.length > 0 && (
+          <>
+            <div className="dashboard__section-heading">
+              <h2>Shared course builders</h2>
+              <p className="text-soft text-sm">Course builders colleagues have shared with your account</p>
+            </div>
+            <div className="cb-card-grid">
+              {sharedCoursePlans.map((plan) => (
+                <CoursePlanCard
+                  key={plan.id}
+                  plan={plan}
+                  accessLevel={plan._accessLevel ?? 'view'}
+                  onUpdate={() => void load()}
+                />
               ))}
             </div>
           </>

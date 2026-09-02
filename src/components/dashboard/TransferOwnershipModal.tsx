@@ -4,7 +4,7 @@ import { isAllowedEmailDomain, ALLOWED_DOMAINS_LABEL } from '../../lib/allowedDo
 import './TransferOwnershipModal.css';
 
 interface Props {
-  kind: 'table' | 'dashboard';
+  kind: 'table' | 'dashboard' | 'course_plan';
   id: string;
   title: string;
   /** Set when the transfer is initiated by a super admin on someone else's behalf. */
@@ -19,7 +19,7 @@ export default function TransferOwnershipModal({ kind, id, title, asAdmin, onClo
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const noun = kind === 'table' ? 'table' : 'dashboard';
+  const noun = kind === 'table' ? 'table' : kind === 'dashboard' ? 'dashboard' : 'course builder';
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,8 +30,14 @@ export default function TransferOwnershipModal({ kind, id, title, asAdmin, onClo
       return;
     }
     setBusy(true);
-    const fn = kind === 'table' ? 'transfer_table_ownership' : 'transfer_dashboard_ownership';
-    const idParam = kind === 'table' ? 'p_table_id' : 'p_dashboard_id';
+    const fn =
+      kind === 'table'     ? 'transfer_table_ownership' :
+      kind === 'dashboard' ? 'transfer_dashboard_ownership' :
+                             'transfer_course_plan_ownership';
+    const idParam =
+      kind === 'table'     ? 'p_table_id' :
+      kind === 'dashboard' ? 'p_dashboard_id' :
+                             'p_plan_id';
     const { error: rpcError } = await supabase.rpc(fn, {
       [idParam]: id,
       p_new_owner_email: trimmed,
