@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { SuperAdminContext } from './lib/SuperAdminContext';
 import type { User } from '@supabase/supabase-js';
@@ -19,8 +19,15 @@ import LinkedEditPage       from './pages/LinkedEditPage';
 import CourseBuilderPage    from './pages/CourseBuilderPage';
 import CourseGuidePage      from './pages/CourseGuidePage';
 import CoursePlanPage       from './pages/CoursePlanPage';
-import PublicCoursePlanPage from './pages/PublicCoursePlanPage';
+import PublicCourseBuilderPage from './pages/PublicCourseBuilderPage';
 import AdminPage            from './pages/AdminPage';
+
+/** Course builder links used to be /cp/<slug> before the public page became a
+ *  working builder. Redirect rather than break links already shared. */
+function CoursePlanLinkRedirect() {
+  const { slug } = useParams<{ slug: string }>();
+  return <Navigate to={`/cb/${slug}`} replace />;
+}
 
 export default function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -70,7 +77,9 @@ export default function App() {
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/t/:slug"       element={<PublicTablePage />} />
         <Route path="/ld/:slug"      element={<LinkedDashboardPage />} />
-        <Route path="/cp/:slug"      element={<PublicCoursePlanPage />} />
+        <Route path="/cb/:slug"      element={<PublicCourseBuilderPage />} />
+        {/* Earlier links pointed at /cp/<slug>; keep them working. */}
+        <Route path="/cp/:slug"      element={<CoursePlanLinkRedirect />} />
 
         {/* Protected */}
         <Route path="/dashboard" element={

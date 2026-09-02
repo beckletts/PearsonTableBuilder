@@ -41,6 +41,18 @@ export interface CoursePlanConfig {
    * planning notes are usually internal, so publishing must be deliberate.
    */
   shareNotes?: boolean;
+  /**
+   * How the shared builder opens for a visitor: empty, or already holding the
+   * owner's own selection as a starting point. Blank by default, so publishing
+   * gives people a tool rather than someone else's half-made decision.
+   */
+  startFrom?: 'blank' | 'owner';
+  /**
+   * Hold visitors to this builder's subject and level rather than letting them
+   * roam the whole guide. Off by default — a general-purpose embed is more
+   * useful unscoped.
+   */
+  lockScope?: boolean;
 }
 
 export interface CoursePlan {
@@ -83,6 +95,8 @@ export function normaliseConfig(config: unknown): CoursePlanConfig {
     items: Array.isArray(c.items) ? c.items : [],
     notes: c.notes,
     shareNotes: c.shareNotes ?? false,
+    startFrom: c.startFrom === 'owner' ? 'owner' : 'blank',
+    lockScope: c.lockScope ?? false,
   };
 }
 
@@ -334,6 +348,12 @@ export function analysePlan(config: CoursePlanConfig): PlanAnalysis {
     quals, missing, totalGlh, unknownGlhCount, fullProgrammes,
     withdrawn, notFunded, fundingTba, earliestReformYear, suggestions, checks,
   };
+}
+
+/** Filename stem for a download, from whatever the builder is called. */
+export function exportFileName(title: string): string {
+  const safe = title.trim().replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase();
+  return safe || 'course-plan';
 }
 
 /** Rows for the Excel export, in the order a colleague would want to read them. */

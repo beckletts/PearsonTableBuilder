@@ -4,14 +4,15 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import * as XLSX from 'xlsx';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { LEVELS, REFORM_YEARS, SUBJECTS, type Level, type Qualification } from '../data/optionsGuide';
 import {
-  analysePlan, emptyFilters, normaliseConfig, planExportRows,
+  analysePlan, emptyFilters, normaliseConfig,
   type CoursePlan, type CoursePlanAccess, type CoursePlanConfig, type GuideFilters,
 } from '../lib/courseBuilder';
+import { downloadPlanWorkbook } from '../lib/coursePlanDownload';
+import { setCoursePlanPublished } from '../lib/coursePlanActions';
 import PearsonNav from '../components/layout/PearsonNav';
 import QualificationBrowser from '../components/course/QualificationBrowser';
 import QualificationDetail from '../components/course/QualificationDetail';
@@ -56,7 +57,7 @@ export default function CoursePlanPage({ user }: Props) {
     void (async () => {
       const { data, error } = await supabase.from('course_plans').select('*').eq('id', id).single();
       if (cancelled) return;
-      if (error || !data) { setLoadError(error?.message ?? 'Course plan not found'); return; }
+      if (error || !data) { setLoadError(error?.message ?? 'Course builder not found'); return; }
       const record = data as CoursePlan;
       const normalised = normaliseConfig(record.config);
 
@@ -98,7 +99,7 @@ export default function CoursePlanPage({ user }: Props) {
     const { error } = await supabase
       .from('course_plans')
       .update({
-        title: next.title.trim() || 'Untitled course plan',
+        title: next.title.trim() || 'Untitled course builder',
         description: next.description.trim() || null,
         config: next.config,
       })
@@ -135,12 +136,7 @@ export default function CoursePlanPage({ user }: Props) {
 
   const exportPlan = () => {
     if (!config || !analysis) return;
-    const rows = planExportRows(config, analysis);
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Course plan');
-    const safe = (title.trim() || 'course-plan').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
-    XLSX.writeFile(wb, `${safe}.xlsx`);
+    downloadPlanWorkbook(title.trim() || 'course-plan', config, analysis);
   };
 
   // Publishing is written straight through rather than debounced — it is a
@@ -149,15 +145,15 @@ export default function CoursePlanPage({ user }: Props) {
     if (!plan) return;
     setPublishBusy(true);
     const next = !published;
-    const { error } = await supabase.from('course_plans').update({ is_published: next }).eq('id', plan.id);
+    const error = await setCoursePlanPublished(plan.id, next);
     setPublishBusy(false);
-    if (error) alert(`Could not ${next ? 'publish' : 'unpublish'} the plan: ${error.message}`);
+    if (error) alert(`Could not ${next ? 'publish' : 'unpublish'} the course builder: ${error}`);
     else setPublished(next);
   };
 
   const copyLink = () => {
     if (!plan) return;
-    void navigator.clipboard.writeText(`${window.location.origin}/cp/${plan.slug}`).then(() => {
+    void navigator.clipboard.writeText(`${window.location.origin}/cb/${plan.slug}`).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -227,14 +223,14 @@ export default function CoursePlanPage({ user }: Props) {
             {!isOwner && <span className="cb-tag cb-tag--watch">Shared with you — can edit</span>}
             <p className="cb-plan-bar__hint">
               {published
-                ? 'Anyone with the link can read this plan, and it can be embedded on a website.'
-                : 'Only you and the people you share it with can see this plan.'}
+                ? 'Anyone with the link can use this course builder, and it can be embedded on a website.'
+                : 'Only you and the people you share it with can see this course builder.'}
             </p>
           </div>
           <div className="cb-plan-bar__actions">
             {published && (
               <>
-                <a href={`/cp/${plan.slug}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+                <a href={`/cb/${plan.slug}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
                   View ↗
                 </a>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={copyLink}>
@@ -265,7 +261,7 @@ export default function CoursePlanPage({ user }: Props) {
 
         <header className="cb-plan-head card">
           <div className="cb-plan-head__main">
-            <label className="input-label" htmlFor="cb-plan-title">Plan name</label>
+            <label className="input-label" htmlFor="cb-plan-title">Name</label>
             <input
               id="cb-plan-title"
               className="input cb-plan-head__title"
@@ -324,6 +320,31 @@ export default function CoursePlanPage({ user }: Props) {
               {saveState === 'error' && 'Could not save — check your connection'}
             </p>
           </div>
+
+          {/* How the builder behaves for someone arriving on the shared link. */}
+          <fieldset className="cb-share-options">
+            <legend className="cb-section-title">On the shared and embedded builder</legend>
+            <label className="cb-check">
+              <input
+                type="checkbox"
+                checked={config.startFrom === 'owner'}
+                onChange={(e) => patch({ startFrom: e.target.checked ? 'owner' : 'blank' })}
+              />
+              <span>Start visitors off with the programme below, rather than an empty builder</span>
+            </label>
+            <label className="cb-check">
+              <input
+                type="checkbox"
+                checked={config.lockScope === true}
+                onChange={(e) => patch({ lockScope: e.target.checked })}
+                disabled={!config.subject && !config.level}
+              />
+              <span>
+                Keep visitors to {[config.level, config.subject].filter(Boolean).join(' ') || 'this subject and level'}
+                {!config.subject && !config.level && ' (set a subject or level first)'}
+              </span>
+            </label>
+          </fieldset>
         </header>
 
         <div className="cb-workspace">
@@ -375,8 +396,8 @@ export default function CoursePlanPage({ user }: Props) {
           <EmbedModal
             tableTitle={title}
             tableSlug={plan.slug}
-            basePath="cp"
-            kind="course plan"
+            basePath="cb"
+            kind="course builder"
             onClose={() => setEmbedding(false)}
           />
         )}

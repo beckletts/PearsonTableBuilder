@@ -1,0 +1,24 @@
+/**
+ * Course builder card. Deliberately shaped like .table-card so a published
+ * builder and a published table read as the same kind of thing on the
+ * dashboard; the amethyst top edge is the only thing that sets it apart.
+ */
+
+.cb-card__title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cb-card__badge { margin-top: 2px; flex-shrink: 0; }
+
+/* The full option set is a lot of buttons, so they wrap rather than squeeze. */
+.cb-card__actions-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  padding: 0 20px 14px;
+}
+
+.cb-card__date { padding: 0 20px 16px; }

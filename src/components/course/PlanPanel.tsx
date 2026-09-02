@@ -16,15 +16,23 @@ interface Props {
   onNotesChange: (notes: string) => void;
   /** Search the guide for a suggested replacement. */
   onSearchFor: (title: string) => void;
+  /** Download the plan as a workbook. */
   onExport: () => void;
-  /** Whether the author's notes appear on the shared page. */
-  shareNotes: boolean;
-  onShareNotesChange: (shareNotes: boolean) => void;
+  /** Offer a print/PDF route as well — used on the shared builder. */
+  onPrint?: () => void;
+  /**
+   * Whether the author's notes appear on the shared page. Omit the setter to
+   * hide the control: a visitor on the shared builder has nobody to share with.
+   */
+  shareNotes?: boolean;
+  onShareNotesChange?: (shareNotes: boolean) => void;
+  /** Heading for the chosen-qualifications section. */
+  heading?: string;
 }
 
 export default function PlanPanel({
   config, analysis, onOpen, onRemove, onNoteChange, onNotesChange, onSearchFor, onExport,
-  shareNotes, onShareNotesChange,
+  onPrint, shareNotes = false, onShareNotesChange, heading = 'Your programme',
 }: Props) {
   const { quals, missing, totalGlh, unknownGlhCount, checks, suggestions } = analysis;
 
@@ -48,7 +56,7 @@ export default function PlanPanel({
       </div>
 
       <section>
-        <h2 className="cb-section-title">Your programme</h2>
+        <h2 className="cb-section-title">{heading}</h2>
         {quals.length === 0 && missing.length === 0 ? (
           <p className="cb-empty">
             Nothing chosen yet. Search the guide and add the qualifications you are considering —
@@ -150,26 +158,40 @@ export default function PlanPanel({
           onChange={(e) => onNotesChange(e.target.value)}
           aria-label="Planning notes"
         />
-        {/* Notes are usually internal, so they stay off the shared page unless
-            the author says otherwise. */}
-        <label className="cb-check cb-plan__share-notes">
-          <input
-            type="checkbox"
-            checked={shareNotes}
-            onChange={(e) => onShareNotesChange(e.target.checked)}
-          />
-          <span>Show my notes on the shared and embedded page</span>
-        </label>
+        {/* Notes are usually internal, so they stay off the shared builder
+            unless the author says otherwise. */}
+        {onShareNotesChange && (
+          <label className="cb-check cb-plan__share-notes">
+            <input
+              type="checkbox"
+              checked={shareNotes}
+              onChange={(e) => onShareNotesChange(e.target.checked)}
+            />
+            <span>Show my notes on the shared and embedded builder</span>
+          </label>
+        )}
       </section>
 
-      <button
-        type="button"
-        className="btn btn-secondary cb-plan__export"
-        onClick={onExport}
-        disabled={quals.length === 0}
-      >
-        Export to Excel
-      </button>
+      <div className="cb-plan__downloads">
+        <button
+          type="button"
+          className="btn btn-primary cb-btn-primary"
+          onClick={onExport}
+          disabled={quals.length === 0}
+        >
+          Download as Excel
+        </button>
+        {onPrint && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onPrint}
+            disabled={quals.length === 0}
+          >
+            Print or save as PDF
+          </button>
+        )}
+      </div>
     </div>
   );
 }

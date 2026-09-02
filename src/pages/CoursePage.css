@@ -145,20 +145,6 @@
   margin-bottom: 10px;
 }
 
-.cb-card__foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 12px 20px;
-  border-top: 1px solid var(--color-border-soft);
-  background: var(--cb-mist);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-}
-
-.cb-card__actions { display: flex; gap: 6px; }
-
 /* ── Filters ──────────────────────────────────────────────────────────────── */
 
 .cb-filters { margin-bottom: 20px; }
@@ -544,7 +530,7 @@
 
 .cb-plan__share-notes { margin-top: 10px; font-size: 13px; }
 
-.cb-plan__export { align-self: flex-start; }
+.cb-plan__downloads { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ── Read-only view (public link, embeds, view-only collaborators) ────────── */
 
@@ -557,7 +543,39 @@
 
 .cb-public__inner { max-width: 860px; margin: 0 auto; }
 
+/* The shared builder is two columns, so it needs the wider measure. */
+.cb-public--wide { padding: 20px 20px 60px; }
+.cb-public__inner--wide { max-width: 1400px; }
+
 .cb-public__brand { margin-bottom: 20px; }
+
+.cb-public__head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.cb-public__intro {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-soft);
+  max-width: 76ch;
+  margin-top: 4px;
+}
+
+.cb-public__restored {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--cb-purple);
+  background: var(--cb-mist);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+}
 
 .cb-public__missing {
   max-width: 560px;
@@ -675,7 +693,29 @@
 @media print {
   .cb-workspace { grid-template-columns: 1fr; }
   .cb-workspace__browse,
-  .cb-plan__export,
+  .cb-plan__downloads,
+  .cb-plan__share-notes,
+  .cb-public__intro,
+  .cb-public__restored,
   .cb-breadcrumb { display: none; }
-  .cb-page { max-width: none; padding: 0; }
+  .cb-page,
+  .cb-public,
+  .cb-public__inner,
+  .cb-public__inner--wide { max-width: none; padding: 0; }
+  .cb-workspace__plan { position: static; border: none; }
+  /* Keep a qualification and its guidance on one page where possible. */
+  .cb-plan__item, .cb-note { break-inside: avoid; }
 }
+
+/* Owner controls for how the shared builder opens. */
+.cb-share-options {
+  grid-column: 1 / -1;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cb-share-options legend { padding: 0 6px; }

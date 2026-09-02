@@ -13,12 +13,14 @@ function getSessionId(): string {
 export function trackEvent(params: {
   tableId?: string;
   dashboardId?: string;
+  coursePlanId?: string;
   eventType: 'page_view' | 'filter' | 'search' | 'button_click';
   eventData?: Record<string, string>;
 }): void {
   supabase.from('analytics_events').insert({
     table_id: params.tableId ?? null,
     dashboard_id: params.dashboardId ?? null,
+    course_plan_id: params.coursePlanId ?? null,
     event_type: params.eventType,
     event_data: params.eventData ?? null,
     session_id: getSessionId(),

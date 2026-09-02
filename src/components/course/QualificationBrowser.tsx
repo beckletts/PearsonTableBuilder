@@ -16,16 +16,42 @@ interface Props {
   onAdd?: (qual: Qualification) => void;
   /** Ids already in the plan, shown as added rather than addable. */
   inPlanIds?: string[];
+  /**
+   * Hold the browse list to a subject and/or level. The matching selects are
+   * hidden and clearing the filters keeps the lock, so a scoped shared builder
+   * cannot be widened from the page.
+   */
+  lockedSubject?: string;
+  lockedLevel?: string;
 }
 
 export default function QualificationBrowser({
   filters, onFiltersChange, onOpen, onAdd, inPlanIds = [],
+  lockedSubject, lockedLevel,
 }: Props) {
-  const results = useMemo(() => filterQualifications(filters), [filters]);
+  // A locked scope is enforced here rather than only hidden from the filter bar,
+  // so no route through the UI can widen a scoped shared builder.
+  const effective = useMemo<GuideFilters>(() => ({
+    ...filters,
+    subject: lockedSubject ?? filters.subject,
+    level: lockedLevel ?? filters.level,
+  }), [filters, lockedSubject, lockedLevel]);
+
+  const results = useMemo(() => filterQualifications(effective), [effective]);
   const set = (patch: Partial<GuideFilters>) => onFiltersChange({ ...filters, ...patch });
   const isFiltered =
-    filters.search !== '' || filters.subject !== '' || filters.level !== '' ||
-    filters.family !== '' || filters.status !== '' || filters.fundedOnly;
+    filters.search !== '' || filters.family !== '' || filters.status !== '' || filters.fundedOnly ||
+    (!lockedSubject && filters.subject !== '') ||
+    (!lockedLevel && filters.level !== '');
+
+  const clearFilters = () => onFiltersChange({
+    search: '',
+    subject: lockedSubject ?? '',
+    level: lockedLevel ?? '',
+    family: '',
+    status: '',
+    fundedOnly: false,
+  });
 
   return (
     <div className="cb-browser">
@@ -43,20 +69,24 @@ export default function QualificationBrowser({
         </div>
 
         <div className="cb-filters__row">
-          <div className="cb-filters__field">
-            <label className="input-label" htmlFor="cb-subject">Subject</label>
-            <select id="cb-subject" className="input" value={filters.subject} onChange={(e) => set({ subject: e.target.value })}>
-              <option value="">All subjects</option>
-              {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div className="cb-filters__field">
-            <label className="input-label" htmlFor="cb-level">Level</label>
-            <select id="cb-level" className="input" value={filters.level} onChange={(e) => set({ level: e.target.value })}>
-              <option value="">All levels</option>
-              {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-            </select>
-          </div>
+          {!lockedSubject && (
+            <div className="cb-filters__field">
+              <label className="input-label" htmlFor="cb-subject">Subject</label>
+              <select id="cb-subject" className="input" value={filters.subject} onChange={(e) => set({ subject: e.target.value })}>
+                <option value="">All subjects</option>
+                {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
+          {!lockedLevel && (
+            <div className="cb-filters__field">
+              <label className="input-label" htmlFor="cb-level">Level</label>
+              <select id="cb-level" className="input" value={filters.level} onChange={(e) => set({ level: e.target.value })}>
+                <option value="">All levels</option>
+                {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
+            </div>
+          )}
           <div className="cb-filters__field">
             <label className="input-label" htmlFor="cb-family">Type</label>
             <select id="cb-family" className="input" value={filters.family} onChange={(e) => set({ family: e.target.value })}>
@@ -88,11 +118,7 @@ export default function QualificationBrowser({
             {results.length} of 287 qualifications
           </span>
           {isFiltered && (
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => onFiltersChange({ search: '', subject: '', level: '', family: '', status: '', fundedOnly: false })}
-            >
+            <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters}>
               Clear filters
             </button>
           )}

@@ -205,8 +205,8 @@ export default function DashboardPage({ user }: Props) {
         {!loading && coursePlans.length > 0 && (
           <>
             <div className="dashboard__section-heading">
-              <h2>Course plans</h2>
-              <p className="text-soft text-sm">Post-16 programmes you are planning from the Options Guide</p>
+              <h2>Course builders</h2>
+              <p className="text-soft text-sm">Post-16 programme builders you can publish, share and embed</p>
             </div>
             <div className="cb-card-grid">
               {coursePlans.map((plan) => (
@@ -219,8 +219,8 @@ export default function DashboardPage({ user }: Props) {
         {!loading && sharedCoursePlans.length > 0 && (
           <>
             <div className="dashboard__section-heading">
-              <h2>Shared course plans</h2>
-              <p className="text-soft text-sm">Course plans colleagues have shared with your account</p>
+              <h2>Shared course builders</h2>
+              <p className="text-soft text-sm">Course builders colleagues have shared with your account</p>
             </div>
             <div className="cb-card-grid">
               {sharedCoursePlans.map((plan) => (

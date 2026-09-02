@@ -13,6 +13,7 @@ import {
   type CoursePlan, type CoursePlanAccess,
 } from '../lib/courseBuilder';
 import { generateUniqueCoursePlanSlug } from '../utils/generateSlug';
+import { logCoursePlanAction } from '../lib/coursePlanActions';
 import PearsonNav from '../components/layout/PearsonNav';
 import CoursePlanCard from '../components/course/CoursePlanCard';
 import './CoursePage.css';
@@ -63,7 +64,7 @@ export default function CourseBuilderPage({ user }: Props) {
     e.preventDefault();
     setCreating(true);
     setError(null);
-    const planTitle = title.trim() || 'Untitled course plan';
+    const planTitle = title.trim() || 'Untitled course builder';
     const { data, error: createError } = await supabase
       .from('course_plans')
       .insert({
@@ -78,7 +79,9 @@ export default function CourseBuilderPage({ user }: Props) {
       .single();
     setCreating(false);
     if (createError) { setError(createError.message); return; }
-    navigate(`/course/${(data as CoursePlan).id}`);
+    const created = data as CoursePlan;
+    void logCoursePlanAction(created.id, 'created');
+    navigate(`/course/${created.id}`);
   };
 
   return (
@@ -92,22 +95,24 @@ export default function CourseBuilderPage({ user }: Props) {
             The Options Guide lists 287 qualifications, which of them you can still teach from{' '}
             {DEFAULT_FIRST_TEACH_YEAR}, and where each one is heading. Build a programme here and the
             guide's own advice comes with it — what is funded, when reform lands, and what to move to.
+            Publish a builder and teachers can use it themselves, from a link or embedded on a page.
           </p>
           <Link to="/course/guide" className="btn btn-secondary">Browse the guide</Link>
         </header>
 
         <section className="cb-start card">
-          <h2 className="cb-section-title">Start a course plan</h2>
+          <h2 className="cb-section-title">Create a course builder</h2>
           <p className="cb-section-sub">
-            Name it and choose a focus if you have one. You can change all of this later.
+            Name it and choose a focus if you have one. You can change all of this later, and publish
+            it when you want to share or embed it.
           </p>
           <form className="cb-start__form" onSubmit={(e) => void create(e)}>
             <div className="cb-start__field cb-start__field--wide">
-              <label className="input-label" htmlFor="cb-title">Plan name</label>
+              <label className="input-label" htmlFor="cb-title">Name</label>
               <input
                 id="cb-title"
                 className="input"
-                placeholder="e.g. Level 3 Business, September 2027"
+                placeholder="e.g. Level 3 Business options, September 2027"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
@@ -127,20 +132,20 @@ export default function CourseBuilderPage({ user }: Props) {
               </select>
             </div>
             <button type="submit" className="btn btn-primary cb-btn-primary" disabled={creating}>
-              {creating ? 'Creating…' : 'Create plan'}
+              {creating ? 'Creating…' : 'Create course builder'}
             </button>
           </form>
           {error && <p className="cb-error">{error}</p>}
         </section>
 
         <section>
-          <h2 className="cb-section-title">Your course plans</h2>
+          <h2 className="cb-section-title">Your course builders</h2>
           {loading && (
             <div className="cb-loading"><div className="spinner spinner-lg" /></div>
           )}
           {!loading && plans.length === 0 && (
             <p className="cb-empty">
-              No course plans yet. Create one above to start working through your options.
+              No course builders yet. Create one above to start working through your options.
             </p>
           )}
           {!loading && plans.length > 0 && (
@@ -155,7 +160,7 @@ export default function CourseBuilderPage({ user }: Props) {
         {!loading && sharedPlans.length > 0 && (
           <section style={{ marginTop: 36 }}>
             <h2 className="cb-section-title">Shared with me</h2>
-            <p className="cb-section-sub">Course plans colleagues have shared with your account</p>
+            <p className="cb-section-sub">Course builders colleagues have shared with your account</p>
             <div className="cb-card-grid">
               {sharedPlans.map((plan) => (
                 <CoursePlanCard
