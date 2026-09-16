@@ -1,6 +1,7 @@
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import type { ParsedFile } from '../lib/types';
+import { readFileAsText } from './encoding';
 
 // Format a JS Date as DD/MM/YYYY.
 // SheetJS (cellDates: true) builds date cells in LOCAL time, so a date-only cell
@@ -17,6 +18,7 @@ function clean(val: unknown): string {
   if (val instanceof Date) return formatDate(val);
   const s = String(val ?? '')
     .replace(/​/g, '')  // zero-width space
+    .replace(/ /g, ' ')  // non-breaking space → plain space, so search and filters match
     .replace(/\n/g, ' ')     // embedded newlines → space
     .trim();
   // Strip Excel error values and unevaluated formula strings
@@ -29,6 +31,7 @@ function clean(val: unknown): string {
 function cleanHeader(val: unknown): string {
   return String(val ?? '')
     .replace(/​/g, '')
+    .replace(/ /g, ' ')
     .replace(/\n/g, ' ')
     .trim();
 }
@@ -55,25 +58,23 @@ export async function parseFile(file: File, sheetName?: string): Promise<ParsedF
   const name = file.name.toLowerCase();
 
   if (name.endsWith('.csv')) {
-    return new Promise((resolve, reject) => {
-      Papa.parse<Record<string, string>>(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (result) => {
-          const rawFields = result.meta.fields ?? [];
-          const cleanedFields = rawFields.map((f) => cleanHeader(f));
-          resolve({
-            headers: cleanedFields,
-            rows: result.data.map((row) =>
-              Object.fromEntries(
-                rawFields.map((f, i) => [cleanedFields[i], clean(row[f])])
-              ),
-            ),
-          });
-        },
-        error: (err) => reject(new Error(err.message)),
-      });
+    // Decode the bytes ourselves rather than letting the parser assume UTF-8 —
+    // Excel's CSVs are usually Windows-1252, and a wrong guess destroys every
+    // accented character in the file.
+    const text = await readFileAsText(file);
+    const result = Papa.parse<Record<string, string>>(text, {
+      header: true,
+      skipEmptyLines: true,
     });
+
+    const rawFields = result.meta.fields ?? [];
+    const cleanedFields = rawFields.map((f) => cleanHeader(f));
+    return {
+      headers: cleanedFields,
+      rows: result.data.map((row) =>
+        Object.fromEntries(rawFields.map((f, i) => [cleanedFields[i], clean(row[f])])),
+      ),
+    };
   }
 
   if (name.endsWith('.xlsx') || name.endsWith('.xls')) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { DataQualityIssue, ParsedFile, TableConfig } from '../../lib/types';
+import { hasLostCharacters, repairMojibake } from '../../utils/encoding';
 import './StepAIConfig.css';
 
 interface Props {
@@ -36,6 +37,7 @@ function applyFixToValue(val: string, fix: DataQualityIssue['suggestedFix']): st
   if (fix === 'trim_whitespace') return val.trim();
   if (fix === 'normalise_case') return val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val;
   if (fix === 'convert_date_serial') return excelSerialToDate(val);
+  if (fix === 'fix_encoding') return repairMojibake(val);
   return val;
 }
 
@@ -45,6 +47,7 @@ const ISSUE_LABELS: Record<DataQualityIssue['type'], string> = {
   text_number:    'Number formatting',
   whitespace:     'Whitespace',
   mixed_case:     'Inconsistent case',
+  encoding:       'Character encoding',
 };
 
 export default function StepAIConfig({ parsed, onAccept, onBack, onSkip }: Props) {
@@ -209,6 +212,14 @@ export default function StepAIConfig({ parsed, onAccept, onBack, onSkip }: Props
                             <code key={i} className="dq-issue__example">{ex}</code>
                           ))}
                         </div>
+                      )}
+
+                      {/* Nothing here can bring a lost character back — say what will. */}
+                      {issue.examples.some(hasLostCharacters) && (
+                        <p className="dq-issue__desc">
+                          These characters were already lost when the file was saved. In Excel, use
+                          File → Save As → <strong>CSV UTF-8</strong>, then upload again to get them back.
+                        </p>
                       )}
 
                       {isApplied ? (
