@@ -4,6 +4,8 @@ import './ColumnEditor.css';
 interface Props {
   column: ColumnConfig;
   onChange: (updated: ColumnConfig) => void;
+  /** Delete the column and its data. Omitted when removal isn't allowed. */
+  onRemove?: () => void;
   onDragStart?: () => void;
   onDragOver?: (e: React.DragEvent) => void;
   onDrop?: () => void;
@@ -19,7 +21,7 @@ const TYPE_OPTIONS: { value: ColumnType; label: string }[] = [
   { value: 'badge',  label: 'Badge' },
 ];
 
-export default function ColumnEditor({ column, onChange, onDragStart, onDragOver, onDrop, onDragEnd, isDragging }: Props) {
+export default function ColumnEditor({ column, onChange, onRemove, onDragStart, onDragOver, onDrop, onDragEnd, isDragging }: Props) {
   const set = <K extends keyof ColumnConfig>(key: K, val: ColumnConfig[K]) =>
     onChange({ ...column, [key]: val });
 
@@ -56,6 +58,18 @@ export default function ColumnEditor({ column, onChange, onDragStart, onDragOver
             data-tooltip="The heading shown for this column in the published table"
           />
         </div>
+
+        {onRemove && (
+          <button
+            type="button"
+            className="col-editor__remove"
+            onClick={onRemove}
+            aria-label={`Remove the ${column.label} column`}
+            data-tooltip="Remove this column and its data — hide it instead to keep the data"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {/* Row 2: type · colour · filter · search — hidden when column is off */}

@@ -58,6 +58,36 @@
   font-size: 13px;
 }
 
+/* Remove column — destructive, so it stays quiet until hovered or focused */
+.col-editor__remove {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.col-editor__remove:hover {
+  background: var(--color-danger-lt);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.col-editor__remove:focus-visible {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}
+
 /* ── Row 2: type · colour · filter · search ─────────────────────────────── */
 /* indent to align with the name field: 20px drag + 10px gap + 36px toggle + 10px gap = 76px */
 .col-editor__controls {

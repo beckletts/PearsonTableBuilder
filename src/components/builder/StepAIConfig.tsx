@@ -7,6 +7,8 @@ interface Props {
   parsed: ParsedFile;
   onAccept: (config: TableConfig, cleanedParsed?: ParsedFile) => void;
   onBack: () => void;
+  /** Carry on without AI, using the file's own headers. Offered if analysis fails. */
+  onSkip?: () => void;
 }
 
 function stripHtml(val: string): string {
@@ -45,7 +47,7 @@ const ISSUE_LABELS: Record<DataQualityIssue['type'], string> = {
   mixed_case:     'Inconsistent case',
 };
 
-export default function StepAIConfig({ parsed, onAccept, onBack }: Props) {
+export default function StepAIConfig({ parsed, onAccept, onBack, onSkip }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [config, setConfig] = useState<TableConfig | null>(null);
@@ -130,9 +132,14 @@ export default function StepAIConfig({ parsed, onAccept, onBack }: Props) {
       {error && (
         <div>
           <p className="error-msg">{error}</p>
-          <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={onBack}>← Back</button>
             <button className="btn btn-primary" onClick={() => void analyse()}>Try again</button>
+            {onSkip && (
+              <button className="btn btn-secondary" onClick={onSkip}>
+                Continue without AI
+              </button>
+            )}
           </div>
         </div>
       )}
