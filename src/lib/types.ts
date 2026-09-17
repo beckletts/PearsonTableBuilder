@@ -232,11 +232,11 @@ export interface JoinDetectResult {
   pattern: string;
 }
 
-export type DataQualityFixType = 'strip_html' | 'trim_whitespace' | 'normalise_case' | 'convert_date_serial' | 'flag_only';
+export type DataQualityFixType = 'strip_html' | 'trim_whitespace' | 'normalise_case' | 'convert_date_serial' | 'fix_encoding' | 'flag_only';
 
 export interface DataQualityIssue {
   column: string;
-  type: 'html_artifacts' | 'text_date' | 'text_number' | 'whitespace' | 'mixed_case';
+  type: 'html_artifacts' | 'text_date' | 'text_number' | 'whitespace' | 'mixed_case' | 'encoding';
   description: string;
   examples: string[];
   suggestedFix: DataQualityFixType;

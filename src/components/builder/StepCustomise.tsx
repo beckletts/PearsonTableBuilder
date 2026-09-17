@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { generateUniqueSlug } from '../../utils/generateSlug';
 import { createSnapshot } from '../../utils/snapshots';
+import { findFileHeader, removeColumn } from '../../utils/reconcileColumns';
 import type { ColumnConfig, ParsedFile, TableConfig, Widget } from '../../lib/types';
 import { ORIGINAL_ORDER } from '../../lib/types';
 import ColumnEditor from './ColumnEditor';
@@ -71,6 +72,17 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
       fo.splice(toIdx, 0, fromKey);
       return { ...c, filterOrder: fo };
     });
+  };
+
+  // Delete a column outright. Takes effect on Save or Publish, at which point
+  // the column and its values are gone from the table — hiding a column keeps
+  // the data, this does not.
+  const deleteColumn = (col: ColumnConfig) => {
+    const ok = confirm(
+      `Remove the "${col.label}" column? Its values are dropped when you save or publish. Hide it instead if you might need it later.`,
+    );
+    if (!ok) return;
+    setConfig((c) => removeColumn(c, col.key));
   };
 
   const reorderColumns = (fromIdx: number, toIdx: number) => {
@@ -146,11 +158,7 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
         const remappedRows = parsed.rows.map((r) => {
           const mapped: Record<string, string> = {};
           for (const col of finalConfig.columns) {
-            const matchHeader = parsed.headers.find(
-              (h) =>
-                h.toLowerCase().trim() === col.key.toLowerCase().trim() ||
-                h.toLowerCase().trim() === col.label.toLowerCase().trim()
-            );
+            const matchHeader = findFileHeader(parsed.headers, col);
             mapped[col.key] = matchHeader ? String(r[matchHeader] ?? '') : '';
           }
           return mapped;
@@ -236,7 +244,7 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <p className="text-sm font-600 text-soft">Columns <span className="text-muted font-600" style={{ fontSize: 11 }}>— drag to reorder</span></p>
+            <p className="text-sm font-600 text-soft">Columns <span className="text-muted font-600" style={{ fontSize: 11 }}>— drag to reorder, ✕ to remove</span></p>
             <p className="text-xs text-muted">{config.columns.filter((c) => c.visible).length} visible</p>
           </div>
           <div className="step-customise__cols">
@@ -245,6 +253,7 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
                 key={col.key}
                 column={col}
                 onChange={(u) => updateColumn(i, u)}
+                onRemove={config.columns.length > 1 ? () => deleteColumn(col) : undefined}
                 isDragging={dragIdx === i}
                 onDragStart={() => setDragIdx(i)}
                 onDragOver={(e) => e.preventDefault()}

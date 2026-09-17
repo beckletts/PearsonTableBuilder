@@ -5,15 +5,33 @@ import { supabase } from '../lib/supabase';
 import PearsonNav from '../components/layout/PearsonNav';
 import StepCustomise from '../components/builder/StepCustomise';
 import StepUpload from '../components/builder/StepUpload';
+import StepAIConfig from '../components/builder/StepAIConfig';
 import DataEditor from '../components/builder/DataEditor';
 import VersionHistoryModal from '../components/builder/VersionHistoryModal';
 import type { ParsedFile, TableConfig, TableRecord, TableRow } from '../lib/types';
 import { fetchAllRows } from '../utils/fetchAllRows';
-import { reconcileColumns, type ReconcileResult } from '../utils/reconcileColumns';
+import {
+  alignColumnsToFile,
+  columnsFromFile,
+  dropColumnsMissingFromFile,
+  reconcileColumns,
+  replaceTableStructure,
+  type ReconcileResult,
+} from '../utils/reconcileColumns';
 import './BuilderPage.css';
 import './BuilderEditPage.css';
 
 type Tab = 'configure' | 'data';
+
+/**
+ * How a re-uploaded file meets the table it replaces.
+ * - 'replace': the file defines the columns. Columns it doesn't contain are removed.
+ * - 'merge':   only the rows change. Existing columns and their settings stay put.
+ */
+type ReplaceMode = 'replace' | 'merge';
+
+/** Where the re-upload has got to: picking a file, or reviewing the AI's reading of it. */
+type ReuploadStep = 'upload' | 'analyse';
 
 interface Props { user: User }
 
@@ -25,10 +43,15 @@ export default function BuilderEditPage({ user }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<Tab>('configure');
-  const [reupload, setReupload] = useState(false);
+  const [reuploadStep, setReuploadStep] = useState<ReuploadStep | null>(null);
+  const [replaceMode, setReplaceMode] = useState<ReplaceMode>('replace');
+  const [pendingParsed, setPendingParsed] = useState<ParsedFile | null>(null);
   const [newParsed, setNewParsed] = useState<ParsedFile | null>(null);
   const [reuploadConfig, setReuploadConfig] = useState<TableConfig | null>(null);
-  const [columnNotice, setColumnNotice] = useState<ReconcileResult | null>(null);
+  const [columnNotice, setColumnNotice] = useState<(ReconcileResult & { mode: ReplaceMode }) | null>(null);
+  // Bumped whenever the column structure is rebuilt outside the Customise step,
+  // so that step remounts and picks the new structure up.
+  const [structureVersion, setStructureVersion] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
 
   const loadTable = async () => {
@@ -71,6 +94,45 @@ export default function BuilderEditPage({ user }: Props) {
   const activeParsed = newParsed ?? existingParsed;
   const activeConfig = reuploadConfig ?? table.config;
 
+  // Hand the new file and its config to the Customise step and close the re-upload flow.
+  const applyUpload = (parsed: ParsedFile, result: ReconcileResult, mode: ReplaceMode) => {
+    setNewParsed(parsed);
+    setReuploadConfig(result.config);
+    const worthSaying =
+      result.addedColumns.length || result.removedColumns.length || result.emptyColumns.length;
+    setColumnNotice(worthSaying ? { ...result, mode } : null);
+    setPendingParsed(null);
+    setReuploadStep(null);
+    setStructureVersion((v) => v + 1);
+  };
+
+  // Replace mode: the file defines the columns. An AI config supplies the labels,
+  // types and filters; without one we infer them from the file's own headers.
+  const applyReplace = (parsed: ParsedFile, aiConfig?: TableConfig) => {
+    const columns = aiConfig
+      ? alignColumnsToFile(aiConfig.columns, parsed)
+      : columnsFromFile(parsed, table.config.columns);
+    const hints = aiConfig
+      ? { primarySearchColumn: aiConfig.primarySearchColumn, defaultSort: aiConfig.defaultSort }
+      : undefined;
+    applyUpload(parsed, replaceTableStructure(table.config, columns, parsed, hints), 'replace');
+  };
+
+  const cancelReupload = () => {
+    setReuploadStep(null);
+    setPendingParsed(null);
+  };
+
+  // Merge mode leaves columns the file doesn't contain in place; this clears them
+  // out in one go for anyone who decides they aren't needed after all.
+  const removeMissingColumns = () => {
+    if (!newParsed || !reuploadConfig) return;
+    const config = dropColumnsMissingFromFile(reuploadConfig, newParsed);
+    setReuploadConfig(config);
+    setColumnNotice((n) => (n ? { ...n, config, removedColumns: [] } : n));
+    setStructureVersion((v) => v + 1);
+  };
+
   return (
     <div>
       <PearsonNav user={user} />
@@ -96,7 +158,7 @@ export default function BuilderEditPage({ user }: Props) {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {tab === 'configure' && (
-              <button className="btn btn-secondary btn-sm" onClick={() => setReupload(true)}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setReuploadStep('upload')}>
                 Replace data file
               </button>
             )}
@@ -131,23 +193,74 @@ export default function BuilderEditPage({ user }: Props) {
 
         <div className="builder-page__content card">
           {tab === 'configure' && (
-            reupload && !newParsed ? (
+            reuploadStep === 'upload' ? (
               <div>
-                <button className="btn btn-ghost btn-sm" style={{ marginBottom: 20 }} onClick={() => setReupload(false)}>
+                <button className="btn btn-ghost btn-sm" style={{ marginBottom: 20 }} onClick={cancelReupload}>
                   ← Cancel
                 </button>
+
+                {/* What should happen to the columns this table already has? */}
+                <fieldset className="builder-edit__mode">
+                  <legend className="builder-edit__mode-legend">What should the new file replace?</legend>
+
+                  <label className={`builder-edit__mode-option ${replaceMode === 'replace' ? 'builder-edit__mode-option--on' : ''}`}>
+                    <input
+                      type="radio"
+                      name="replace-mode"
+                      checked={replaceMode === 'replace'}
+                      onChange={() => setReplaceMode('replace')}
+                    />
+                    <span>
+                      <span className="builder-edit__mode-title">Everything — columns and rows</span>
+                      <span className="builder-edit__mode-desc">
+                        The table is rebuilt from the new file. Columns the file doesn't contain are removed,
+                        and the headings, types and filters come from the file. Choose this when the
+                        structure has changed.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label className={`builder-edit__mode-option ${replaceMode === 'merge' ? 'builder-edit__mode-option--on' : ''}`}>
+                    <input
+                      type="radio"
+                      name="replace-mode"
+                      checked={replaceMode === 'merge'}
+                      onChange={() => setReplaceMode('merge')}
+                    />
+                    <span>
+                      <span className="builder-edit__mode-title">Just the rows</span>
+                      <span className="builder-edit__mode-desc">
+                        Your current columns, labels, filters and widgets stay exactly as they are. Choose
+                        this for a routine data refresh where the file has the same columns.
+                      </span>
+                    </span>
+                  </label>
+                </fieldset>
+
                 <StepUpload
-                  onParsed={(data) => {
-                    const result = reconcileColumns(table.config, data);
-                    setNewParsed(data);
-                    setReuploadConfig(result.config);
-                    setColumnNotice(
-                      result.addedColumns.length || result.removedColumns.length ? result : null,
-                    );
-                    setReupload(false);
+                  onParsed={(data, cfg) => {
+                    if (replaceMode === 'merge') {
+                      applyUpload(data, reconcileColumns(table.config, data), 'merge');
+                      return;
+                    }
+                    // A PDF arrives with its config already extracted; a spreadsheet
+                    // goes through the AI analysis step first.
+                    if (cfg) {
+                      applyReplace(data, cfg);
+                      return;
+                    }
+                    setPendingParsed(data);
+                    setReuploadStep('analyse');
                   }}
                 />
               </div>
+            ) : reuploadStep === 'analyse' && pendingParsed ? (
+              <StepAIConfig
+                parsed={pendingParsed}
+                onAccept={(cfg, cleanedParsed) => applyReplace(cleanedParsed ?? pendingParsed, cfg)}
+                onBack={() => setReuploadStep('upload')}
+                onSkip={() => applyReplace(pendingParsed)}
+              />
             ) : (
               <>
                 {columnNotice && (
@@ -161,18 +274,40 @@ export default function BuilderEditPage({ user }: Props) {
                         then Save or Publish to apply.
                       </p>
                     )}
-                    {columnNotice.removedColumns.length > 0 && (
+                    {columnNotice.removedColumns.length > 0 && columnNotice.mode === 'replace' && (
+                      <p>
+                        ✓ {columnNotice.removedColumns.length}{' '}
+                        {columnNotice.removedColumns.length === 1 ? 'column' : 'columns'} not in the new file{' '}
+                        {columnNotice.removedColumns.length === 1 ? 'has' : 'have'} been removed:{' '}
+                        <strong>{columnNotice.removedColumns.join(', ')}</strong>. Save or Publish to apply.
+                      </p>
+                    )}
+                    {columnNotice.removedColumns.length > 0 && columnNotice.mode === 'merge' && (
                       <p>
                         ⚠ {columnNotice.removedColumns.length}{' '}
                         {columnNotice.removedColumns.length === 1 ? 'column is' : 'columns are'} not in the new
-                        file and will be left blank: <strong>{columnNotice.removedColumns.join(', ')}</strong>.
-                        Hide {columnNotice.removedColumns.length === 1 ? 'it' : 'them'} below if no longer
-                        needed.
+                        file and will be left blank: <strong>{columnNotice.removedColumns.join(', ')}</strong>.{' '}
+                        <button className="builder-edit__col-notice-action" onClick={removeMissingColumns}>
+                          Remove {columnNotice.removedColumns.length === 1 ? 'it' : 'them'}
+                        </button>{' '}
+                        or hide {columnNotice.removedColumns.length === 1 ? 'it' : 'them'} below to keep the
+                        data.
+                      </p>
+                    )}
+                    {columnNotice.emptyColumns.length > 0 && (
+                      <p>
+                        • {columnNotice.emptyColumns.length}{' '}
+                        {columnNotice.emptyColumns.length === 1 ? 'column has' : 'columns have'} no values
+                        anywhere in your file, so {columnNotice.emptyColumns.length === 1 ? 'it is' : 'they are'}{' '}
+                        hidden: <strong>{columnNotice.emptyColumns.join(', ')}</strong>. Switch{' '}
+                        {columnNotice.emptyColumns.length === 1 ? 'it' : 'them'} back on below if you plan to
+                        fill {columnNotice.emptyColumns.length === 1 ? 'it' : 'them'} in.
                       </p>
                     )}
                   </div>
                 )}
                 <StepCustomise
+                  key={`customise-${structureVersion}`}
                   parsed={activeParsed}
                   config={activeConfig}
                   onBack={() => navigate('/dashboard')}
@@ -198,7 +333,14 @@ export default function BuilderEditPage({ user }: Props) {
           tableId={table.id}
           tableTitle={table.title}
           onClose={() => setShowHistory(false)}
-          onRestored={() => { setShowHistory(false); setNewParsed(null); setReuploadConfig(null); setColumnNotice(null); void loadTable(); }}
+          onRestored={() => {
+            setShowHistory(false);
+            setNewParsed(null);
+            setReuploadConfig(null);
+            setColumnNotice(null);
+            setStructureVersion((v) => v + 1);
+            void loadTable();
+          }}
         />
       )}
     </div>

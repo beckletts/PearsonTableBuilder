@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { parseFile, getSheetNames } from '../../utils/parseFile';
+import { findUnreadableValues } from '../../utils/encoding';
 import type { ParsedFile, TableConfig } from '../../lib/types';
 import './StepUpload.css';
 
@@ -32,6 +33,17 @@ export default function StepUpload({ onParsed }: Props) {
       if (parsed.rows.length === 0) throw new Error('No data rows found in this sheet.');
       setPendingSheets(null);
       setPreview(parsed);
+
+      // Characters that were already unreadable in the source file can't be
+      // recovered here, so say what will recover them before the data is saved.
+      const { count, examples } = findUnreadableValues(parsed.rows);
+      if (count > 0) {
+        setWarning(
+          `${count.toLocaleString()} ${count === 1 ? 'value has' : 'values have'} a character that was lost when this file was saved` +
+          `${examples.length ? ` — for example “${examples[0]}”` : ''}. ` +
+          'To keep accented characters, re-save the file in Excel with File → Save As → CSV UTF-8, then upload it again. You can also continue as is.',
+        );
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to parse file.');
     } finally {
@@ -267,7 +279,7 @@ export default function StepUpload({ onParsed }: Props) {
               <p className="text-sm text-muted mt-4">Preview of first 5 rows</p>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-secondary btn-sm" onClick={() => { setPreview(null); setError(''); }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => { setPreview(null); setError(''); setWarning(''); }}>
                 Change file
               </button>
               <button className="btn btn-primary" onClick={() => onParsed(preview)}>

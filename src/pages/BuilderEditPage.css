@@ -73,3 +73,74 @@
 .builder-edit__col-notice p + p {
   margin-top: 8px;
 }
+
+/* Inline action inside a notice — reads as a link, behaves as a button */
+.builder-edit__col-notice-action {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.builder-edit__col-notice-action:hover { color: var(--color-primary-dk); }
+
+.builder-edit__col-notice-action:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Replace-data-file: what the new file replaces ──────────────────────── */
+.builder-edit__mode {
+  border: none;
+  margin-bottom: 24px;
+}
+
+.builder-edit__mode-legend {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 10px;
+}
+
+.builder-edit__mode-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.builder-edit__mode-option + .builder-edit__mode-option { margin-top: 8px; }
+
+.builder-edit__mode-option:hover { border-color: var(--color-primary); }
+
+.builder-edit__mode-option--on {
+  border-color: var(--color-primary);
+  background: var(--color-primary-lt);
+}
+
+.builder-edit__mode-option input { margin-top: 3px; flex-shrink: 0; }
+
+.builder-edit__mode-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.builder-edit__mode-desc {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-soft);
+}

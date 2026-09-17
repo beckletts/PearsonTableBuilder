@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { DataQualityIssue, ParsedFile, TableConfig } from '../../lib/types';
+import { hasLostCharacters, repairMojibake } from '../../utils/encoding';
 import './StepAIConfig.css';
 
 interface Props {
   parsed: ParsedFile;
   onAccept: (config: TableConfig, cleanedParsed?: ParsedFile) => void;
   onBack: () => void;
+  /** Carry on without AI, using the file's own headers. Offered if analysis fails. */
+  onSkip?: () => void;
 }
 
 function stripHtml(val: string): string {
@@ -34,6 +37,7 @@ function applyFixToValue(val: string, fix: DataQualityIssue['suggestedFix']): st
   if (fix === 'trim_whitespace') return val.trim();
   if (fix === 'normalise_case') return val ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase() : val;
   if (fix === 'convert_date_serial') return excelSerialToDate(val);
+  if (fix === 'fix_encoding') return repairMojibake(val);
   return val;
 }
 
@@ -43,9 +47,10 @@ const ISSUE_LABELS: Record<DataQualityIssue['type'], string> = {
   text_number:    'Number formatting',
   whitespace:     'Whitespace',
   mixed_case:     'Inconsistent case',
+  encoding:       'Character encoding',
 };
 
-export default function StepAIConfig({ parsed, onAccept, onBack }: Props) {
+export default function StepAIConfig({ parsed, onAccept, onBack, onSkip }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [config, setConfig] = useState<TableConfig | null>(null);
@@ -130,9 +135,14 @@ export default function StepAIConfig({ parsed, onAccept, onBack }: Props) {
       {error && (
         <div>
           <p className="error-msg">{error}</p>
-          <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={onBack}>← Back</button>
             <button className="btn btn-primary" onClick={() => void analyse()}>Try again</button>
+            {onSkip && (
+              <button className="btn btn-secondary" onClick={onSkip}>
+                Continue without AI
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -202,6 +212,14 @@ export default function StepAIConfig({ parsed, onAccept, onBack }: Props) {
                             <code key={i} className="dq-issue__example">{ex}</code>
                           ))}
                         </div>
+                      )}
+
+                      {/* Nothing here can bring a lost character back — say what will. */}
+                      {issue.examples.some(hasLostCharacters) && (
+                        <p className="dq-issue__desc">
+                          These characters were already lost when the file was saved. In Excel, use
+                          File → Save As → <strong>CSV UTF-8</strong>, then upload again to get them back.
+                        </p>
                       )}
 
                       {isApplied ? (

@@ -30,10 +30,10 @@ OUTPUT RULES:
   "dataQualityIssues": [
     {
       "column": string,        // exact header key
-      "type": "html_artifacts" | "text_date" | "text_number" | "whitespace" | "mixed_case",
+      "type": "html_artifacts" | "text_date" | "text_number" | "whitespace" | "mixed_case" | "encoding",
       "description": string,   // plain English description of the problem
       "examples": string[],    // up to 3 example problematic cell values
-      "suggestedFix": "strip_html" | "trim_whitespace" | "normalise_case" | "flag_only",
+      "suggestedFix": "strip_html" | "trim_whitespace" | "normalise_case" | "fix_encoding" | "flag_only",
       "fixDescription": string // what the fix will do, in plain English
     }
   ]
@@ -77,6 +77,9 @@ Inspect the actual cell values in sampleRows for these problems:
 - "text_number": a numeric column where values are stored as text with currency symbols, thousands separators, or percent signs (e.g. "£45.00", "1,234", "95%"). Use suggestedFix "flag_only".
 - "whitespace": cells with leading or trailing whitespace. Use suggestedFix "trim_whitespace".
 - "mixed_case": a badge or categorical column where the same value appears in inconsistent cases (e.g. "Yes", "yes", "YES" all present). Use suggestedFix "normalise_case".
+- "encoding" (double-encoded text): values contain sequences like "Ã¼", "Ã©", "Ã§", "â€™" or a stray "Â" where an accented character or a curly quote belongs (e.g. "TÃ¼rkiye" for "Türkiye"). Use suggestedFix "fix_encoding" — the fix reverses the double encoding and restores the original characters.
+- "encoding" (characters already lost): values contain the replacement character "�" (e.g. "T�rkiye"). Use suggestedFix "flag_only" — the original bytes are gone and only re-exporting the source file as UTF-8 can recover them. Say so in fixDescription.
+Report an encoding problem as "encoding", never as "mixed_case".
 Only report issues you actually observe in the sample data. If no issues are found, return an empty array for "dataQualityIssues".`;
 
 async function validateUser(jwt: string): Promise<boolean> {
