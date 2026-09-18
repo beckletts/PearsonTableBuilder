@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabase';
 import { generateUniqueSlug } from '../../utils/generateSlug';
 import { createSnapshot } from '../../utils/snapshots';
 import { findFileHeader, removeColumn } from '../../utils/reconcileColumns';
+import { DEFAULT_SINGLE_BADGE_COLOR, resolveBadgeStyle } from '../../utils/badgeColors';
+import BadgeColorPicker from './BadgeColorPicker';
 import type { ColumnConfig, ParsedFile, TableConfig, Widget } from '../../lib/types';
 import { ORIGINAL_ORDER } from '../../lib/types';
 import ColumnEditor from './ColumnEditor';
@@ -199,6 +201,51 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
     }
   };
 
+  // Badge colouring applies to the badge columns a viewer can actually see.
+  const badgeCols = config.columns.filter((c) => c.visible && c.type === 'badge');
+  const badgeColKeys = badgeCols.map((c) => c.key);
+
+  // Which of the three ways of colouring badges is in use. Read from the config
+  // rather than stored separately, so it survives a reload and can't disagree
+  // with the colours themselves. `badgeEditor` only holds the case the config
+  // can't express: per-column chosen, nothing picked yet.
+  const [badgeEditor, setBadgeEditor] = useState<'columns' | null>(null);
+  const badgeMode: 'auto' | 'single' | 'columns' =
+    badgeCols.some((c) => c.badgeColor) || badgeEditor === 'columns'
+      ? 'columns'
+      : config.badgeColor
+        ? 'single'
+        : 'auto';
+
+  const setBadgeColor = (badgeColor?: string) => setConfig((c) => ({ ...c, badgeColor }));
+
+  const clearColumnBadgeColours = () =>
+    setConfig((c) => ({
+      ...c,
+      columns: c.columns.map((col) => (col.badgeColor ? { ...col, badgeColor: undefined } : col)),
+    }));
+
+  const setColumnBadgeColor = (key: string, badgeColor?: string) =>
+    setConfig((c) => ({
+      ...c,
+      columns: c.columns.map((col) => (col.key === key ? { ...col, badgeColor } : col)),
+    }));
+
+  const setBadgeMode = (mode: 'auto' | 'single' | 'columns') => {
+    setBadgeEditor(mode === 'columns' ? 'columns' : null);
+    // Each mode owns the colours it uses, so switching clears the other's, and
+    // a column never quietly inherits a colour the chosen mode doesn't show.
+    if (mode === 'auto') {
+      setBadgeColor(undefined);
+      clearColumnBadgeColours();
+    } else if (mode === 'single') {
+      clearColumnBadgeColours();
+      setBadgeColor(config.badgeColor ?? DEFAULT_SINGLE_BADGE_COLOR);
+    } else {
+      setBadgeColor(undefined);
+    }
+  };
+
   const filterableCols = config.columns.filter((c) => c.filterable);
   const rawFilterOrder = config.filterOrder ?? filterableCols.map((c) => c.key);
   const syncedFilterOrder = [
@@ -296,6 +343,103 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Badge colours ── */}
+          {badgeCols.length > 0 && (
+            <div className="card" style={{ marginTop: 16, padding: 16 }}>
+              <p className="text-sm font-600" style={{ marginBottom: 4 }}>Badge colours</p>
+              <p className="text-xs text-muted" style={{ marginBottom: 10 }}>
+                How the pills in your {badgeCols.length} badge{' '}
+                {badgeCols.length === 1 ? 'column' : 'columns'} are coloured on the published table.
+              </p>
+
+              <label className="col-editor__check" style={{ marginBottom: 8 }}>
+                <input
+                  type="radio"
+                  name="badge-colour-mode"
+                  checked={badgeMode === 'auto'}
+                  onChange={() => setBadgeMode('auto')}
+                />
+                <span className="text-sm">
+                  A different colour per column
+                  <span className="text-muted"> — helps viewers tell wide tables apart</span>
+                </span>
+              </label>
+
+              <label className="col-editor__check" style={{ marginBottom: badgeMode === 'single' ? 8 : 8 }}>
+                <input
+                  type="radio"
+                  name="badge-colour-mode"
+                  checked={badgeMode === 'single'}
+                  onChange={() => setBadgeMode('single')}
+                />
+                <span className="text-sm">One colour for every badge column</span>
+              </label>
+
+              {badgeMode === 'single' && (
+                <div style={{ marginLeft: 26, marginBottom: 10 }}>
+                  <BadgeColorPicker
+                    value={config.badgeColor}
+                    onChange={(color) => setBadgeColor(color ?? DEFAULT_SINGLE_BADGE_COLOR)}
+                    ariaLabel="Badge colour for every badge column"
+                  />
+                </div>
+              )}
+
+              <label className="col-editor__check" style={{ marginBottom: 10 }}>
+                <input
+                  type="radio"
+                  name="badge-colour-mode"
+                  checked={badgeMode === 'columns'}
+                  onChange={() => setBadgeMode('columns')}
+                />
+                <span className="text-sm">
+                  Choose per column
+                  <span className="text-muted"> — pick the same colour for as many as you like</span>
+                </span>
+              </label>
+
+              {badgeMode === 'columns' && (
+                <div className="sc-badge-rows">
+                  {badgeCols.map((col) => (
+                    <div key={col.key} className="sc-badge-row">
+                      <span className="sc-badge-row__label">{col.label}</span>
+                      <BadgeColorPicker
+                        value={col.badgeColor}
+                        onChange={(color) => setColumnBadgeColor(col.key, color)}
+                        automaticLabel="Automatic"
+                        fallback={resolveBadgeStyle({ key: col.key }, {}, badgeColKeys).backgroundColor}
+                        ariaLabel={`Badge colour for the ${col.label} column`}
+                      />
+                    </div>
+                  ))}
+                  <button
+                    className="sc-inline-action"
+                    style={{ marginTop: 8, alignSelf: 'flex-start' }}
+                    onClick={clearColumnBadgeColours}
+                  >
+                    Set every column back to automatic
+                  </button>
+                </div>
+              )}
+
+              {/* What the published pills will look like */}
+              <p className="text-xs text-muted" style={{ marginTop: 14, marginBottom: 6 }}>
+                Preview — text is set to black or white automatically, whichever reads better:
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {badgeCols.map((col) => (
+                  <span
+                    key={col.key}
+                    className="badge"
+                    style={resolveBadgeStyle(col, config, badgeColKeys)}
+                  >
+                    {col.label}
+                  </span>
+                ))}
               </div>
             </div>
           )}

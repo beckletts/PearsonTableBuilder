@@ -10,6 +10,7 @@ export interface ColumnConfig {
   filterLabel?: boolean;       // show label above filter dropdown (default true)
   filterPlaceholder?: string;  // default option text, e.g. "All Universities"
   fontColor?: string;          // optional hex colour applied to all cell values in this column
+  badgeColor?: string;         // badge columns only: this column's pill colour, overriding the automatic palette
   truncate?: boolean;          // clip long text to one line with ellipsis; full value shown on hover
   merge?: boolean;             // visually merge a blank cell with the filled cell above it (rowSpan), for grouped rows e.g. Raw/UMS pairs
 }
@@ -55,6 +56,7 @@ export interface TableConfig {
     lastUpdated?: string;
   };
   filterOrder?: string[];
+  badgeColor?: string;         // one pill colour for every badge column; unset means a colour per column
   searchPlaceholder?: string;
   stickyHeader?: boolean;
   hideLogo?: boolean;

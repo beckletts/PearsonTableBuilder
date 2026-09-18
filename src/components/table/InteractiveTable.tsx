@@ -5,23 +5,13 @@ import TableSearch from './TableSearch';
 import TableFilters from './TableFilters';
 import TablePagination from './TablePagination';
 import { computeMergedSpans } from '../../utils/mergedCells';
+import { resolveBadgeStyle } from '../../utils/badgeColors';
 import './InteractiveTable.css';
 
 const PAGE_SIZE = 25;
 
 const TICK_CHARS  = new Set(['✓', '✔', '✅']);
 const CROSS_CHARS = new Set(['✗', '✘', '❌', 'x', 'X']);
-
-function badgeColor(value: string): string {
-  // Deterministic colour from string hash
-  let hash = 0;
-  for (let i = 0; i < value.length; i++) {
-    hash = (hash << 5) - hash + value.charCodeAt(i);
-    hash |= 0;
-  }
-  const palettes = ['badge-blue', 'badge-purple', 'badge-yellow', 'badge-green', 'badge-grey'];
-  return palettes[Math.abs(hash) % palettes.length];
-}
 
 interface Props {
   config: TableConfig;
@@ -39,6 +29,11 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
   const visibleCols = useMemo(
     () => config.columns.filter((c) => c.visible),
     [config.columns],
+  );
+
+  const badgeColKeys = useMemo(
+    () => visibleCols.filter((c) => c.type === 'badge').map((c) => c.key),
+    [visibleCols],
   );
 
   const filterableCols = useMemo(() => {
@@ -220,7 +215,8 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
                             View ↗
                           </a>
                         ) : col.type === 'badge' && val !== '—' ? (
-                          <span className={`badge ${badgeColor(val)}`}>{val}</span>
+                          // Same colours the published page will use, so the preview is truthful
+                          <span className="badge" style={resolveBadgeStyle(col, config, badgeColKeys)}>{val}</span>
                         ) : col.fontColor && val !== '—' ? (
                           <span style={{ color: col.fontColor, fontWeight: 600 }}>{val}</span>
                         ) : TICK_CHARS.has(val) ? (

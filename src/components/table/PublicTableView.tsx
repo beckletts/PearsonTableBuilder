@@ -3,24 +3,10 @@ import type { TableConfig, TableRow, ColumnConfig, CardViewConfig, StatCardsConf
 import { ORIGINAL_ORDER } from '../../lib/types';
 import { trackEvent } from '../../lib/analytics';
 import { computeMergedSpans } from '../../utils/mergedCells';
+import { badgeLegendIsRedundant, resolveBadgeStyle } from '../../utils/badgeColors';
 import './PublicTableView.css';
 
 const BATCH = 50;
-
-const BADGE_COL_COLORS = [
-  { bg: '#5B2D86', text: '#fff' },
-  { bg: '#D4C5E8', text: '#5B2D86' },
-  { bg: '#E8F0FF', text: '#1A4D8F' },
-  { bg: '#F5F5F5', text: '#0D004D', border: '#D0D0D0' },
-  { bg: '#E8F5F5', text: '#1A7373' },
-  { bg: '#FFF9F0', text: '#C25100' },
-];
-
-function getBadgeStyle(colKey: string, badgeColKeys: string[]) {
-  const idx = badgeColKeys.indexOf(colKey);
-  const c = BADGE_COL_COLORS[idx % BADGE_COL_COLORS.length];
-  return { backgroundColor: c.bg, color: c.text, border: c.border ? `1px solid ${c.border}` : undefined };
-}
 
 interface Props {
   config: TableConfig;
@@ -51,6 +37,12 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
   const filterCols   = useMemo(() => visibleCols.filter((c) => c.filterable), [visibleCols]);
   const badgeCols    = useMemo(() => visibleCols.filter((c) => c.type === 'badge'), [visibleCols]);
   const badgeColKeys = useMemo(() => badgeCols.map((c) => c.key), [badgeCols]);
+  // The badge guide maps a colour to a column, so it says nothing once several
+  // badge columns share one colour.
+  const legendIsRedundant = useMemo(
+    () => badgeLegendIsRedundant(badgeCols, config),
+    [badgeCols, config],
+  );
   const searchCols   = useMemo(() => config.columns.filter((c) => c.searchable).map((c) => c.key), [config.columns]);
 
   // Widgets
@@ -180,7 +172,7 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
     const val = raw !== null && raw !== undefined ? String(raw).replace(/​/g, '').trim() : '';
     if (!val) return <span style={{ color: '#bbb' }}>—</span>;
     if (col.type === 'url') return <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">View ↗</a>;
-    if (col.type === 'badge') return <span className="pub-badge" style={getBadgeStyle(col.key, badgeColKeys)}>{val}</span>;
+    if (col.type === 'badge') return <span className="pub-badge" style={resolveBadgeStyle(col, config, badgeColKeys)}>{val}</span>;
     if (col.fontColor) return <span style={{ color: col.fontColor, fontWeight: 600 }}>{val}</span>;
     if (TICK_CHARS.has(val))  return <span style={{ color: '#22A051', fontWeight: 700, fontSize: '1.1em' }}>{val}</span>;
     if (CROSS_CHARS.has(val)) return <span style={{ color: '#D0021B', fontWeight: 700, fontSize: '1.1em' }}>{val}</span>;
@@ -218,7 +210,11 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
           const desc = cvc.descriptionColumn ? String(row.data[cvc.descriptionColumn] ?? '') : '';
           const link = cvc.linkColumn ? String(row.data[cvc.linkColumn] ?? '') : '';
           const badges = (cvc.badgeColumns ?? [])
-            .map((key) => ({ key, value: String(row.data[key] ?? '') }))
+            .map((key) => ({
+              key,
+              value: String(row.data[key] ?? ''),
+              badgeColor: config.columns.find((c) => c.key === key)?.badgeColor,
+            }))
             .filter((b) => b.value);
           return (
             <div key={row.id} className="pub-card">
@@ -231,7 +227,7 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
                   {badges.length > 0 && (
                     <div className="pub-card__badges">
                       {badges.map((b) => (
-                        <span key={b.key} className="pub-badge" style={getBadgeStyle(b.key, badgeColKeys)}>{b.value}</span>
+                        <span key={b.key} className="pub-badge" style={resolveBadgeStyle(b, config, badgeColKeys)}>{b.value}</span>
                       ))}
                     </div>
                   )}
@@ -350,13 +346,13 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
           </div>
         )}
 
-        {badgeCols.length > 0 && (
+        {badgeCols.length > 0 && !legendIsRedundant && (
           <div className="pub-view__legend">
             <h3 className="pub-view__legend-title">Result Badge Guide</h3>
             <div className="pub-view__legend-items">
               {badgeCols.map((col) => (
                 <div key={col.key} className="pub-view__legend-item">
-                  <span className="pub-badge pub-badge--legend" style={getBadgeStyle(col.key, badgeColKeys)}>&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                  <span className="pub-badge pub-badge--legend" style={resolveBadgeStyle(col, config, badgeColKeys)}>&nbsp;&nbsp;&nbsp;&nbsp;</span>
                   <span className="pub-view__legend-label">{col.label}</span>
                 </div>
               ))}
