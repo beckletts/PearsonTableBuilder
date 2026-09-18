@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { generateUniqueSlug } from '../../utils/generateSlug';
 import { createSnapshot } from '../../utils/snapshots';
 import { findFileHeader, removeColumn } from '../../utils/reconcileColumns';
+import { DEFAULT_SINGLE_BADGE_COLOR, resolveBadgeStyle } from '../../utils/badgeColors';
 import type { ColumnConfig, ParsedFile, TableConfig, Widget } from '../../lib/types';
 import { ORIGINAL_ORDER } from '../../lib/types';
 import ColumnEditor from './ColumnEditor';
@@ -199,6 +200,18 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
     }
   };
 
+  // Badge colouring applies to the badge columns a viewer can actually see.
+  const badgeCols = config.columns.filter((c) => c.visible && c.type === 'badge');
+  const badgeColsWithOwnColour = badgeCols.filter((c) => c.badgeColor);
+
+  const setBadgeColor = (badgeColor?: string) => setConfig((c) => ({ ...c, badgeColor }));
+
+  const clearColumnBadgeColours = () =>
+    setConfig((c) => ({
+      ...c,
+      columns: c.columns.map((col) => (col.badgeColor ? { ...col, badgeColor: undefined } : col)),
+    }));
+
   const filterableCols = config.columns.filter((c) => c.filterable);
   const rawFilterOrder = config.filterOrder ?? filterableCols.map((c) => c.key);
   const syncedFilterOrder = [
@@ -297,6 +310,80 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* ── Badge colours ── */}
+          {badgeCols.length > 0 && (
+            <div className="card" style={{ marginTop: 16, padding: 16 }}>
+              <p className="text-sm font-600" style={{ marginBottom: 4 }}>Badge colours</p>
+              <p className="text-xs text-muted" style={{ marginBottom: 10 }}>
+                How the pills in your {badgeCols.length} badge{' '}
+                {badgeCols.length === 1 ? 'column' : 'columns'} are coloured on the published table.
+              </p>
+
+              <label className="col-editor__check" style={{ marginBottom: 8 }}>
+                <input
+                  type="radio"
+                  name="badge-colour-mode"
+                  checked={!config.badgeColor}
+                  onChange={() => setBadgeColor(undefined)}
+                />
+                <span className="text-sm">
+                  A different colour per column
+                  <span className="text-muted"> — helps viewers tell wide tables apart</span>
+                </span>
+              </label>
+
+              <label className="col-editor__check" style={{ marginBottom: 10 }}>
+                <input
+                  type="radio"
+                  name="badge-colour-mode"
+                  checked={!!config.badgeColor}
+                  onChange={() => setBadgeColor(config.badgeColor ?? DEFAULT_SINGLE_BADGE_COLOR)}
+                />
+                <span className="text-sm">One colour for every badge column</span>
+              </label>
+
+              {config.badgeColor && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <input
+                    type="color"
+                    className="col-editor__colour-swatch"
+                    value={config.badgeColor}
+                    onChange={(e) => setBadgeColor(e.target.value)}
+                    aria-label="Badge colour for every badge column"
+                  />
+                  <span className="text-xs text-muted">
+                    Text is set to black or white automatically, whichever reads better.
+                  </span>
+                </div>
+              )}
+
+              {/* What the published pills will look like */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {badgeCols.map((col) => (
+                  <span
+                    key={col.key}
+                    className="badge"
+                    style={resolveBadgeStyle(col, config, badgeCols.map((c) => c.key))}
+                  >
+                    {col.label}
+                  </span>
+                ))}
+              </div>
+
+              {badgeColsWithOwnColour.length > 0 && (
+                <p className="text-xs text-muted" style={{ marginTop: 10 }}>
+                  {badgeColsWithOwnColour.length}{' '}
+                  {badgeColsWithOwnColour.length === 1 ? 'column has' : 'columns have'} a colour set
+                  on the column itself, which wins over this setting:{' '}
+                  <strong>{badgeColsWithOwnColour.map((c) => c.label).join(', ')}</strong>.{' '}
+                  <button className="sc-inline-action" onClick={clearColumnBadgeColours}>
+                    Clear {badgeColsWithOwnColour.length === 1 ? 'it' : 'them'}
+                  </button>
+                </p>
+              )}
             </div>
           )}
 

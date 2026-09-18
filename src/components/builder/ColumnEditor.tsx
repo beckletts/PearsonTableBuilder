@@ -1,4 +1,5 @@
 import type { ColumnConfig, ColumnType } from '../../lib/types';
+import { DEFAULT_SINGLE_BADGE_COLOR } from '../../utils/badgeColors';
 import './ColumnEditor.css';
 
 interface Props {
@@ -86,21 +87,50 @@ export default function ColumnEditor({ column, onChange, onRemove, onDragStart, 
             ))}
           </select>
 
-          <div
-            className="col-editor__colour-wrap"
-            data-tooltip={column.fontColor ? 'Custom text colour — click to change, × to remove' : 'Set a custom text colour for all values in this column'}
-          >
-            <input
-              type="color"
-              className={`col-editor__colour-swatch ${column.fontColor ? '' : 'col-editor__colour-swatch--unset'}`}
-              value={column.fontColor ?? '#1A1A1A'}
-              onChange={(e) => set('fontColor', e.target.value)}
-              aria-label="Column text colour"
-            />
-            {column.fontColor && (
-              <button className="col-editor__colour-clear" onClick={() => set('fontColor', undefined)} aria-label="Clear colour">✕</button>
-            )}
-          </div>
+          {column.type !== 'badge' && (
+            <div
+              className="col-editor__colour-wrap"
+              data-tooltip={column.fontColor ? 'Custom text colour — click to change, × to remove' : 'Set a custom text colour for all values in this column'}
+            >
+              <input
+                type="color"
+                className={`col-editor__colour-swatch ${column.fontColor ? '' : 'col-editor__colour-swatch--unset'}`}
+                value={column.fontColor ?? '#1A1A1A'}
+                onChange={(e) => set('fontColor', e.target.value)}
+                aria-label="Column text colour"
+              />
+              {column.fontColor && (
+                <button className="col-editor__colour-clear" onClick={() => set('fontColor', undefined)} aria-label="Clear colour">✕</button>
+              )}
+            </div>
+          )}
+
+          {/* Badge columns take their colour from the pill, not the text */}
+          {column.type === 'badge' && (
+            <div
+              className="col-editor__colour-wrap"
+              data-tooltip={column.badgeColor
+                ? 'Badge colour for this column — click to change, × to go back to the automatic colour'
+                : 'Set this column’s badge colour. Leave it unset to use the table’s badge colour.'}
+            >
+              <input
+                type="color"
+                className={`col-editor__colour-swatch ${column.badgeColor ? '' : 'col-editor__colour-swatch--unset'}`}
+                value={column.badgeColor ?? DEFAULT_SINGLE_BADGE_COLOR}
+                onChange={(e) => set('badgeColor', e.target.value)}
+                aria-label={`Badge colour for the ${column.label} column`}
+              />
+              {column.badgeColor && (
+                <button
+                  className="col-editor__colour-clear"
+                  onClick={() => set('badgeColor', undefined)}
+                  aria-label="Use the automatic badge colour"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
 
           <label className="col-editor__check" data-tooltip="Add a dropdown filter so users can narrow results by this column's values">
             <input

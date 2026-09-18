@@ -67,3 +67,23 @@
 
 .sc-filter-chip__drag { font-size: 13px; color: #BBB; line-height: 1; }
 .sc-filter-chip__label { font-weight: 500; color: var(--color-text); }
+
+/* Inline action inside explanatory text — reads as a link, behaves as a button */
+.sc-inline-action {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sc-inline-action:hover { color: var(--color-primary-dk); }
+
+.sc-inline-action:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
