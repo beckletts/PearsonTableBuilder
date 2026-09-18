@@ -18,6 +18,29 @@ export const BADGE_PALETTE: BadgeStyle[] = [
 /** The colour offered first when someone switches to a single badge colour. */
 export const DEFAULT_SINGLE_BADGE_COLOR = '#5B2D86';
 
+/**
+ * Named colours to choose from, so putting several columns on the same colour
+ * is a matter of picking the same name rather than matching a hex code by eye.
+ * Pearson brand colours, plus the purple badges already use.
+ */
+export const BADGE_COLOR_CHOICES: { label: string; value: string }[] = [
+  { label: 'Badge purple',   value: '#5B2D86' },
+  { label: 'Pearson purple', value: '#0D004D' },
+  { label: 'Amethyst',       value: '#512EAB' },
+  { label: 'Light purple',   value: '#C1BFFF' },
+  { label: 'Mist purple',    value: '#EDECF6' },
+  { label: 'Turquoise',      value: '#56E2E1' },
+  { label: 'Amber',          value: '#FFCE00' },
+  { label: 'Fuchsia',        value: '#DF41CF' },
+];
+
+/** The name of a chosen colour, for showing alongside a swatch. */
+export function badgeColorName(value: string | undefined): string {
+  if (!value) return 'Automatic';
+  const known = BADGE_COLOR_CHOICES.find((c) => c.value.toLowerCase() === value.toLowerCase());
+  return known ? known.label : value.toUpperCase();
+}
+
 export interface BadgeStyle {
   backgroundColor: string;
   color: string;

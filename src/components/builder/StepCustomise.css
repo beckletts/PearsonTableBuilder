@@ -87,3 +87,46 @@
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
+
+/* ── Per-column badge colours ───────────────────────────────────────────── */
+.sc-badge-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 4px 26px;
+}
+
+.sc-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sc-badge-row__label {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.badge-picker__select {
+  width: 150px;
+  padding: 5px 8px;
+  font-size: 13px;
+}
+
+/* Stack the rows on narrow screens rather than squeezing the controls */
+@media (max-width: 560px) {
+  .sc-badge-rows { margin-left: 0; }
+  .sc-badge-row { flex-wrap: wrap; gap: 6px; }
+  .sc-badge-row__label { flex: 1 0 100%; }
+}
