@@ -6,6 +6,7 @@ import { createSnapshot } from '../../utils/snapshots';
 import { findFileHeader, removeColumn } from '../../utils/reconcileColumns';
 import { DEFAULT_SINGLE_BADGE_COLOR, resolveBadgeStyle } from '../../utils/badgeColors';
 import BadgeColorPicker from './BadgeColorPicker';
+import { DEFAULT_CROSS_COLOR, DEFAULT_TICK_COLOR, tickMarkOf } from '../../utils/tickMarks';
 import type { ColumnConfig, ParsedFile, TableConfig, Widget } from '../../lib/types';
 import { ORIGINAL_ORDER } from '../../lib/types';
 import ColumnEditor from './ColumnEditor';
@@ -205,6 +206,18 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
   const badgeCols = config.columns.filter((c) => c.visible && c.type === 'badge');
   const badgeColKeys = badgeCols.map((c) => c.key);
 
+  // Only worth offering when the data has ticks or crosses to colour.
+  const hasTickMarks = previewRows.some((r) =>
+    Object.values(r.data).some((v) => tickMarkOf(String(v ?? ''))),
+  );
+  const tickStyle = config.tickMarks?.style ?? 'symbol';
+
+  const setTickStyle = (style: 'symbol' | 'badge') =>
+    setConfig((c) => ({ ...c, tickMarks: { ...c.tickMarks, style } }));
+
+  const setTickColor = (which: 'tickColor' | 'crossColor', color: string) =>
+    setConfig((c) => ({ ...c, tickMarks: { ...c.tickMarks, [which]: color } }));
+
   // Which of the three ways of colouring badges is in use. Read from the config
   // rather than stored separately, so it survives a reload and can't disagree
   // with the colours themselves. `badgeEditor` only holds the case the config
@@ -344,6 +357,80 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* ── Ticks and crosses ── */}
+          {hasTickMarks && (
+            <div className="card" style={{ marginTop: 16, padding: 16 }}>
+              <p className="text-sm font-600" style={{ marginBottom: 4 }}>Ticks and crosses</p>
+              <p className="text-xs text-muted" style={{ marginBottom: 10 }}>
+                Your data contains ✓ and ✗ values. These show the answer, so they are coloured the
+                same way in every column.
+              </p>
+
+              <label className="col-editor__check" style={{ marginBottom: 8 }}>
+                <input
+                  type="radio"
+                  name="tick-style"
+                  checked={tickStyle === 'symbol'}
+                  onChange={() => setTickStyle('symbol')}
+                />
+                <span className="text-sm">
+                  One colour for every tick, one for every cross
+                  <span className="text-muted"> — scan a column at a glance</span>
+                </span>
+              </label>
+
+              {tickStyle === 'symbol' && (
+                <div className="sc-badge-rows" style={{ marginBottom: 4 }}>
+                  <div className="sc-badge-row">
+                    <span className="sc-badge-row__label">Ticks</span>
+                    <input
+                      type="color"
+                      className="col-editor__colour-swatch"
+                      value={config.tickMarks?.tickColor ?? DEFAULT_TICK_COLOR}
+                      onChange={(e) => setTickColor('tickColor', e.target.value)}
+                      aria-label="Colour for ticks"
+                    />
+                    <span
+                      className="text-sm font-600"
+                      style={{ color: config.tickMarks?.tickColor ?? DEFAULT_TICK_COLOR, width: 24 }}
+                    >
+                      ✓
+                    </span>
+                  </div>
+                  <div className="sc-badge-row">
+                    <span className="sc-badge-row__label">Crosses</span>
+                    <input
+                      type="color"
+                      className="col-editor__colour-swatch"
+                      value={config.tickMarks?.crossColor ?? DEFAULT_CROSS_COLOR}
+                      onChange={(e) => setTickColor('crossColor', e.target.value)}
+                      aria-label="Colour for crosses"
+                    />
+                    <span
+                      className="text-sm font-600"
+                      style={{ color: config.tickMarks?.crossColor ?? DEFAULT_CROSS_COLOR, width: 24 }}
+                    >
+                      ✗
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <label className="col-editor__check">
+                <input
+                  type="radio"
+                  name="tick-style"
+                  checked={tickStyle === 'badge'}
+                  onChange={() => setTickStyle('badge')}
+                />
+                <span className="text-sm">
+                  Colour them like any other value
+                  <span className="text-muted"> — a badge column shows them as pills</span>
+                </span>
+              </label>
             </div>
           )}
 

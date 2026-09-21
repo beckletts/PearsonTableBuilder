@@ -57,6 +57,11 @@ export interface TableConfig {
   };
   filterOrder?: string[];
   badgeColor?: string;         // one pill colour for every badge column; unset means a colour per column
+  tickMarks?: {                // how ✓ and ✗ values are shown, whatever their column's type
+    style?: 'symbol' | 'badge';  // 'symbol' (default) colours them green/red; 'badge' leaves them as pills
+    tickColor?: string;
+    crossColor?: string;
+  };
   searchPlaceholder?: string;
   stickyHeader?: boolean;
   hideLogo?: boolean;

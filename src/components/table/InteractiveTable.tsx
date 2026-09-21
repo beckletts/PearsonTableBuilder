@@ -6,12 +6,10 @@ import TableFilters from './TableFilters';
 import TablePagination from './TablePagination';
 import { computeMergedSpans } from '../../utils/mergedCells';
 import { resolveBadgeStyle } from '../../utils/badgeColors';
+import { showsTickSymbols, tickMarkColor, tickMarkOf } from '../../utils/tickMarks';
 import './InteractiveTable.css';
 
 const PAGE_SIZE = 25;
-
-const TICK_CHARS  = new Set(['✓', '✔', '✅']);
-const CROSS_CHARS = new Set(['✗', '✘', '❌', 'x', 'X']);
 
 interface Props {
   config: TableConfig;
@@ -35,6 +33,8 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
     () => visibleCols.filter((c) => c.type === 'badge').map((c) => c.key),
     [visibleCols],
   );
+
+  const tickSymbols = showsTickSymbols(config);
 
   const filterableCols = useMemo(() => {
     const cols = config.columns.filter((c) => c.filterable);
@@ -201,6 +201,7 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
                     if (span === 0) return null;
                     const raw = row.data[col.key];
                     const val = raw !== null && raw !== undefined ? String(raw).replace(/​/g, '').trim() : '—';
+                    const tickMark = tickSymbols ? tickMarkOf(val) : null;
                     return (
                       <td
                         key={col.key}
@@ -214,15 +215,14 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
                           <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">
                             View ↗
                           </a>
+                        ) : tickMark ? (
+                          // Coloured by what it says, ahead of its column's type
+                          <span style={{ color: tickMarkColor(tickMark, config), fontWeight: 700 }}>{val}</span>
                         ) : col.type === 'badge' && val !== '—' ? (
                           // Same colours the published page will use, so the preview is truthful
                           <span className="badge" style={resolveBadgeStyle(col, config, badgeColKeys)}>{val}</span>
                         ) : col.fontColor && val !== '—' ? (
                           <span style={{ color: col.fontColor, fontWeight: 600 }}>{val}</span>
-                        ) : TICK_CHARS.has(val) ? (
-                          <span style={{ color: '#007A3D', fontWeight: 700 }}>{val}</span>
-                        ) : CROSS_CHARS.has(val) ? (
-                          <span style={{ color: '#C8001E', fontWeight: 700 }}>{val}</span>
                         ) : (
                           val
                         )}
