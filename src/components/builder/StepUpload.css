@@ -145,3 +145,16 @@
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* How many options a clipped preview cell holds — sits before the text so the
+   single-line clipping can't hide it */
+.step-upload__count {
+  display: inline-block;
+  margin-right: 7px;
+  padding: 1px 6px;
+  background: var(--color-primary-lt);
+  color: var(--color-primary-dk);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
+}
