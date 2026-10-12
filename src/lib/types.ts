@@ -63,6 +63,7 @@ export interface TableConfig {
     crossColor?: string;
   };
   emptyCellText?: string;      // what an empty cell shows; defaults to an em dash
+  emptyCellTextOnce?: boolean; // show that text only on the first empty cell after a row's last value
   searchPlaceholder?: string;
   stickyHeader?: boolean;
   hideLogo?: boolean;

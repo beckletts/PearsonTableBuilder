@@ -6,6 +6,7 @@ import { computeMergedSpans } from '../../utils/mergedCells';
 import { badgeLegendIsRedundant, resolveBadgeStyle } from '../../utils/badgeColors';
 import { showsTickSymbols, tickMarkColor, tickMarkOf, tickOnlyColumnKeys } from '../../utils/tickMarks';
 import { cellLines, hasMultipleLines, isOptionSeparator } from '../../utils/cellLines';
+import { firstTrailingEmptyByRow } from '../../utils/emptyCells';
 import './PublicTableView.css';
 
 const BATCH = 50;
@@ -39,6 +40,12 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
   const filterCols   = useMemo(() => visibleCols.filter((c) => c.filterable), [visibleCols]);
   const badgeCols    = useMemo(() => visibleCols.filter((c) => c.type === 'badge'), [visibleCols]);
   const badgeColKeys = useMemo(() => badgeCols.map((c) => c.key), [badgeCols]);
+
+  // Where each row runs out of values, for the "say it once" empty-cell text.
+  const trailingEmptyByRow = useMemo(
+    () => (config.emptyCellTextOnce ? firstTrailingEmptyByRow(rows, visibleCols.map((c) => c.key)) : {}),
+    [config.emptyCellTextOnce, rows, visibleCols],
+  );
 
   const tickSymbols  = showsTickSymbols(config);
   // A badge column holding only ticks and crosses renders as green and red
@@ -181,7 +188,12 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
   const renderCell = (col: ColumnConfig, row: TableRow) => {
     const raw = row.data[col.key];
     const val = raw !== null && raw !== undefined ? String(raw).replace(/​/g, '').trim() : '';
-    if (!val) return <span className="pub-cell__empty">{config.emptyCellText ?? '—'}</span>;
+    if (!val) {
+      // With "once per row" on, only the cell where the row runs out carries the
+      // text; the rest stay blank rather than repeating it.
+      const say = !config.emptyCellTextOnce || trailingEmptyByRow[row.id] === col.key;
+      return <span className="pub-cell__empty">{say ? config.emptyCellText ?? '—' : ''}</span>;
+    }
     if (col.type === 'url') return <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">View ↗</a>;
 
     // Several alternatives in one cell: each on its own line, with the "or"

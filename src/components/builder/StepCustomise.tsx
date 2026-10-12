@@ -611,9 +611,25 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
                 onChange={(e) => setConfig((c) => ({ ...c, emptyCellText: e.target.value || undefined }))}
               />
               <p className="text-xs text-muted" style={{ marginTop: 4 }}>
-                e.g. “No further step” when a shorter pathway is complete, rather than a dash that
+                e.g. “Optional CPD” where a shorter pathway is complete, rather than a dash that
                 reads as missing data.
               </p>
+              {config.emptyCellText && (
+                <label className="col-editor__check" style={{ marginTop: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={config.emptyCellTextOnce ?? false}
+                    onChange={(e) => setConfig((c) => ({ ...c, emptyCellTextOnce: e.target.checked || undefined }))}
+                  />
+                  <span className="text-sm">
+                    Say it once per row
+                    <span className="text-muted">
+                      {' '}— only on the first empty cell after a row’s last value, so it isn’t
+                      repeated across every remaining column
+                    </span>
+                  </span>
+                </label>
+              )}
             </div>
             <label className="col-editor__check" style={{ marginBottom: config.dataRefresh?.enabled ? 10 : 0 }}>
               <input
