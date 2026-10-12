@@ -7,6 +7,7 @@ import TablePagination from './TablePagination';
 import { computeMergedSpans } from '../../utils/mergedCells';
 import { resolveBadgeStyle } from '../../utils/badgeColors';
 import { showsTickSymbols, tickMarkColor, tickMarkOf } from '../../utils/tickMarks';
+import { cellLines, hasMultipleLines, isOptionSeparator } from '../../utils/cellLines';
 import './InteractiveTable.css';
 
 const PAGE_SIZE = 25;
@@ -223,6 +224,17 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
                           <span className="badge" style={resolveBadgeStyle(col, config, badgeColKeys)}>{val}</span>
                         ) : col.fontColor && val !== '—' ? (
                           <span style={{ color: col.fontColor, fontWeight: 600 }}>{val}</span>
+                        ) : hasMultipleLines(val) ? (
+                          // Several alternatives in one cell, shown as the published page will
+                          <span className="itable__options">
+                            {cellLines(val).map((line, li) =>
+                              isOptionSeparator(line) ? (
+                                <span key={li} className="itable__or">{line.toLowerCase()}</span>
+                              ) : (
+                                <span key={li}>{line}</span>
+                              ),
+                            )}
+                          </span>
                         ) : (
                           val
                         )}

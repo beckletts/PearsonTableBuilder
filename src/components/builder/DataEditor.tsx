@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { TableConfig, TableRow } from '../../lib/types';
 import { parseFile, getSheetNames } from '../../utils/parseFile';
+import { cellLines } from '../../utils/cellLines';
 import './DataEditor.css';
 
 interface Props {
@@ -376,16 +377,31 @@ export default function DataEditor({ tableId, config, initialRows, onSaved }: Pr
                       ✕
                     </button>
                   </td>
-                  {displayCols.map((col) => (
-                    <td key={col.key}>
-                      <input
-                        className="data-editor__cell-input"
-                        type="text"
-                        value={String(row[col.key] ?? '')}
-                        onChange={(e) => updateCell(rowIdx, col.key, e.target.value)}
-                      />
-                    </td>
-                  ))}
+                  {displayCols.map((col) => {
+                    const value = String(row[col.key] ?? '');
+                    // A cell listing alternatives on separate lines needs a box
+                    // that can hold them — a text input would drop the breaks
+                    // the moment it was edited.
+                    return (
+                      <td key={col.key}>
+                        {value.includes('\n') ? (
+                          <textarea
+                            className="data-editor__cell-input data-editor__cell-input--multi"
+                            rows={Math.min(cellLines(value).length, 6)}
+                            value={value}
+                            onChange={(e) => updateCell(rowIdx, col.key, e.target.value)}
+                          />
+                        ) : (
+                          <input
+                            className="data-editor__cell-input"
+                            type="text"
+                            value={value}
+                            onChange={(e) => updateCell(rowIdx, col.key, e.target.value)}
+                          />
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}

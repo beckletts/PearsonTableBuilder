@@ -5,6 +5,7 @@ import { trackEvent } from '../../lib/analytics';
 import { computeMergedSpans } from '../../utils/mergedCells';
 import { badgeLegendIsRedundant, resolveBadgeStyle } from '../../utils/badgeColors';
 import { showsTickSymbols, tickMarkColor, tickMarkOf, tickOnlyColumnKeys } from '../../utils/tickMarks';
+import { cellLines, hasMultipleLines, isOptionSeparator } from '../../utils/cellLines';
 import './PublicTableView.css';
 
 const BATCH = 50;
@@ -180,8 +181,24 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
   const renderCell = (col: ColumnConfig, row: TableRow) => {
     const raw = row.data[col.key];
     const val = raw !== null && raw !== undefined ? String(raw).replace(/​/g, '').trim() : '';
-    if (!val) return <span style={{ color: '#bbb' }}>—</span>;
+    if (!val) return <span className="pub-cell__empty">{config.emptyCellText ?? '—'}</span>;
     if (col.type === 'url') return <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">View ↗</a>;
+
+    // Several alternatives in one cell: each on its own line, with the "or"
+    // between them kept quiet so the options themselves lead.
+    if (hasMultipleLines(val)) {
+      return (
+        <span className="pub-cell__options">
+          {cellLines(val).map((line, i) =>
+            isOptionSeparator(line) ? (
+              <span key={i} className="pub-cell__or">{line.toLowerCase()}</span>
+            ) : (
+              <span key={i} className="pub-cell__option">{line}</span>
+            ),
+          )}
+        </span>
+      );
+    }
 
     // A tick or a cross is the answer to the column, so it is coloured by what
     // it says — green for yes, red for no — ahead of anything its column type

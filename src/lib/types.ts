@@ -62,6 +62,7 @@ export interface TableConfig {
     tickColor?: string;
     crossColor?: string;
   };
+  emptyCellText?: string;      // what an empty cell shows; defaults to an em dash
   searchPlaceholder?: string;
   stickyHeader?: boolean;
   hideLogo?: boolean;

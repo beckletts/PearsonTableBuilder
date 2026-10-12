@@ -597,6 +597,24 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
               />
               <span className="text-sm font-600">Show results only after a search or filter</span>
             </label>
+
+            {/* What an empty cell says — a dash reads as "nothing here", which is
+                wrong when the blank means something, e.g. a pathway that ends. */}
+            <div className="input-group" style={{ marginTop: 12 }}>
+              <label className="input-label text-sm font-600" data-tooltip="Shown wherever a cell has no value. Leave as — unless a blank means something specific in your data.">
+                Empty cells show
+              </label>
+              <input
+                className="input"
+                value={config.emptyCellText ?? ''}
+                placeholder="—"
+                onChange={(e) => setConfig((c) => ({ ...c, emptyCellText: e.target.value || undefined }))}
+              />
+              <p className="text-xs text-muted" style={{ marginTop: 4 }}>
+                e.g. “No further step” when a shorter pathway is complete, rather than a dash that
+                reads as missing data.
+              </p>
+            </div>
             <label className="col-editor__check" style={{ marginBottom: config.dataRefresh?.enabled ? 10 : 0 }}>
               <input
                 type="checkbox"
