@@ -57,6 +57,13 @@ export interface TableConfig {
   };
   filterOrder?: string[];
   badgeColor?: string;         // one pill colour for every badge column; unset means a colour per column
+  tickMarks?: {                // how ✓ and ✗ values are shown, whatever their column's type
+    style?: 'symbol' | 'badge';  // 'symbol' (default) colours them green/red; 'badge' leaves them as pills
+    tickColor?: string;
+    crossColor?: string;
+  };
+  emptyCellText?: string;      // what an empty cell shows; defaults to an em dash
+  emptyCellTextOnce?: boolean; // show that text only on the first empty cell after a row's last value
   searchPlaceholder?: string;
   stickyHeader?: boolean;
   hideLogo?: boolean;

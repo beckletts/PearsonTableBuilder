@@ -2,10 +2,28 @@ import { useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { parseFile, getSheetNames } from '../../utils/parseFile';
 import { findUnreadableValues } from '../../utils/encoding';
+import { cellLines, isOptionSeparator } from '../../utils/cellLines';
 import type { ParsedFile, TableConfig } from '../../lib/types';
 import './StepUpload.css';
 
 const PDF_MAX_BYTES = 4 * 1024 * 1024; // 4 MB — keeps base64 payload under Netlify's 6 MB limit
+
+/**
+ * One preview cell. Rows here are clipped to a single line to keep the preview
+ * compact, which would make a cell listing several options look as though only
+ * the first survived — so a cell like that leads with how many it holds, where
+ * the clipping can't reach it.
+ */
+function previewCell(value: string) {
+  const options = cellLines(value).filter((line) => !isOptionSeparator(line));
+  if (options.length < 2) return value;
+  return (
+    <>
+      <span className="step-upload__count">{options.length} options</span>
+      {options[0]}
+    </>
+  );
+}
 
 interface Props {
   onParsed: (data: ParsedFile, config?: TableConfig) => void;
@@ -294,7 +312,9 @@ export default function StepUpload({ onParsed }: Props) {
               </thead>
               <tbody>
                 {preview.rows.slice(0, 5).map((row, i) => (
-                  <tr key={i}>{preview.headers.map((h) => <td key={h}>{row[h] ?? ''}</td>)}</tr>
+                  <tr key={i}>
+                    {preview.headers.map((h) => <td key={h}>{previewCell(row[h] ?? '')}</td>)}
+                  </tr>
                 ))}
               </tbody>
             </table>

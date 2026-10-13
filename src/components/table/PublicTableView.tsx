@@ -4,6 +4,9 @@ import { ORIGINAL_ORDER } from '../../lib/types';
 import { trackEvent } from '../../lib/analytics';
 import { computeMergedSpans } from '../../utils/mergedCells';
 import { badgeLegendIsRedundant, resolveBadgeStyle } from '../../utils/badgeColors';
+import { showsTickSymbols, tickMarkColor, tickMarkOf, tickOnlyColumnKeys } from '../../utils/tickMarks';
+import { cellLines, hasMultipleLines, isOptionSeparator } from '../../utils/cellLines';
+import { firstTrailingEmptyByRow } from '../../utils/emptyCells';
 import './PublicTableView.css';
 
 const BATCH = 50;
@@ -37,11 +40,29 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
   const filterCols   = useMemo(() => visibleCols.filter((c) => c.filterable), [visibleCols]);
   const badgeCols    = useMemo(() => visibleCols.filter((c) => c.type === 'badge'), [visibleCols]);
   const badgeColKeys = useMemo(() => badgeCols.map((c) => c.key), [badgeCols]);
+
+  // Where each row runs out of values, for the "say it once" empty-cell text.
+  const trailingEmptyByRow = useMemo(
+    () => (config.emptyCellTextOnce ? firstTrailingEmptyByRow(rows, visibleCols.map((c) => c.key)) : {}),
+    [config.emptyCellTextOnce, rows, visibleCols],
+  );
+
+  const tickSymbols  = showsTickSymbols(config);
+  // A badge column holding only ticks and crosses renders as green and red
+  // symbols, so it has no pill colour for the guide to explain.
+  const tickOnlyKeys = useMemo(
+    () => (tickSymbols ? tickOnlyColumnKeys(badgeColKeys, rows) : new Set<string>()),
+    [tickSymbols, badgeColKeys, rows],
+  );
+  const legendCols   = useMemo(
+    () => badgeCols.filter((c) => !tickOnlyKeys.has(c.key)),
+    [badgeCols, tickOnlyKeys],
+  );
   // The badge guide maps a colour to a column, so it says nothing once several
   // badge columns share one colour.
   const legendIsRedundant = useMemo(
-    () => badgeLegendIsRedundant(badgeCols, config),
-    [badgeCols, config],
+    () => badgeLegendIsRedundant(legendCols, config),
+    [legendCols, config],
   );
   const searchCols   = useMemo(() => config.columns.filter((c) => c.searchable).map((c) => c.key), [config.columns]);
 
@@ -164,18 +185,45 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
     URL.revokeObjectURL(url);
   };
 
-  const TICK_CHARS  = new Set(['✓', '✔', '✅']);
-  const CROSS_CHARS = new Set(['✗', '✘', '❌', 'x', 'X']);
-
   const renderCell = (col: ColumnConfig, row: TableRow) => {
     const raw = row.data[col.key];
     const val = raw !== null && raw !== undefined ? String(raw).replace(/​/g, '').trim() : '';
-    if (!val) return <span style={{ color: '#bbb' }}>—</span>;
+    if (!val) {
+      // With "once per row" on, only the cell where the row runs out carries the
+      // text; the rest stay blank rather than repeating it.
+      const say = !config.emptyCellTextOnce || trailingEmptyByRow[row.id] === col.key;
+      return <span className="pub-cell__empty">{say ? config.emptyCellText ?? '—' : ''}</span>;
+    }
     if (col.type === 'url') return <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">View ↗</a>;
+
+    // Several alternatives in one cell: each on its own line, with the "or"
+    // between them kept quiet so the options themselves lead.
+    if (hasMultipleLines(val)) {
+      return (
+        <span className="pub-cell__options">
+          {cellLines(val).map((line, i) =>
+            isOptionSeparator(line) ? (
+              <span key={i} className="pub-cell__or">{line.toLowerCase()}</span>
+            ) : (
+              <span key={i} className="pub-cell__option">{line}</span>
+            ),
+          )}
+        </span>
+      );
+    }
+
+    // A tick or a cross is the answer to the column, so it is coloured by what
+    // it says — green for yes, red for no — ahead of anything its column type
+    // would otherwise do to it.
+    const mark = tickSymbols ? tickMarkOf(val) : null;
+    if (mark) {
+      return (
+        <span style={{ color: tickMarkColor(mark, config), fontWeight: 700, fontSize: '1.1em' }}>{val}</span>
+      );
+    }
+
     if (col.type === 'badge') return <span className="pub-badge" style={resolveBadgeStyle(col, config, badgeColKeys)}>{val}</span>;
     if (col.fontColor) return <span style={{ color: col.fontColor, fontWeight: 600 }}>{val}</span>;
-    if (TICK_CHARS.has(val))  return <span style={{ color: '#22A051', fontWeight: 700, fontSize: '1.1em' }}>{val}</span>;
-    if (CROSS_CHARS.has(val)) return <span style={{ color: '#D0021B', fontWeight: 700, fontSize: '1.1em' }}>{val}</span>;
     return val;
   };
 
@@ -346,11 +394,11 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
           </div>
         )}
 
-        {badgeCols.length > 0 && !legendIsRedundant && (
+        {legendCols.length > 0 && !legendIsRedundant && (
           <div className="pub-view__legend">
             <h3 className="pub-view__legend-title">Result Badge Guide</h3>
             <div className="pub-view__legend-items">
-              {badgeCols.map((col) => (
+              {legendCols.map((col) => (
                 <div key={col.key} className="pub-view__legend-item">
                   <span className="pub-badge pub-badge--legend" style={resolveBadgeStyle(col, config, badgeColKeys)}>&nbsp;&nbsp;&nbsp;&nbsp;</span>
                   <span className="pub-view__legend-label">{col.label}</span>

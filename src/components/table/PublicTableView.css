@@ -720,3 +720,28 @@
   .pub-widget-stats { flex-direction: column; }
   .pub-widget-stat { min-width: unset; }
 }
+
+/* ── Cells holding several alternatives ─────────────────────────────────── */
+/* Each option on its own line, so a list of choices reads as a list. */
+.pub-cell__options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pub-cell__option { display: block; }
+
+/* The "or" between options — present, but never competing with them */
+.pub-cell__or {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #8A929A;
+}
+
+.pub-cell__empty { color: #8A929A; }
+
+/* Card view keeps a cell's own line breaks */
+.pub-card__subtitle,
+.pub-card__desc-box p { white-space: pre-line; }

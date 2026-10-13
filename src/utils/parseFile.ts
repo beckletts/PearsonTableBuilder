@@ -13,13 +13,23 @@ function formatDate(d: Date): string {
   return `${day}/${mon}/${d.getFullYear()}`;
 }
 
-// Coerce any cell value to a clean string
+// Coerce any cell value to a clean string.
+//
+// Line breaks inside a cell are kept: a spreadsheet author uses them to list
+// alternatives ("…Business ⏎ OR ⏎ …Management"), and flattening them to spaces
+// turns a list of options into one unreadable sentence. Runs of blank lines
+// collapse to a single break so the spacing is consistent however the cell was
+// typed.
 function clean(val: unknown): string {
   if (val instanceof Date) return formatDate(val);
   const s = String(val ?? '')
     .replace(/​/g, '')  // zero-width space
     .replace(/ /g, ' ')  // non-breaking space → plain space, so search and filters match
-    .replace(/\n/g, ' ')     // embedded newlines → space
+    .replace(/\r\n?/g, '\n')  // normalise Windows and old Mac line endings
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('\n')
     .trim();
   // Strip Excel error values and unevaluated formula strings
   if (/^#(N\/A|VALUE!|REF!|DIV\/0!|NAME\?|NULL!|NUM!)$/.test(s)) return '';

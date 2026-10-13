@@ -87,3 +87,16 @@
 .itable--pearson .itable__table th:hover  { background: #4a2470; }
 .itable--pearson .itable__table tbody tr:hover { background: #f5f0fa; }
 .itable--pearson .input:focus { border-color: #5B2D86; box-shadow: 0 0 0 3px rgba(91,45,134,0.12); }
+
+/* Cells holding several alternatives — one per line, as published */
+.itable__options {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.itable__or {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}

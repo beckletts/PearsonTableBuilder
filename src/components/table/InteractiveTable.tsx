@@ -6,12 +6,12 @@ import TableFilters from './TableFilters';
 import TablePagination from './TablePagination';
 import { computeMergedSpans } from '../../utils/mergedCells';
 import { resolveBadgeStyle } from '../../utils/badgeColors';
+import { showsTickSymbols, tickMarkColor, tickMarkOf } from '../../utils/tickMarks';
+import { cellLines, hasMultipleLines, isOptionSeparator } from '../../utils/cellLines';
+import { firstTrailingEmptyByRow } from '../../utils/emptyCells';
 import './InteractiveTable.css';
 
 const PAGE_SIZE = 25;
-
-const TICK_CHARS  = new Set(['✓', '✔', '✅']);
-const CROSS_CHARS = new Set(['✗', '✘', '❌', 'x', 'X']);
 
 interface Props {
   config: TableConfig;
@@ -35,6 +35,19 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
     () => visibleCols.filter((c) => c.type === 'badge').map((c) => c.key),
     [visibleCols],
   );
+
+  const tickSymbols = showsTickSymbols(config);
+
+  // Where each row runs out of values, for the "say it once" empty-cell text.
+  const trailingEmptyByRow = useMemo(
+    () => (config.emptyCellTextOnce ? firstTrailingEmptyByRow(rows, visibleCols.map((c) => c.key)) : {}),
+    [config.emptyCellTextOnce, rows, visibleCols],
+  );
+
+  const emptyTextFor = (row: TableRow, key: string) => {
+    if (config.emptyCellTextOnce && trailingEmptyByRow[row.id] !== key) return '';
+    return config.emptyCellText ?? '—';
+  };
 
   const filterableCols = useMemo(() => {
     const cols = config.columns.filter((c) => c.filterable);
@@ -200,7 +213,8 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
                     const span = mergedSpans[i][col.key];
                     if (span === 0) return null;
                     const raw = row.data[col.key];
-                    const val = raw !== null && raw !== undefined ? String(raw).replace(/​/g, '').trim() : '—';
+                    const val = raw !== null && raw !== undefined ? String(raw).replace(/​/g, '').trim() : '';
+                    const tickMark = val && tickSymbols ? tickMarkOf(val) : null;
                     return (
                       <td
                         key={col.key}
@@ -210,19 +224,31 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
                           span && span > 1 ? 'itable__td--merged' : '',
                         ].filter(Boolean).join(' ')}
                       >
-                        {col.type === 'url' && val !== '—' ? (
+                        {!val ? (
+                          <span className="itable__empty">{emptyTextFor(row, col.key)}</span>
+                        ) : col.type === 'url' ? (
                           <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noreferrer">
                             View ↗
                           </a>
-                        ) : col.type === 'badge' && val !== '—' ? (
+                        ) : tickMark ? (
+                          // Coloured by what it says, ahead of its column's type
+                          <span style={{ color: tickMarkColor(tickMark, config), fontWeight: 700 }}>{val}</span>
+                        ) : col.type === 'badge' ? (
                           // Same colours the published page will use, so the preview is truthful
                           <span className="badge" style={resolveBadgeStyle(col, config, badgeColKeys)}>{val}</span>
-                        ) : col.fontColor && val !== '—' ? (
+                        ) : col.fontColor ? (
                           <span style={{ color: col.fontColor, fontWeight: 600 }}>{val}</span>
-                        ) : TICK_CHARS.has(val) ? (
-                          <span style={{ color: '#007A3D', fontWeight: 700 }}>{val}</span>
-                        ) : CROSS_CHARS.has(val) ? (
-                          <span style={{ color: '#C8001E', fontWeight: 700 }}>{val}</span>
+                        ) : hasMultipleLines(val) ? (
+                          // Several alternatives in one cell, shown as the published page will
+                          <span className="itable__options">
+                            {cellLines(val).map((line, li) =>
+                              isOptionSeparator(line) ? (
+                                <span key={li} className="itable__or">{line.toLowerCase()}</span>
+                              ) : (
+                                <span key={li}>{line}</span>
+                              ),
+                            )}
+                          </span>
                         ) : (
                           val
                         )}
