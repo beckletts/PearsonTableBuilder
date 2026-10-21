@@ -9,6 +9,7 @@ import { resolveBadgeStyle } from '../../utils/badgeColors';
 import { showsTickSymbols, tickMarkColor, tickMarkOf } from '../../utils/tickMarks';
 import { cellLines, hasMultipleLines, isOptionSeparator } from '../../utils/cellLines';
 import { firstTrailingEmptyByRow } from '../../utils/emptyCells';
+import { columnWidthStyle, hasColumnWidths } from '../../utils/columnWidths';
 import './InteractiveTable.css';
 
 const PAGE_SIZE = 25;
@@ -37,6 +38,7 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
   );
 
   const tickSymbols = showsTickSymbols(config);
+  const fixedLayout = hasColumnWidths(config.columns);
 
   // Where each row runs out of values, for the "say it once" empty-cell text.
   const trailingEmptyByRow = useMemo(
@@ -180,7 +182,12 @@ export default function InteractiveTable({ config, rows, variant = 'default' }: 
       </div>
 
       <div className="itable__scroll">
-        <table className="itable__table">
+        <table className={`itable__table${fixedLayout ? ' itable__table--fixed' : ''}`}>
+          {fixedLayout && (
+            <colgroup>
+              {visibleCols.map((col) => <col key={col.key} style={columnWidthStyle(col)} />)}
+            </colgroup>
+          )}
           <thead>
             <tr>
               {visibleCols.map((col) => (

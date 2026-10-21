@@ -7,6 +7,7 @@ import { badgeLegendIsRedundant, resolveBadgeStyle } from '../../utils/badgeColo
 import { showsTickSymbols, tickMarkColor, tickMarkOf, tickOnlyColumnKeys } from '../../utils/tickMarks';
 import { cellLines, hasMultipleLines, isOptionSeparator } from '../../utils/cellLines';
 import { firstTrailingEmptyByRow } from '../../utils/emptyCells';
+import { columnWidthStyle, hasColumnWidths } from '../../utils/columnWidths';
 import './PublicTableView.css';
 
 const BATCH = 50;
@@ -46,6 +47,10 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
     () => (config.emptyCellTextOnce ? firstTrailingEmptyByRow(rows, visibleCols.map((c) => c.key)) : {}),
     [config.emptyCellTextOnce, rows, visibleCols],
   );
+
+  // Any width set puts the table on fixed layout, where the widths are honoured
+  // and the columns without one share what is left.
+  const fixedLayout  = hasColumnWidths(config.columns);
 
   const tickSymbols  = showsTickSymbols(config);
   // A badge column holding only ticks and crosses renders as green and red
@@ -475,7 +480,12 @@ export default function PublicTableView({ config, rows, tableId }: Props) {
         {viewMode === 'card' && cardWidget ? renderCardGrid() : (
           <>
             <div className={`pub-view__table-scroll${config.stickyHeader ? ' pub-view__table-scroll--sticky' : ''}`}>
-              <table className="pub-view__table">
+              <table className={`pub-view__table${fixedLayout ? ' pub-view__table--fixed' : ''}`}>
+                {fixedLayout && (
+                  <colgroup>
+                    {visibleCols.map((col) => <col key={col.key} style={columnWidthStyle(col)} />)}
+                  </colgroup>
+                )}
                 <thead>
                   <tr>
                     {visibleCols.map((col) => (

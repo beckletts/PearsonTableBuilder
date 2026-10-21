@@ -11,6 +11,7 @@ export interface ColumnConfig {
   filterPlaceholder?: string;  // default option text, e.g. "All Universities"
   fontColor?: string;          // optional hex colour applied to all cell values in this column
   badgeColor?: string;         // badge columns only: this column's pill colour, overriding the automatic palette
+  width?: number;              // share of the table's width, as a percentage; unset shares what's left
   truncate?: boolean;          // clip long text to one line with ellipsis; full value shown on hover
   merge?: boolean;             // visually merge a blank cell with the filled cell above it (rowSpan), for grouped rows e.g. Raw/UMS pairs
 }

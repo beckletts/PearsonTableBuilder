@@ -7,6 +7,7 @@ import { findFileHeader, removeColumn } from '../../utils/reconcileColumns';
 import { DEFAULT_SINGLE_BADGE_COLOR, resolveBadgeStyle } from '../../utils/badgeColors';
 import BadgeColorPicker from './BadgeColorPicker';
 import { DEFAULT_CROSS_COLOR, DEFAULT_TICK_COLOR, tickMarkOf } from '../../utils/tickMarks';
+import { clearWidths, evenWidths, isWidthSet, normaliseWidth, summariseWidths } from '../../utils/columnWidths';
 import type { ColumnConfig, ParsedFile, TableConfig, Widget } from '../../lib/types';
 import { ORIGINAL_ORDER } from '../../lib/types';
 import ColumnEditor from './ColumnEditor';
@@ -206,6 +207,19 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
   const badgeCols = config.columns.filter((c) => c.visible && c.type === 'badge');
   const badgeColKeys = badgeCols.map((c) => c.key);
 
+  // Widths apply to the columns a viewer can see.
+  const widthCols = config.columns.filter((c) => c.visible);
+  const widthSummary = summariseWidths(config.columns);
+
+  const setColumnWidth = (key: string, raw: string) => {
+    const width = raw.trim() === '' ? undefined : normaliseWidth(Number(raw));
+    if (width !== undefined && Number.isNaN(width)) return;
+    setConfig((c) => ({
+      ...c,
+      columns: c.columns.map((col) => (col.key === key ? { ...col, width } : col)),
+    }));
+  };
+
   // Only worth offering when the data has ticks or crosses to colour.
   const hasTickMarks = previewRows.some((r) =>
     Object.values(r.data).some((v) => tickMarkOf(String(v ?? ''))),
@@ -359,6 +373,69 @@ export default function StepCustomise({ parsed, config: initialConfig, onBack, e
               </div>
             </div>
           )}
+
+          {/* ── Column widths ── */}
+          <div className="card" style={{ marginTop: 16, padding: 16 }}>
+            <p className="text-sm font-600" style={{ marginBottom: 4 }}>Column widths</p>
+            <p className="text-xs text-muted" style={{ marginBottom: 10 }}>
+              Left alone, each column is sized by how much text it holds — which can leave a column
+              of long names hogging the table. Set a share of the width for any column you want to
+              pin down; the rest divide what’s left.
+            </p>
+
+            <div className="sc-badge-rows" style={{ marginLeft: 0 }}>
+              {widthCols.map((col) => (
+                <div key={col.key} className="sc-badge-row">
+                  <span className="sc-badge-row__label">{col.label}</span>
+                  <div className="sc-width-input">
+                    <input
+                      className="input"
+                      type="number"
+                      min={1}
+                      max={100}
+                      step={1}
+                      value={isWidthSet(col.width) ? col.width : ''}
+                      placeholder="auto"
+                      aria-label={`Width of the ${col.label} column, as a percentage`}
+                      onChange={(e) => setColumnWidth(col.key, e.target.value)}
+                    />
+                    <span className="sc-width-unit">%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-xs" style={{ marginTop: 10, color: widthSummary.over ? '#C25100' : 'var(--color-text-muted)' }}>
+              {widthSummary.over ? (
+                <>
+                  ⚠ Widths add up to {widthSummary.claimed}%, over the width of the table — browsers
+                  will scale them down to fit. Bring the total to 100% or less for the widths to be
+                  used as typed.
+                </>
+              ) : widthSummary.claimed === 0 ? (
+                <>Every column sized by its content.</>
+              ) : widthSummary.autoCount > 0 ? (
+                <>
+                  Set: {widthSummary.claimed}%. The remaining {100 - widthSummary.claimed}% is split
+                  between {widthSummary.autoCount}{' '}
+                  {widthSummary.autoCount === 1 ? 'column' : 'columns'}, about {widthSummary.perAuto}% each.
+                </>
+              ) : (
+                <>Set: {widthSummary.claimed}% across every column.</>
+              )}
+            </p>
+
+            <div style={{ display: 'flex', gap: 14, marginTop: 8 }}>
+              <button className="sc-inline-action" onClick={() => setConfig((c) => ({ ...c, columns: evenWidths(c.columns) }))}>
+                Space them evenly
+              </button>
+              {widthSummary.claimed > 0 && (
+                <button className="sc-inline-action" onClick={() => setConfig((c) => ({ ...c, columns: clearWidths(c.columns) }))}>
+                  Back to automatic
+                </button>
+              )}
+            </div>
+          </div>
 
           {/* ── Ticks and crosses ── */}
           {hasTickMarks && (

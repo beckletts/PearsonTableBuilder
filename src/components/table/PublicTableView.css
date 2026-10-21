@@ -285,7 +285,7 @@
 .pub-view__table td {
   padding: 11px 16px;
   color: #0D004D;
-  vertical-align: middle;
+  vertical-align: top;  /* a short cell sits level with a tall neighbour, not adrift in it */
 }
 
 .pub-view__td--merged {
@@ -745,3 +745,24 @@
 /* Card view keeps a cell's own line breaks */
 .pub-card__subtitle,
 .pub-card__desc-box p { white-space: pre-line; }
+
+/* ── Set column widths ──────────────────────────────────────────────────── */
+/* Fixed layout honours the widths; columns without one share what is left.
+   Headers have to wrap here, since under fixed layout a nowrap heading would
+   spill over the column beside it. */
+.pub-view__table--fixed { table-layout: fixed; }
+
+.pub-view__table--fixed th {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.pub-view__table--fixed td { overflow-wrap: anywhere; }
+
+/* A pill is normally kept on one line, which under fixed layout would spill
+   over the column beside it — inside a sized column it wraps instead. */
+.pub-view__table--fixed .pub-badge {
+  white-space: normal;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
