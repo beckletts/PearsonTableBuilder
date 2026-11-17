@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import PearsonNav from '../components/layout/PearsonNav';
 import AdminReassignModal from './AdminReassignModal';
+import AdminUserTablesModal from './AdminUserTablesModal';
 import './AdminPage.css';
 
 interface UserStat {
@@ -42,6 +43,7 @@ export default function AdminPage({ user }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [reassign, setReassign] = useState<UserStat | null>(null);
+  const [viewing, setViewing] = useState<UserStat | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -176,6 +178,11 @@ export default function AdminPage({ user }: Props) {
                       <td className="admin-table__num">{u.dashboard_count}</td>
                       <td className="admin-table__num">{Number(u.total_views).toLocaleString()}</td>
                       <td className="admin-table__num">
+                        {Number(u.table_count) > 0 && (
+                          <button className="btn btn-ghost btn-sm" onClick={() => setViewing(u)}>
+                            View tables
+                          </button>
+                        )}
                         {(Number(u.table_count) + Number(u.dashboard_count)) > 0 && (
                           <button className="btn btn-ghost btn-sm" onClick={() => setReassign(u)}>
                             Reassign
@@ -190,6 +197,14 @@ export default function AdminPage({ user }: Props) {
           )}
         </div>
       </main>
+
+      {viewing && (
+        <AdminUserTablesModal
+          userId={viewing.user_id}
+          userLabel={viewing.full_name || viewing.email || viewing.user_id}
+          onClose={() => setViewing(null)}
+        />
+      )}
 
       {reassign && (
         <AdminReassignModal
